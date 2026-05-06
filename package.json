@@ -1,0 +1,16 @@
+{
+  "name": "switchyomega",
+  "version": "2.5.21",
+  "private": true,
+  "description": "SwitchyOmega browser extension monorepo",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
