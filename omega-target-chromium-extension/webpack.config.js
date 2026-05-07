@@ -4,10 +4,21 @@ const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 const isProduction = process.env.BUILD === "release";
 
+const tsRule = {
+  test: /\.ts$/,
+  use: {
+    loader: "ts-loader",
+    options: {
+      transpileOnly: true,
+      compilerOptions: { target: "ES5", module: "commonjs" },
+    },
+  },
+};
+
 // CommonJS build for workspace-internal use
 const commonjsConfig = {
   mode: isProduction ? "production" : "development",
-  entry: "./index.coffee",
+  entry: "./index.ts",
   target: "node",
   output: {
     path: __dirname,
@@ -15,10 +26,10 @@ const commonjsConfig = {
     library: { type: "commonjs2" },
   },
   resolve: {
-    extensions: [".coffee", ".js"],
+    extensions: [".ts", ".js"],
   },
   module: {
-    rules: [{ test: /\.coffee$/, use: "coffee-loader" }],
+    rules: [tsRule],
   },
   externals: {
     "omega-pac": "commonjs omega-pac",
@@ -34,7 +45,7 @@ const commonjsConfig = {
 // UMD standalone build for browser extension
 const umdConfig = {
   mode: isProduction ? "production" : "development",
-  entry: "./index.coffee",
+  entry: "./index.ts",
   target: "web",
   output: {
     path: path.join(__dirname, "build", "js"),
@@ -45,11 +56,11 @@ const umdConfig = {
     },
   },
   resolve: {
-    extensions: [".coffee", ".js"],
+    extensions: [".ts", ".js"],
     fallback: { fs: false, path: false },
   },
   module: {
-    rules: [{ test: /\.coffee$/, use: "coffee-loader" }],
+    rules: [tsRule],
   },
   externals: {
     "omega-pac": {

@@ -151,21 +151,24 @@ importers:
         specifier: ^1.16.0
         version: 1.17.1
     devDependencies:
+      '@types/bluebird':
+        specifier: ^3.5.42
+        version: 3.5.42
+      '@types/chai':
+        specifier: ^5.2.3
+        version: 5.2.3
+      '@types/mocha':
+        specifier: ^10.0.10
+        version: 10.0.10
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
       archiver:
         specifier: ^7.0.0
         version: 7.0.1
       chai:
         specifier: ^4.3.0
         version: 4.5.0
-      coffee-loader:
-        specifier: ^4.0.0
-        version: 4.0.0(coffeescript@1.12.7)(webpack@5.106.2)
-      coffee-script:
-        specifier: ^1.12.7
-        version: 1.12.7
-      coffeescript:
-        specifier: ^1.12.7
-        version: 1.12.7
       mocha:
         specifier: ^10.0.0
         version: 10.8.2
@@ -178,6 +181,15 @@ importers:
       terser-webpack-plugin:
         specifier: ^5.3.0
         version: 5.5.0(webpack@5.106.2)
+      ts-loader:
+        specifier: ^9.5.7
+        version: 9.5.7(typescript@5.9.3)(webpack@5.106.2)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
       webpack:
         specifier: ^5.90.0
         version: 5.106.2(webpack-cli@5.1.4)
@@ -1020,13 +1032,6 @@ packages:
   clone-deep@4.0.1:
     resolution: {integrity: sha512-neHB9xuzh/wk0dIHweyAXv2aPGZIVk3pLMe+/RNzINf17fe0OG96QroktYAUm7SM1PBnzTabaLboqqxDyMU+SQ==}
     engines: {node: '>=6'}
-
-  coffee-loader@4.0.0:
-    resolution: {integrity: sha512-RvgC8c0JwRew5lq3x2J+P4z9Cvan/v91muEvV90VJXcTuJbJQN20taZxfj6/XC4yysA8PInPGpxdB1J9LphLuQ==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      coffeescript: '>= 2.0.0'
-      webpack: ^5.0.0
 
   coffee-script@1.12.7:
     resolution: {integrity: sha512-fLeEhqwymYat/MpTPUjSKHVYYl0ec2mOyALEMLmzr5i1isuG+6jfI2j2d5oBO3VIzgUXgBVIcOT9uH1TFxBckw==}
@@ -3398,11 +3403,6 @@ snapshots:
       is-plain-object: 2.0.4
       kind-of: 6.0.3
       shallow-clone: 3.0.1
-
-  coffee-loader@4.0.0(coffeescript@1.12.7)(webpack@5.106.2):
-    dependencies:
-      coffeescript: 1.12.7
-      webpack: 5.106.2(webpack-cli@5.1.4)
 
   coffee-script@1.12.7: {}
 
