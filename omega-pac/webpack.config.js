@@ -7,7 +7,7 @@ const isProduction = process.env.BUILD === "release";
 // CommonJS build for workspace-internal use
 const commonjsConfig = {
   mode: isProduction ? "production" : "development",
-  entry: "./index.coffee",
+  entry: "./src/index.ts",
   target: "node",
   output: {
     path: __dirname,
@@ -15,10 +15,15 @@ const commonjsConfig = {
     library: { type: "commonjs2" },
   },
   resolve: {
-    extensions: [".coffee", ".js"],
+    extensions: [".ts", ".js"],
   },
   module: {
-    rules: [{ test: /\.coffee$/, use: "coffee-loader" }],
+    rules: [
+      {
+        test: /\.ts$/,
+        use: { loader: "ts-loader", options: { transpileOnly: true } },
+      },
+    ],
   },
   externals: {
     "uglify-js": "commonjs uglify-js",
@@ -28,11 +33,9 @@ const commonjsConfig = {
 };
 
 // UMD standalone build for browser extension.
-// uglify-js is BUNDLED (not externalized) via the shim, matching
-// the original Browserify behavior where the browser entry had no exclude.
 const umdConfig = {
   mode: isProduction ? "production" : "development",
-  entry: "./index.coffee",
+  entry: "./src/index.ts",
   target: "web",
   output: {
     path: __dirname,
@@ -44,7 +47,7 @@ const umdConfig = {
     },
   },
   resolve: {
-    extensions: [".coffee", ".js"],
+    extensions: [".ts", ".js"],
     alias: {
       "uglify-js": path.resolve(__dirname, "uglifyjs-shim.js"),
       "uglify-js-real": path.resolve(__dirname, "uglifyjs.js"),
@@ -52,7 +55,12 @@ const umdConfig = {
     fallback: { fs: false, path: false },
   },
   module: {
-    rules: [{ test: /\.coffee$/, use: "coffee-loader" }],
+    rules: [
+      {
+        test: /\.ts$/,
+        use: { loader: "ts-loader", options: { transpileOnly: true } },
+      },
+    ],
   },
   plugins: [new NodePolyfillPlugin()],
   optimization: {
