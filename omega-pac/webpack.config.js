@@ -21,7 +21,13 @@ const commonjsConfig = {
     rules: [
       {
         test: /\.ts$/,
-        use: { loader: "ts-loader", options: { transpileOnly: true } },
+        use: {
+          loader: "ts-loader",
+          options: {
+            transpileOnly: true,
+            compilerOptions: { target: "ES5", module: "commonjs" },
+          },
+        },
       },
     ],
   },
@@ -58,7 +64,13 @@ const umdConfig = {
     rules: [
       {
         test: /\.ts$/,
-        use: { loader: "ts-loader", options: { transpileOnly: true } },
+        use: {
+          loader: "ts-loader",
+          options: {
+            transpileOnly: true,
+            compilerOptions: { target: "ES5", module: "commonjs" },
+          },
+        },
       },
     ],
   },

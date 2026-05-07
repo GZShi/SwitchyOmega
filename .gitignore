@@ -4,3 +4,5 @@ build/
 tmp/
 *.zip
 *.xpi
+
+.DS_Store
