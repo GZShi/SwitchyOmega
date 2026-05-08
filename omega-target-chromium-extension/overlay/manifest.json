@@ -48,6 +48,7 @@
     "https://*/*",
     "<all_urls>"
   ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' blob: filesystem:; object-src 'self'",
   "commands": {
     "_execute_browser_action": {
       "suggested_key": {

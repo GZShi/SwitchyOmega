@@ -1,0 +1,236 @@
+/* Popup CSS - Ported from src/popup/css/index.css and dialog.css */
+/* Phase A: Keep visual output identical to the original */
+
+/* Layout */
+html, body {
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  min-width: 12em;
+}
+
+.om-hidden {
+  display: none !important;
+}
+
+/* Menu */
+.om-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.om-nav-item {
+  display: block;
+  margin: 2px 0;
+}
+
+.om-nav-item > a > .glyphicon {
+  margin-right: 8px;
+}
+
+.om-nav-item > a {
+  display: block;
+  padding: 5px 25px 5px 8px;
+  border-radius: 4px;
+  line-height: 1.5em;
+  font-size: 1em;
+  color: #337ab7;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.om-nav-item > a:hover {
+  text-decoration: none;
+  background-color: #eee;
+  color: #23527c;
+}
+
+.om-nav-item.om-effective > a {
+  background-color: #d9edf7;
+}
+
+.om-nav-item.om-active > a {
+  color: #fff;
+  background-color: #337ab7;
+}
+
+.om-divider {
+  height: 1px;
+  overflow: hidden;
+  background-color: #E5E5E5;
+}
+
+.om-reqinfo {
+  background-color: #fcf8e3;
+}
+
+.glyphicon-warning-sign {
+  color: #8a6d3b;
+}
+
+/* Dropdown */
+.om-dropdown {
+  display: none;
+  list-style: none;
+  padding: 5px 0;
+  margin: 0 5px !important;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 4px;
+  box-shadow: 0 6px 12px rgba(0,0,0,.175);
+}
+
+.om-open .om-dropdown {
+  display: block;
+}
+
+.om-dropdown .om-nav-item {
+  margin: 0;
+}
+
+.om-dropdown .om-nav-item > a {
+  padding: 3px 20px;
+  line-height: 1.3em;
+  margin: 0;
+}
+
+.om-caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  vertical-align: middle;
+  border-top: 4px solid;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.om-virtual-profile-icon {
+  border: dotted 1px;
+  margin: -1px;
+}
+
+/* Default Edit toggle */
+.om-has-edit {
+  padding-right: 32px;
+  position: relative;
+}
+
+.om-edit-toggle {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  color: #337ab7;
+  display: inline-block;
+  margin: -5px 0;
+  text-align: center;
+  padding: 5px 8px 3px;
+  position: absolute;
+  right: 0;
+}
+
+.om-edit-toggle:hover {
+  background-color: #e6e6e6;
+  border-color: #adadad;
+}
+
+/* Keyboard help */
+.om-keyboard-help {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  border: solid 1px #000;
+  border-radius: 2px;
+  display: inline-block;
+  color: #000;
+  box-shadow: 1px 1px;
+  width: 1em;
+  height: 1em;
+  line-height: 1em;
+  text-align: center;
+  margin-top: -3px;
+}
+
+/* Dialog (for condition form / proxy not controllable) */
+.om-dialog {
+  min-width: 400px;
+  padding: 10px 10px;
+  font-size: 14px;
+}
+
+.om-text-danger {
+  color: #a94442;
+}
+
+.om-dialog-help {
+  display: block;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  color: #737373;
+}
+
+.om-dialog-controls {
+  margin-bottom: 0;
+}
+
+.om-dialog-controls .om-btn-primary {
+  float: right;
+}
+
+/* Buttons */
+.om-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  margin-bottom: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  background-image: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.om-btn-default {
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
+.om-btn-default:hover {
+  background-color: #e6e6e6;
+  border-color: #adadad;
+}
+
+.om-btn-link {
+  font-weight: 400;
+  color: #337ab7;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.om-btn-link:hover {
+  color: #23527c;
+  text-decoration: underline;
+  background-color: transparent;
+}
+
+.om-btn-primary {
+  color: #fff;
+  background-color: #337ab7;
+  border-color: #2e6da4;
+}
+
+.om-btn-primary:hover {
+  color: #fff;
+  background-color: #286090;
+  border-color: #204d74;
+}

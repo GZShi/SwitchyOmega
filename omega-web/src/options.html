@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SwitchyOmega</title>
+  <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="lib/spectrum/spectrum.css">
+
+  <link rel="stylesheet" href="lib/shepherd.js/shepherd-theme-arrows.css">
+</head>
+<body>
+  <div id="app"></div>
+  <!-- omega-pac must load before Vue app for OmegaPac global -->
+  <script src="js/omega_pac.min.js"></script>
+  <!-- omega_target_web must load before Vue app for omegaTarget global -->
+  <script src="js/omega_target_web.js"></script>
+  <script type="module" src="./options/main.ts"></script>
+</body>
+</html>
