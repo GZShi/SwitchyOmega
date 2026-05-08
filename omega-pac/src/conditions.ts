@@ -1,5 +1,5 @@
 const U2 = require("uglify-js");
-const IP = require("ip-address");
+const { Address4, Address6 } = require("ip-address");
 const Url = require("url");
 const { shExp2RegExp, escapeSlash } = require("./shexp_utils");
 const { AttachedCache } = require("./utils");
@@ -7,7 +7,7 @@ const { AttachedCache } = require("./utils");
 // Internal state
 const colonCharCode = ":".charCodeAt(0);
 const localHosts = ["127.0.0.1", "[::1]", "localhost"];
-const ipv6Max = new IP.v6.Address("::/0").endAddress().canonicalForm();
+const ipv6Max = new Address6("::/0").endAddress().canonicalForm();
 let _abbrs: Record<string, string> | null = null;
 
 function requestFromUrl(url: any): {
@@ -193,14 +193,15 @@ function parseIp(ip: string): any {
   if (ip.charCodeAt(0) === "[".charCodeAt(0)) {
     ip = ip.substr(1, ip.length - 2);
   }
-  let addr = new IP.v4.Address(ip);
-  if (!addr.isValid()) {
-    addr = new IP.v6.Address(ip);
-    if (!addr.isValid()) {
+  try {
+    return new Address4(ip);
+  } catch (_e4) {
+    try {
+      return new Address6(ip);
+    } catch (_e6) {
       return null;
     }
   }
-  return addr;
 }
 exports.parseIp = parseIp;
 
@@ -687,9 +688,9 @@ _conditionTypes["IpCondition"] = {
     cache.normalized = normalizeIp(cache.addr);
     let mask: any;
     if (cache.addr.v4) {
-      mask = new IP.v4.Address("255.255.255.255/" + cache.addr.subnetMask);
+      mask = new Address4("255.255.255.255/" + cache.addr.subnetMask);
     } else {
-      mask = new IP.v6.Address(ipv6Max + "/" + cache.addr.subnetMask);
+      mask = new Address6(ipv6Max + "/" + cache.addr.subnetMask);
     }
     cache.mask = normalizeIp(mask.startAddress());
     return cache;

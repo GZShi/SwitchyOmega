@@ -5,8 +5,6 @@ declare var chrome: any;
 declare var browser: any;
 
 const OmegaTargetCurrent = Object.create(OmegaTargetChromium);
-const Promise = OmegaTargetCurrent.Promise;
-Promise.longStackTraces();
 
 OmegaTargetCurrent.Log = Object.create(OmegaTargetCurrent.Log);
 const Log = OmegaTargetCurrent.Log;
@@ -32,35 +30,51 @@ Log.error = function (...args: any[]): void {
   _writeLogToLocalStorage("ERROR: " + content + "\n");
 };
 
-const unhandledPromises: any[] = [];
+const unhandledPromises: PromiseRejectionEvent[] = [];
 const unhandledPromisesId: number[] = [];
 let unhandledPromisesNextId = 1;
 
-Promise.onPossiblyUnhandledRejection(function (reason: any, promise: any): void {
-  Log.error("[" + unhandledPromisesNextId + "] Unhandled rejection:\n", reason);
-  unhandledPromises.push(promise);
-  unhandledPromisesId.push(unhandledPromisesNextId);
-  unhandledPromisesNextId++;
-});
+self.addEventListener(
+  "unhandledrejection",
+  function (event: PromiseRejectionEvent): void {
+    Log.error(
+      "[" + unhandledPromisesNextId + "] Unhandled rejection:\n",
+      event.reason,
+    );
+    unhandledPromises.push(event);
+    unhandledPromisesId.push(unhandledPromisesNextId);
+    unhandledPromisesNextId++;
+  },
+);
 
-Promise.onUnhandledRejectionHandled(function (promise: any): void {
-  const index = unhandledPromises.indexOf(promise);
-  Log.log("[" + unhandledPromisesId[index] + "] Rejection handled!", promise);
-  unhandledPromises.splice(index, 1);
-  unhandledPromisesId.splice(index, 1);
-});
+self.addEventListener(
+  "rejectionhandled",
+  function (event: PromiseRejectionEvent): void {
+    const index = unhandledPromises.indexOf(event);
+    if (index < 0) return;
+    Log.log(
+      "[" + unhandledPromisesId[index] + "] Rejection handled!",
+      event.promise,
+    );
+    unhandledPromises.splice(index, 1);
+    unhandledPromisesId.splice(index, 1);
+  },
+);
 
 const iconCache: any = {};
 let drawContext: any = null;
 let drawError: any = null;
 
 function drawIcon(resultColor?: string, profileColor?: string): any {
-  const cacheKey = "omega+" + (resultColor != null ? resultColor : "") + "+" + profileColor;
+  const cacheKey =
+    "omega+" + (resultColor != null ? resultColor : "") + "+" + profileColor;
   let icon = iconCache[cacheKey];
   if (icon) return icon;
   try {
     if (drawContext == null) {
-      drawContext = (document.getElementById("canvas-icon") as HTMLCanvasElement).getContext("2d");
+      drawContext = (
+        document.getElementById("canvas-icon") as HTMLCanvasElement
+      ).getContext("2d");
     }
     icon = {};
     for (const size of [16, 19, 24, 32, 38]) {
@@ -74,7 +88,9 @@ function drawIcon(resultColor?: string, profileColor?: string): any {
       drawContext.setTransform(1, 0, 0, 1, 0, 0);
       icon[size] = drawContext.getImageData(0, 0, size, size);
       if (icon[size].data[3] === 255) {
-        throw new Error("Icon drawing blocked by privacy.resistFingerprinting.");
+        throw new Error(
+          "Icon drawing blocked by privacy.resistFingerprinting.",
+        );
       }
     }
   } catch (e) {
@@ -91,7 +107,10 @@ function drawIcon(resultColor?: string, profileColor?: string): any {
 
 const charCodeUnderscore = "_".charCodeAt(0);
 function isHidden(name: string): boolean {
-  return name.charCodeAt(0) === charCodeUnderscore && name.charCodeAt(1) === charCodeUnderscore;
+  return (
+    name.charCodeAt(0) === charCodeUnderscore &&
+    name.charCodeAt(1) === charCodeUnderscore
+  );
 }
 
 function dispName(name: string): string {
@@ -129,12 +148,15 @@ function actionForUrl(url: string): Promise<any> {
             if (isHidden(name)) {
               attached = true;
             } else if (name !== (current as any).defaultProfileName) {
-              details += chrome.i18n.getMessage("browserAction_defaultRuleDetails");
+              details += chrome.i18n.getMessage(
+                "browserAction_defaultRuleDetails",
+              );
               details += " => " + dispName(name) + "\n";
             }
           } else if (result[1].length === 0) {
             if (result[0] === "DIRECT") {
-              details += chrome.i18n.getMessage("browserAction_directResult") + "\n";
+              details +=
+                chrome.i18n.getMessage("browserAction_directResult") + "\n";
               direct = true;
             } else {
               details += result[0] + "\n";
@@ -143,11 +165,12 @@ function actionForUrl(url: string): Promise<any> {
             details += result[1] + " => " + result[0] + "\n";
           } else {
             const condition = condition2Str(
-              result[1].condition != null ? result[1].condition : result[1]
+              result[1].condition != null ? result[1].condition : result[1],
             );
             details += condition + " => ";
             if (result[0] === "DIRECT") {
-              details += chrome.i18n.getMessage("browserAction_directResult") + "\n";
+              details +=
+                chrome.i18n.getMessage("browserAction_directResult") + "\n";
               direct = true;
             } else {
               details += result[0] + "\n";
@@ -160,7 +183,10 @@ function actionForUrl(url: string): Promise<any> {
             details += chrome.i18n.getMessage("browserAction_attachedPrefix");
             attached = false;
           }
-          const condition = result.source != null ? result.source : condition2Str(result.condition);
+          const condition =
+            result.source != null
+              ? result.source
+              : condition2Str(result.condition);
           details += condition + " => " + dispName(result.profileName) + "\n";
         }
       }
@@ -176,7 +202,10 @@ function actionForUrl(url: string): Promise<any> {
       if (direct) {
         resultColor = options.profile("direct").color;
         profileColor = profile.color;
-      } else if (profile.name === current.name && options.isCurrentProfileStatic()) {
+      } else if (
+        profile.name === current.name &&
+        options.isCurrentProfileStatic()
+      ) {
         resultColor = profileColor = profile.color;
         icon = drawIcon(profile.color);
       } else {
@@ -208,7 +237,10 @@ function actionForUrl(url: string): Promise<any> {
 
 // ---- Initialization ----
 const storage = new OmegaTargetCurrent.Storage("local");
-const state = new OmegaTargetCurrent.BrowserStorage(localStorage, "omega.local.");
+const state = new OmegaTargetCurrent.BrowserStorage(
+  localStorage,
+  "omega.local.",
+);
 
 let sync: any = null;
 if (
@@ -225,7 +257,14 @@ if (
 
 const proxyImpl = OmegaTargetCurrent.proxy.getProxyImpl(Log);
 state.set({ proxyImplFeatures: proxyImpl.features });
-const options = new OmegaTargetCurrent.Options(null, storage, state, Log, sync, proxyImpl);
+const options = new OmegaTargetCurrent.Options(
+  null,
+  storage,
+  state,
+  Log,
+  sync,
+  proxyImpl,
+);
 options.externalApi = new OmegaTargetCurrent.ExternalApi(options);
 options.externalApi.listen();
 
@@ -237,7 +276,10 @@ if (chrome.runtime.id !== OmegaTargetCurrent.SwitchySharp.extId) {
 const tabs = new OmegaTargetCurrent.ChromeTabs(actionForUrl);
 tabs.watch();
 
-options._inspect = new OmegaTargetCurrent.Inspect(function (url: string, tab: any): void {
+options._inspect = new OmegaTargetCurrent.Inspect(function (
+  url: string,
+  tab: any,
+): void {
   if (url === tab.url) {
     options.clearBadge();
     tabs.processTab(tab);
@@ -255,7 +297,9 @@ options._inspect = new OmegaTargetCurrent.Inspect(function (url: string, tab: an
       urlDisp = parsedUrl.hostname;
     }
     const title =
-      chrome.i18n.getMessage("browserAction_titleInspect", urlDisp) + "\n" + action.title;
+      chrome.i18n.getMessage("browserAction_titleInspect", urlDisp) +
+      "\n" +
+      action.title;
     chrome.browserAction.setTitle({ title: title, tabId: tab.id });
     tabs.setTabBadge(tab, {
       text: "#",
@@ -277,7 +321,8 @@ proxyImpl.watchProxyChange(function (details: any): void {
   switch (details["levelOfControl"]) {
     case "controlled_by_other_extensions":
     case "not_controllable":
-      const reason = details["levelOfControl"] === "not_controllable" ? "policy" : "app";
+      const reason =
+        details["levelOfControl"] === "not_controllable" ? "policy" : "app";
       options.setProxyNotControllable(reason);
       noRevert = true;
       break;
@@ -295,7 +340,10 @@ proxyImpl.watchProxyChange(function (details: any): void {
   let parsed: any = null;
   timeout = setTimeout(function (): void {
     if (parsed) {
-      options.setExternalProfile(parsed, { noRevert: noRevert, internal: internal });
+      options.setExternalProfile(parsed, {
+        noRevert: noRevert,
+        internal: internal,
+      });
     }
   }, 500);
 
@@ -328,7 +376,11 @@ options.currentProfileChanged = function (reason: string): void {
   let title: string;
   let shortTitle: string;
   if (currentName) {
-    title = chrome.i18n.getMessage("browserAction_titleWithResult", [currentName, "", details]);
+    title = chrome.i18n.getMessage("browserAction_titleWithResult", [
+      currentName,
+      "",
+      details,
+    ]);
     shortTitle = "Omega: " + currentName;
   } else {
     title = details;
@@ -372,20 +424,23 @@ function encodeError(obj: any): any {
 
 function refreshActivePageIfEnabled(): void {
   if (localStorage["omega.local.refreshOnProfileChange"] === "false") return;
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, function (tabs: any[]): void {
-    const url = tabs[0].url;
-    if (!url) return;
-    if (url.substr(0, 6) === "chrome") return;
-    if (url.substr(0, 6) === "about:") return;
-    if (url.substr(0, 4) === "moz-") return;
-    chrome.tabs.reload(tabs[0].id, { bypassCache: true });
-  });
+  chrome.tabs.query(
+    { active: true, lastFocusedWindow: true },
+    function (tabs: any[]): void {
+      const url = tabs[0].url;
+      if (!url) return;
+      if (url.substr(0, 6) === "chrome") return;
+      if (url.substr(0, 6) === "about:") return;
+      if (url.substr(0, 4) === "moz-") return;
+      chrome.tabs.reload(tabs[0].id, { bypassCache: true });
+    },
+  );
 }
 
 chrome.runtime.onMessage.addListener(function (
   request: any,
   _sender: any,
-  respond: (response: any) => void
+  respond: (response: any) => void,
 ): boolean | undefined {
   if (!request || !request.method) return;
   options.ready.then(function (): void {
@@ -404,7 +459,9 @@ chrome.runtime.onMessage.addListener(function (
       return;
     }
 
-    const promise = Promise.resolve().then(() => method.apply(target, request.args));
+    const promise = Promise.resolve().then(() =>
+      method.apply(target, request.args),
+    );
     if (request.refreshActivePage) {
       promise.then(refreshActivePageIfEnabled);
     }

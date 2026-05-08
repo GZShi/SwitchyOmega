@@ -35,9 +35,7 @@ const commonjsConfig = {
     "omega-pac": "commonjs omega-pac",
     "omega-target": "commonjs omega-target",
     "omega-web": "commonjs omega-web",
-    heap: "commonjs heap",
-    xhr: "commonjs xhr",
-    bluebird: "commonjs bluebird",
+    "heap-js": "commonjs heap-js",
   },
   devtool: false,
 };

@@ -1,8 +1,18 @@
-const Promise = require("bluebird");
 const Log = require("./log");
 const Storage = require("./storage");
 const OmegaPac = require("omega-pac");
 const jsondiffpatch = require("jsondiffpatch");
+
+function promiseProps(obj: Record<string, any>): Promise<Record<string, any>> {
+  const keys = Object.keys(obj);
+  return Promise.all(keys.map((key) => Promise.resolve(obj[key]))).then(
+    (values) => {
+      const out: Record<string, any> = {};
+      for (let i = 0; i < keys.length; i++) out[keys[i]] = values[i];
+      return out;
+    },
+  );
+}
 
 class Options {
   _options: any = null;
@@ -103,7 +113,8 @@ class Options {
       this._syncWatchStop = this.sync.watchAndPull(this._storage);
       loadRaw = this.sync
         .copyTo(this._storage)
-        .catch(Storage.StorageUnavailableError, () => {
+        .catch((e: any) => {
+          if (!(e instanceof Storage.StorageUnavailableError)) throw e;
           console.error(
             "Warning: Sync storage is not available in this browser! Disabling options sync.",
           );
@@ -118,9 +129,9 @@ class Options {
     this.optionsLoaded = loadRaw
       .then((opts: any) => this.upgrade(opts))
       .then(([opts, changes]: [any, any]) =>
-        this._storage.apply({ changes: changes }).return(opts),
+        this._storage.apply({ changes: changes }).then(() => opts),
       )
-      .tap((opts: any) => {
+      .then((opts: any) => {
         this._options = opts;
         this._watchStop = this._watch();
         this._state.get({ syncOptions: "" }).then((st: any) => {
@@ -130,6 +141,7 @@ class Options {
             if (!sv.schemaVersion) this._state.set({ syncOptions: "pristine" });
           });
         });
+        return opts;
       })
       .catch((e: any) => {
         if (retry <= 0) return Promise.reject(e);
@@ -396,7 +408,7 @@ class Options {
         delete changes[key];
       }
       return this._storage.set(changes).then(() => {
-        return this._storage.remove(removed).return(this._options);
+        return this._storage.remove(removed).then(() => this._options);
       });
     }
   };
@@ -727,7 +739,7 @@ class Options {
               OmegaPac.Profiles.dropCache(p);
               const ch: Record<string, any> = {};
               ch[key] = p;
-              return this._setOptions(ch).return(p);
+              return Promise.resolve(this._setOptions(ch)).then(() => p);
             } else {
               return profile;
             }
@@ -737,7 +749,7 @@ class Options {
           });
       }
     });
-    return Promise.props(results);
+    return promiseProps(results);
   }
 
   fetchUrl(_url: string, _bypass?: boolean, _hints?: string[]): any {

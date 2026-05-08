@@ -1,5 +1,4 @@
 const Storage = require("./storage");
-const Promise = require("bluebird");
 
 class BrowserStorage extends Storage {
   storage: any;
@@ -27,7 +26,7 @@ class BrowserStorage extends Storage {
         if (key && key.substr(0, prefix.length) === prefix) {
           try {
             map[key.substring(prefix.length)] = JSON.parse(
-              proto.getItem.call(storage, key)
+              proto.getItem.call(storage, key),
             );
           } catch (_e) {
             // Skip unparseable items

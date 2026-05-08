@@ -1,6 +1,5 @@
 const OmegaTarget = require("omega-target");
 const OmegaPac = OmegaTarget.OmegaPac;
-const Promise = OmegaTarget.Promise;
 const ChromePort = require("./chrome_port");
 
 class SwitchySharp {

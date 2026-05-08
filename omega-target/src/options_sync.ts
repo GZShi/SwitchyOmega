@@ -1,9 +1,56 @@
-const Promise = require("bluebird");
 const Storage = require("./storage");
 const Log = require("./log");
 const { Revision } = require("omega-pac");
 const jsondiffpatch = require("jsondiffpatch");
-const TokenBucket = require("limiter").TokenBucket;
+const { TokenBucket: LimiterTokenBucket } = require("limiter");
+
+// Thin wrapper over limiter v3's TokenBucket preserving the legacy callback
+// and positional-args shape used by OptionsSync. The class doubles as an
+// `unlimited bucket` when constructed with no arguments.
+class TokenBucket {
+  _bucket: any;
+
+  constructor(
+    bucketSize?: number,
+    tokensPerInterval?: number,
+    interval?: string | number,
+    parentBucket?: any,
+  ) {
+    this._bucket = new LimiterTokenBucket({
+      bucketSize: bucketSize ?? Number.MAX_SAFE_INTEGER,
+      tokensPerInterval: tokensPerInterval ?? Number.MAX_SAFE_INTEGER,
+      interval: interval ?? "minute",
+      parentBucket: parentBucket ?? null,
+    });
+  }
+
+  get content(): number {
+    return this._bucket.content;
+  }
+
+  removeTokens(
+    count: number,
+    callback?: (err: any, tokens: number) => void,
+  ): any {
+    const promise = this._bucket.removeTokens(count);
+    if (typeof callback === "function") {
+      promise.then(
+        (tokens: number) => callback(null, tokens),
+        (err: any) => callback(err, 0),
+      );
+      return;
+    }
+    return promise;
+  }
+
+  tryRemoveTokens(count: number): boolean {
+    return this._bucket.tryRemoveTokens(count);
+  }
+
+  clear(): void {
+    this._bucket.tryRemoveTokens(this._bucket.content);
+  }
+}
 
 class OptionsSync {
   static TokenBucket = TokenBucket;
@@ -101,7 +148,7 @@ class OptionsSync {
               Object.keys(set).length === 0
                 ? Promise.resolve(0)
                 : (Log.log("OptionsSync::set", set),
-                  this.storage.set(set).return(1));
+                  this.storage.set(set).then(() => 1));
             doSet
               .then((cost: number) => {
                 const s: Record<string, any> = {};
@@ -169,10 +216,8 @@ class OptionsSync {
   }
 
   copyTo(local: any): Promise<void> {
-    return Promise.join(
-      local.get(null),
-      this.storage.get(null),
-      (base: any, changes: any) => {
+    return Promise.all([local.get(null), this.storage.get(null)]).then(
+      ([base, changes]: [any, any]) => {
         for (const key of Object.keys(base)) {
           if (!(key in changes)) {
             if (

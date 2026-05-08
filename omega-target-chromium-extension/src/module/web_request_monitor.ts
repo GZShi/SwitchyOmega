@@ -1,4 +1,4 @@
-const Heap = require("heap");
+const { Heap } = require("heap-js");
 const Url = require("url");
 
 class WebRequestMonitor {
@@ -24,7 +24,9 @@ class WebRequestMonitor {
   constructor(getSummaryId: (req: any) => string) {
     this.getSummaryId = getSummaryId;
     this._requests = {};
-    this._recentRequests = new Heap((a: any, b: any) => a._startTime - b._startTime);
+    this._recentRequests = new Heap(
+      (a: any, b: any) => a._startTime - b._startTime,
+    );
     this._callbacks = [];
     this._tabCallbacks = [];
     this.tabInfo = {};
@@ -39,23 +41,22 @@ class WebRequestMonitor {
     }
     chrome.webRequest.onBeforeRequest.addListener(
       this._requestStart.bind(this),
-      { urls: ["<all_urls>"] }
+      { urls: ["<all_urls>"] },
     );
     chrome.webRequest.onHeadersReceived.addListener(
       this._requestHeadersReceived.bind(this),
-      { urls: ["<all_urls>"] }
+      { urls: ["<all_urls>"] },
     );
     chrome.webRequest.onBeforeRedirect.addListener(
       this._requestRedirected.bind(this),
-      { urls: ["<all_urls>"] }
+      { urls: ["<all_urls>"] },
     );
-    chrome.webRequest.onCompleted.addListener(
-      this._requestDone.bind(this),
-      { urls: ["<all_urls>"] }
-    );
+    chrome.webRequest.onCompleted.addListener(this._requestDone.bind(this), {
+      urls: ["<all_urls>"],
+    });
     chrome.webRequest.onErrorOccurred.addListener(
       this._requestError.bind(this),
-      { urls: ["<all_urls>"] }
+      { urls: ["<all_urls>"] },
     );
     this.watching = true;
   }
@@ -165,23 +166,28 @@ class WebRequestMonitor {
 
     if (chrome.tabs.onReplaced != null) {
       chrome.tabs.onReplaced.addListener((added: any, removed: any) => {
-        if (this.tabInfo[added] == null) this.tabInfo[added] = this._newTabInfo();
+        if (this.tabInfo[added] == null)
+          this.tabInfo[added] = this._newTabInfo();
         delete this.tabInfo[removed];
       });
     }
 
-    chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: any, tab: any) => {
-      if (this.tabInfo[tab.id] == null) this.tabInfo[tab.id] = this._newTabInfo();
-      const info = this.tabInfo[tab.id];
-      if (!info) return;
-      for (const cb of this._tabCallbacks) {
-        cb(tab.id, info, null, "updated");
-      }
-    });
+    chrome.tabs.onUpdated.addListener(
+      (tabId: number, changeInfo: any, tab: any) => {
+        if (this.tabInfo[tab.id] == null)
+          this.tabInfo[tab.id] = this._newTabInfo();
+        const info = this.tabInfo[tab.id];
+        if (!info) return;
+        for (const cb of this._tabCallbacks) {
+          cb(tab.id, info, null, "updated");
+        }
+      },
+    );
 
     chrome.tabs.query({}, (tabs: any[]) => {
       for (const tab of tabs) {
-        if (this.tabInfo[tab.id] == null) this.tabInfo[tab.id] = this._newTabInfo();
+        if (this.tabInfo[tab.id] == null)
+          this.tabInfo[tab.id] = this._newTabInfo();
       }
     });
   }

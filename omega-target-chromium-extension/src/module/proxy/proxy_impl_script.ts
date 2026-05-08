@@ -1,5 +1,4 @@
 const OmegaTarget = require("omega-target");
-const Promise = OmegaTarget.Promise;
 const ProxyImpl = require("./proxy_impl");
 
 class ScriptProxyImpl extends ProxyImpl {
@@ -11,10 +10,14 @@ class ScriptProxyImpl extends ProxyImpl {
 
   static isSupported(): boolean {
     return (
-      (typeof browser !== "undefined" && browser != null &&
-       browser.proxy != null && browser.proxy.register != null) ||
-      (typeof browser !== "undefined" && browser != null &&
-       browser.proxy != null && browser.proxy.registerProxyScript != null)
+      (typeof browser !== "undefined" &&
+        browser != null &&
+        browser.proxy != null &&
+        browser.proxy.register != null) ||
+      (typeof browser !== "undefined" &&
+        browser != null &&
+        browser.proxy != null &&
+        browser.proxy.registerProxyScript != null)
     );
   }
 
@@ -27,7 +30,7 @@ class ScriptProxyImpl extends ProxyImpl {
   applyProfile(profile: any, state: any, options: any): any {
     this.log.error(
       "Your browser is outdated! Full-URL based matching, etc. unsupported! " +
-        "Please update your browser ASAP!"
+        "Please update your browser ASAP!",
     );
     if (state == null) state = {};
     this._options = options;
@@ -54,7 +57,7 @@ class ScriptProxyImpl extends ProxyImpl {
             "Your browser is outdated! SOCKS5 DNS/Auth unsupported! " +
               "Please update your browser ASAP! (Current Build " +
               info.buildID +
-              ")"
+              ")",
           );
           this._proxyScriptState.useLegacyStringReturn = true;
         }
@@ -71,7 +74,7 @@ class ScriptProxyImpl extends ProxyImpl {
           if (err.message.indexOf("Return type must be a string") >= 0) {
             this.log.error(
               "Your browser is outdated! SOCKS5 DNS/Auth unsupported! " +
-                "Please update your browser ASAP!"
+                "Please update your browser ASAP!",
             );
             this._proxyScriptState.useLegacyStringReturn = true;
             this._proxyScriptStateChanged();
@@ -123,7 +126,7 @@ class ScriptProxyImpl extends ProxyImpl {
         state: this._proxyScriptState,
         options: this._options,
       },
-      { toProxyScript: true }
+      { toProxyScript: true },
     );
   }
 }

@@ -1,6 +1,5 @@
 const OmegaTarget = require("omega-target");
 const OmegaPac = OmegaTarget.OmegaPac;
-const Promise = OmegaTarget.Promise;
 const chromeApiPromisify = require("../chrome_api").chromeApiPromisify;
 const ProxyImpl = require("./proxy_impl");
 
@@ -9,8 +8,10 @@ class SettingsProxyImpl extends ProxyImpl {
 
   static isSupported(): boolean {
     return (
-      typeof chrome !== "undefined" && chrome != null &&
-      chrome.proxy != null && chrome.proxy.settings != null
+      typeof chrome !== "undefined" &&
+      chrome != null &&
+      chrome.proxy != null &&
+      chrome.proxy.settings != null
     );
   }
 
@@ -19,7 +20,10 @@ class SettingsProxyImpl extends ProxyImpl {
   applyProfile(profile: any, meta: any, options: any): any {
     if (meta == null) meta = profile;
     if (profile.profileType === "SystemProfile") {
-      return chromeApiPromisify(chrome.proxy.settings, "clear")({}).then(() => {
+      return chromeApiPromisify(
+        chrome.proxy.settings,
+        "clear",
+      )({}).then(() => {
         chrome.proxy.settings.get({}, this._proxyChangeListener);
       });
     }
@@ -46,7 +50,10 @@ class SettingsProxyImpl extends ProxyImpl {
     }
     return this.setProxyAuth(profile, options)
       .then(() => {
-        return chromeApiPromisify(chrome.proxy.settings, "set")({
+        return chromeApiPromisify(
+          chrome.proxy.settings,
+          "set",
+        )({
           value: config,
         });
       })
@@ -77,7 +84,7 @@ class SettingsProxyImpl extends ProxyImpl {
           for (const protocol of protocols) {
             if (rules[protocol] == null) {
               rules[protocol] = JSON.parse(
-                JSON.stringify(profile.fallbackProxy)
+                JSON.stringify(profile.fallbackProxy),
               );
             }
           }
@@ -117,12 +124,14 @@ class SettingsProxyImpl extends ProxyImpl {
     if (this._proxyChangeWatchers == null) {
       this._proxyChangeWatchers = [];
       if (
-        typeof chrome !== "undefined" && chrome != null &&
-        chrome.proxy != null && chrome.proxy.settings != null &&
+        typeof chrome !== "undefined" &&
+        chrome != null &&
+        chrome.proxy != null &&
+        chrome.proxy.settings != null &&
         chrome.proxy.settings.onChange != null
       ) {
         chrome.proxy.settings.onChange.addListener(
-          this._proxyChangeListener.bind(this)
+          this._proxyChangeListener.bind(this),
         );
       }
     }
@@ -182,9 +191,7 @@ class SettingsProxyImpl extends ProxyImpl {
               }
               if (profileName && revision) {
                 const p = OmegaPac.Profiles.byName(profileName, options);
-                if (
-                  OmegaPac.Revision.compare(p.revision, revision) === 0
-                ) {
+                if (OmegaPac.Revision.compare(p.revision, revision) === 0) {
                   return p;
                 }
               }
@@ -207,9 +214,7 @@ class SettingsProxyImpl extends ProxyImpl {
         ];
         const proxies: any = {};
         for (const prop of props) {
-          const result = OmegaPac.Profiles.pacResult(
-            details.value.rules[prop]
-          );
+          const result = OmegaPac.Profiles.pacResult(details.value.rules[prop]);
           if (prop === "singleProxy" && details.value.rules[prop] != null) {
             proxies["fallbackProxy"] = result;
           } else {
@@ -247,9 +252,7 @@ class SettingsProxyImpl extends ProxyImpl {
           if (rules == null) return;
           for (const prop of props) {
             if (rules[prop] || proxies[prop]) {
-              if (
-                OmegaPac.Profiles.pacResult(rules[prop]) !== proxies[prop]
-              )
+              if (OmegaPac.Profiles.pacResult(rules[prop]) !== proxies[prop])
                 return;
             }
           }

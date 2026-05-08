@@ -1,4 +1,4 @@
-const tld = require("tldjs");
+const tld = require("tldts");
 
 exports.Revision = {
   fromTime: (time?: string | number | Date): string => {

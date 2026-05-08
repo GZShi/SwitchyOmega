@@ -1,27 +1,55 @@
 const OmegaTarget = require("omega-target");
-const Promise = OmegaTarget.Promise;
-const xhr = Promise.promisify(require("xhr"));
 const Url = require("url");
 const ContentTypeRejectedError = OmegaTarget.ContentTypeRejectedError;
 
 interface HintHandler {
-  (response: any, body: string, ctx: { contentType: string; hint: string }): string | undefined;
+  (
+    response: { headers: Record<string, string> },
+    body: string,
+    ctx: { contentType: string; hint: string },
+  ): string | undefined;
 }
 
-const xhrWrapper = function (...args: any[]) {
-  return xhr(...args).catch(function (err: any) {
-    if (!err.isOperational) throw err;
-    if (!err.statusCode) throw new OmegaTarget.NetworkError(err);
-    if (err.statusCode === 404) throw new OmegaTarget.HttpNotFoundError(err);
-    if (err.statusCode >= 500 && err.statusCode < 600)
-      throw new OmegaTarget.HttpServerError(err);
-    throw new OmegaTarget.HttpError(err);
-  });
-};
+interface FetchResult {
+  response: { statusCode: number; headers: Record<string, string> };
+  body: string;
+}
 
-const defaultHintHandler: HintHandler = function (response, body, { contentType, hint }) {
+async function httpGet(url: string): Promise<FetchResult> {
+  let res: Response;
+  try {
+    res = await fetch(url, { cache: "no-store", credentials: "omit" });
+  } catch (err: any) {
+    throw new OmegaTarget.NetworkError(err);
+  }
+  const headers: Record<string, string> = {};
+  res.headers.forEach((value, key) => {
+    headers[key.toLowerCase()] = value;
+  });
+  const body = await res.text();
+  const result: FetchResult = {
+    response: { statusCode: res.status, headers },
+    body,
+  };
+  if (res.status >= 200 && res.status < 300) return result;
+  const httpErr: any = new Error(`HTTP ${res.status}`);
+  httpErr.statusCode = res.status;
+  httpErr.body = body;
+  if (res.status === 404) throw new OmegaTarget.HttpNotFoundError(httpErr);
+  if (res.status >= 500 && res.status < 600)
+    throw new OmegaTarget.HttpServerError(httpErr);
+  throw new OmegaTarget.HttpError(httpErr);
+}
+
+const defaultHintHandler: HintHandler = function (
+  _response,
+  body,
+  { contentType, hint },
+) {
   if ("!" + contentType === hint) {
-    throw new ContentTypeRejectedError("Response Content-Type blacklisted: " + contentType);
+    throw new ContentTypeRejectedError(
+      "Response Content-Type blacklisted: " + contentType,
+    );
   }
   if (contentType === hint) return body;
   return undefined;
@@ -32,7 +60,7 @@ const hintHandlers: Record<string, HintHandler> = {
     return body;
   },
 
-  "!text/html": function (response, body, { contentType }) {
+  "!text/html": function (_response, body, { contentType }) {
     if (contentType === "text/html") {
       let looksLikeHtml = false;
       if (body.indexOf("<!DOCTYPE") >= 0 || body.indexOf("<!doctype") >= 0) {
@@ -50,22 +78,26 @@ const hintHandlers: Record<string, HintHandler> = {
   },
 
   "!application/xhtml+xml": function (...args: any[]) {
-    return hintHandlers["!text/html"](...args as any);
+    return hintHandlers["!text/html"](...(args as [any, any, any]));
   },
 
-  "application/x-ns-proxy-autoconfig": function (response, body, { contentType }) {
+  "application/x-ns-proxy-autoconfig": function (
+    _response,
+    body,
+    { contentType },
+  ) {
     if (contentType === "application/x-ns-proxy-autoconfig") return body;
     if (body.indexOf("FindProxyForURL") >= 0) return body;
     return undefined;
   },
 };
 
-function fetchUrl(
+async function fetchUrl(
   dest_url: string,
   opt_bypass_cache?: boolean,
-  opt_type_hints?: string[]
+  opt_type_hints?: string[],
 ): Promise<any> {
-  const getResBody = function ([response, body]: [any, string]) {
+  const getResBody = ({ response, body }: FetchResult): string => {
     if (!opt_type_hints) return body;
     const contentType = (response.headers["content-type"] || "").toLowerCase();
     for (const hint of opt_type_hints) {
@@ -73,7 +105,9 @@ function fetchUrl(
       const result = handler(response, body, { contentType, hint });
       if (result != null) return result;
     }
-    throw new ContentTypeRejectedError("Unrecognized Content-Type: " + contentType);
+    throw new ContentTypeRejectedError(
+      "Unrecognized Content-Type: " + contentType,
+    );
   };
 
   if (opt_bypass_cache && dest_url.indexOf("?") < 0) {
@@ -81,12 +115,13 @@ function fetchUrl(
     parsed.search = undefined;
     parsed.query["_"] = Date.now();
     const dest_url_nocache = Url.format(parsed);
-    return xhrWrapper(dest_url_nocache).then(getResBody).catch(() => {
-      return xhrWrapper(dest_url).then(getResBody);
-    });
-  } else {
-    return xhrWrapper(dest_url).then(getResBody);
+    try {
+      return getResBody(await httpGet(dest_url_nocache));
+    } catch (_e) {
+      return getResBody(await httpGet(dest_url));
+    }
   }
+  return getResBody(await httpGet(dest_url));
 }
 
 module.exports = fetchUrl;

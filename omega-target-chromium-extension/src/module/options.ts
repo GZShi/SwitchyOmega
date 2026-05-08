@@ -1,6 +1,5 @@
 const OmegaTarget = require("omega-target");
 const OmegaPac = OmegaTarget.OmegaPac;
-const Promise = OmegaTarget.Promise;
 const querystring = require("querystring");
 const WebRequestMonitor = require("./web_request_monitor");
 const ChromePort = require("./chrome_port");
@@ -246,9 +245,9 @@ class ChromeOptions extends OmegaTarget.Options {
         }
       }
     }
-    result = result || chrome.i18n.getMessage(
-      "browserAction_profileDetails_DirectProfile"
-    );
+    result =
+      result ||
+      chrome.i18n.getMessage("browserAction_profileDetails_DirectProfile");
     return result;
   }
 
@@ -262,7 +261,9 @@ class ChromeOptions extends OmegaTarget.Options {
     } else if (type === "PacProfile" && profile.pacUrl) {
       return profile.pacUrl;
     } else {
-      return chrome.i18n.getMessage("browserAction_profileDetails_" + type) || null;
+      return (
+        chrome.i18n.getMessage("browserAction_profileDetails_" + type) || null
+      );
     }
   }
 
@@ -293,7 +294,9 @@ class ChromeOptions extends OmegaTarget.Options {
 
         return getOldOptions.then((oldOptions: any) => {
           const i18n: any = {
-            upgrade_profile_auto: chrome.i18n.getMessage("upgrade_profile_auto"),
+            upgrade_profile_auto: chrome.i18n.getMessage(
+              "upgrade_profile_auto",
+            ),
           };
           let upgraded: any;
           try {
@@ -306,7 +309,11 @@ class ChromeOptions extends OmegaTarget.Options {
             Object.getPrototypeOf(localStorage).clear.call(localStorage);
           }
           this._state.set({ firstRun: "upgrade" });
-          return OmegaTarget.Options.prototype.upgrade.call(this, upgraded, upgraded);
+          return OmegaTarget.Options.prototype.upgrade.call(
+            this,
+            upgraded,
+            upgraded,
+          );
         });
       });
   }
@@ -317,7 +324,8 @@ class ChromeOptions extends OmegaTarget.Options {
 
   getPageInfo({ tabId, url }: { tabId: number; url: string }): Promise<any> {
     const errorCount =
-      this._requestMonitor != null && this._requestMonitor.tabInfo[tabId] != null
+      this._requestMonitor != null &&
+      this._requestMonitor.tabInfo[tabId] != null
         ? this._requestMonitor.tabInfo[tabId].errorCount
         : undefined;
     const result = errorCount ? { errorCount: errorCount } : null;
@@ -334,36 +342,40 @@ class ChromeOptions extends OmegaTarget.Options {
 
     const getInspectUrl = this._state.get({ inspectUrl: "" });
 
-    return Promise.join(getBadge, getInspectUrl, (badge: string, st: any) => {
-      let resolvedUrl = url;
-      if (badge === "#" && st.inspectUrl) {
-        resolvedUrl = st.inspectUrl;
-      } else {
-        this.clearBadge();
-      }
-      if (!resolvedUrl) return result;
-      if (resolvedUrl.substr(0, 6) === "chrome") {
-        const errorPagePrefix = "chrome://errorpage/";
-        if (resolvedUrl.substr(0, errorPagePrefix.length) === errorPagePrefix) {
-          resolvedUrl = querystring.parse(
-            resolvedUrl.substr(resolvedUrl.indexOf("?") + 1)
-          ).lasturl;
-          if (!resolvedUrl) return result;
+    return Promise.all([getBadge, getInspectUrl]).then(
+      ([badge, st]: [string, any]) => {
+        let resolvedUrl = url;
+        if (badge === "#" && st.inspectUrl) {
+          resolvedUrl = st.inspectUrl;
         } else {
-          return result;
+          this.clearBadge();
         }
-      }
-      if (resolvedUrl.substr(0, 6) === "about:") return result;
-      if (resolvedUrl.substr(0, 4) === "moz-") return result;
+        if (!resolvedUrl) return result;
+        if (resolvedUrl.substr(0, 6) === "chrome") {
+          const errorPagePrefix = "chrome://errorpage/";
+          if (
+            resolvedUrl.substr(0, errorPagePrefix.length) === errorPagePrefix
+          ) {
+            resolvedUrl = querystring.parse(
+              resolvedUrl.substr(resolvedUrl.indexOf("?") + 1),
+            ).lasturl;
+            if (!resolvedUrl) return result;
+          } else {
+            return result;
+          }
+        }
+        if (resolvedUrl.substr(0, 6) === "about:") return result;
+        if (resolvedUrl.substr(0, 4) === "moz-") return result;
 
-      const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
-      return {
-        url: resolvedUrl,
-        domain: domain,
-        tempRuleProfileName: this.queryTempRule(domain),
-        errorCount: errorCount,
-      };
-    });
+        const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
+        return {
+          url: resolvedUrl,
+          domain: domain,
+          tempRuleProfileName: this.queryTempRule(domain),
+          errorCount: errorCount,
+        };
+      },
+    );
   }
 }
 

@@ -1,6 +1,5 @@
 const chromeApiPromisify = require("./chrome_api").chromeApiPromisify;
 const OmegaTarget = require("omega-target");
-const Promise = OmegaTarget.Promise;
 
 class ChromeStorage extends OmegaTarget.Storage {
   areaName: string;
@@ -24,7 +23,9 @@ class ChromeStorage extends OmegaTarget.Storage {
         err = new OmegaTarget.Storage.RateLimitExceededError();
         if (err.message.indexOf("MAX_WRITE_OPERATIONS_PER_HOUR") >= 0) {
           err.perHour = true;
-        } else if (err.message.indexOf("MAX_WRITE_OPERATIONS_PER_MINUTE") >= 0) {
+        } else if (
+          err.message.indexOf("MAX_WRITE_OPERATIONS_PER_MINUTE") >= 0
+        ) {
           err.perMinute = true;
         }
       } else if (err.message.indexOf(sustainedPerMinute) >= 0) {
@@ -35,7 +36,7 @@ class ChromeStorage extends OmegaTarget.Storage {
         err = new OmegaTarget.Storage.StorageUnavailableError();
       } else if (
         err.message.indexOf(
-          "Please set webextensions.storage.sync.enabled to true"
+          "Please set webextensions.storage.sync.enabled to true",
         ) >= 0
       ) {
         err = new OmegaTarget.Storage.StorageUnavailableError();
@@ -95,14 +96,14 @@ class ChromeStorage extends OmegaTarget.Storage {
   get(keys: any): any {
     if (keys == null) keys = null;
     return Promise.resolve(this.storage.get(keys)).catch(
-      ChromeStorage.parseStorageErrors
+      ChromeStorage.parseStorageErrors,
     );
   }
 
   set(items: Record<string, any>): any {
     if (Object.keys(items).length === 0) return Promise.resolve({});
     return Promise.resolve(this.storage.set(items)).catch(
-      ChromeStorage.parseStorageErrors
+      ChromeStorage.parseStorageErrors,
     );
   }
 
@@ -110,7 +111,7 @@ class ChromeStorage extends OmegaTarget.Storage {
     if (keys == null) return Promise.resolve(this.storage.clear());
     if (Array.isArray(keys) && keys.length === 0) return Promise.resolve({});
     return Promise.resolve(this.storage.remove(keys)).catch(
-      ChromeStorage.parseStorageErrors
+      ChromeStorage.parseStorageErrors,
     );
   }
 

@@ -1,6 +1,5 @@
 const OmegaTarget = require("omega-target");
 const OmegaPac = OmegaTarget.OmegaPac;
-const Promise = OmegaTarget.Promise;
 const ChromePort = require("./chrome_port");
 
 class ExternalApi {
@@ -46,10 +45,7 @@ class ExternalApi {
   }
 
   onMessage(msg: any, port: any): void {
-    this.options.log.log(
-      port.sender.id + " -> " + msg.action,
-      msg
-    );
+    this.options.log.log(port.sender.id + " -> " + msg.action, msg);
     switch (msg.action) {
       case "disable":
         if (!this.checkPerm(port, 16)) return;

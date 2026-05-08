@@ -1,6 +1,5 @@
 const OmegaTarget = require("omega-target");
 const OmegaPac = OmegaTarget.OmegaPac;
-const Promise = OmegaTarget.Promise;
 
 class ProxyAuth {
   _requests: Record<string, any> = {};
@@ -27,15 +26,14 @@ class ProxyAuth {
     chrome.webRequest.onAuthRequired.addListener(
       this.authHandler.bind(this),
       { urls: ["<all_urls>"] },
-      ["blocking"]
+      ["blocking"],
     );
-    chrome.webRequest.onCompleted.addListener(
-      this._requestDone.bind(this),
-      { urls: ["<all_urls>"] }
-    );
+    chrome.webRequest.onCompleted.addListener(this._requestDone.bind(this), {
+      urls: ["<all_urls>"],
+    });
     chrome.webRequest.onErrorOccurred.addListener(
       this._requestDone.bind(this),
-      { urls: ["<all_urls>"] }
+      { urls: ["<all_urls>"] },
     );
     this.listening = true;
   }
@@ -51,7 +49,8 @@ class ProxyAuth {
       if (!profile.auth) continue;
       for (const scheme of OmegaPac.Profiles.schemes) {
         if (!profile[scheme.prop]) continue;
-        const auth = profile.auth != null ? profile.auth[scheme.prop] : undefined;
+        const auth =
+          profile.auth != null ? profile.auth[scheme.prop] : undefined;
         if (!auth) continue;
         const proxy = profile[scheme.prop];
         const key = this._keyForProxy(proxy);
@@ -98,7 +97,12 @@ class ProxyAuth {
     } else {
       proxy = this._fallbacks[req.authTries - listLen];
     }
-    this.log.log("ProxyAuth", key, req.authTries, proxy != null ? proxy.name : null);
+    this.log.log(
+      "ProxyAuth",
+      key,
+      req.authTries,
+      proxy != null ? proxy.name : null,
+    );
 
     if (proxy == null) return {};
     req.authTries++;

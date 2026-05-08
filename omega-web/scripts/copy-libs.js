@@ -102,8 +102,14 @@ const spectrumSrc = path.join(nodeModules, "spectrum-colorpicker");
 if (fs.existsSync(spectrumSrc)) {
   const spectrumDest = path.join(destDir, "spectrum");
   mkdir(spectrumDest);
-  copyFile(path.join(spectrumSrc, "spectrum.js"), path.join(spectrumDest, "spectrum.js"));
-  copyFile(path.join(spectrumSrc, "spectrum.css"), path.join(spectrumDest, "spectrum.css"));
+  copyFile(
+    path.join(spectrumSrc, "spectrum.js"),
+    path.join(spectrumDest, "spectrum.js"),
+  );
+  copyFile(
+    path.join(spectrumSrc, "spectrum.css"),
+    path.join(spectrumDest, "spectrum.css"),
+  );
   console.log("  spectrum-colorpicker → spectrum/");
 }
 
@@ -129,14 +135,19 @@ if (fs.existsSync(fileSaverSrc)) {
   const fileSaverDest = path.join(destDir, "FileSaver");
   mkdir(fileSaverDest);
   copyFile(
-    path.join(fileSaverSrc, "FileSaver.min.js"),
+    path.join(fileSaverSrc, "dist", "FileSaver.min.js"),
     path.join(fileSaverDest, "FileSaver.min.js"),
   );
   console.log("  file-saver → FileSaver/");
 }
 
 // --- jsondiffpatch ---
-const jsondiffpatchSrc = path.join(nodeModules, "jsondiffpatch", "public", "build");
+const jsondiffpatchSrc = path.join(
+  nodeModules,
+  "jsondiffpatch",
+  "public",
+  "build",
+);
 if (fs.existsSync(jsondiffpatchSrc)) {
   const jdpDest = path.join(destDir, "jsondiffpatch");
   mkdir(jdpDest);

@@ -1,5 +1,4 @@
 const OmegaTarget = require("omega-target");
-const Promise = OmegaTarget.Promise;
 const ProxyAuth = require("./proxy_auth");
 const OmegaPac = OmegaTarget.OmegaPac;
 
@@ -28,7 +27,9 @@ class ProxyImpl {
   }
 
   _profileNotFound(name: string): any {
-    this.log.error("Profile " + name + " not found! Things may go very, very wrong.");
+    this.log.error(
+      "Profile " + name + " not found! Things may go very, very wrong.",
+    );
     return OmegaPac.Profiles.create({
       name: name,
       profileType: "VirtualProfile",
@@ -37,7 +38,7 @@ class ProxyImpl {
   }
 
   setProxyAuth(profile: any, options: any): any {
-    return Promise.try(() => {
+    return new Promise<void>((resolve) => {
       if (this._proxyAuth == null) this._proxyAuth = new ProxyAuth(this.log);
       this._proxyAuth.listen();
       const referenced_profiles: any[] = [];
@@ -49,6 +50,7 @@ class ProxyImpl {
         if (p) referenced_profiles.push(p);
       }
       this._proxyAuth.setProxies(referenced_profiles);
+      resolve();
     });
   }
 

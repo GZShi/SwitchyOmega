@@ -1,4 +1,3 @@
-const Promise = require("bluebird");
 const Log = require("./log");
 
 class Storage {
@@ -24,7 +23,10 @@ class Storage {
 
   static operationsForChanges(
     changes: Record<string, any>,
-    opts?: { base?: Record<string, any>; merge?: (key: string, newVal: any, oldVal: any) => any }
+    opts?: {
+      base?: Record<string, any>;
+      merge?: (key: string, newVal: any, oldVal: any) => any;
+    },
   ): { set: Record<string, any>; remove: string[] } {
     const base = opts?.base;
     const merge = opts?.merge;
@@ -106,7 +108,9 @@ class Storage {
     if ("changes" in operations) {
       operations = Storage.operationsForChanges(operations.changes, operations);
     }
-    return this.set(operations.set).then(() => this.remove(operations.remove)).return(operations);
+    return this.set(operations.set)
+      .then(() => this.remove(operations.remove))
+      .then(() => operations);
   }
 }
 

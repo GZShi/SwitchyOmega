@@ -34,7 +34,6 @@ const commonjsConfig = {
     rules: [tsRule],
   },
   externals: {
-    bluebird: "commonjs bluebird",
     jsondiffpatch: "commonjs jsondiffpatch",
     "omega-pac": "commonjs omega-pac",
     limiter: "commonjs limiter",
