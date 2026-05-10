@@ -1,11 +1,11 @@
-const chai = require("chai");
-const should = chai.should();
+import { should as chaiShould } from "chai";
+import * as RuleList from "../src/rule_list";
+
+chaiShould();
 
 describe("RuleList", () => {
-  const RuleList = require("../src/rule_list");
-
   describe("AutoProxy", () => {
-    const parse = RuleList["AutoProxy"].parse;
+    const parse = (RuleList as any)["AutoProxy"].parse;
 
     it("should parse keyword conditions", () => {
       const line = "example.com";
@@ -144,7 +144,7 @@ describe("RuleList", () => {
   });
 
   describe("Switchy", () => {
-    const parse = RuleList["Switchy"].parse;
+    const parse = (RuleList as any)["Switchy"].parse;
 
     const compose = (sections: { [key: string]: string[] }) => {
       let list = "#BEGIN\r\n\r\n";
@@ -284,8 +284,8 @@ describe("RuleList", () => {
   });
 
   describe("Switchy (omega format)", () => {
-    const parse = RuleList["Switchy"].parse;
-    const compose = RuleList["Switchy"].compose;
+    const parse = (RuleList as any)["Switchy"].parse;
+    const compose = (RuleList as any)["Switchy"].compose;
 
     it("should parse empty rule lists", () => {
       const list = compose({ rules: [] });

@@ -1,11 +1,11 @@
-const tld = require("tldts");
+import { getDomain as tldsGetDomain } from "tldts";
 
-exports.Revision = {
-  fromTime: (time?: string | number | Date): string => {
+export const Revision = {
+  fromTime(time?: string | number | Date): string {
     const d = time ? new Date(time) : new Date();
     return d.getTime().toString(16);
   },
-  compare: (a: string | null, b: string | null): number => {
+  compare(a: string | null, b: string | null): number {
     if (!a && !b) return 0;
     if (!a) return -1;
     if (!b) return 1;
@@ -17,7 +17,7 @@ exports.Revision = {
   },
 };
 
-class AttachedCache {
+export class AttachedCache {
   prop: string;
   tag: (obj: any) => string;
 
@@ -63,29 +63,26 @@ class AttachedCache {
   }
 }
 
-exports.AttachedCache = AttachedCache;
-
-exports.isIp = (domain: string): boolean => {
-  // IPv6
+export function isIp(domain: string): boolean {
+  // IPv6 contains at least one colon.
   if (domain.indexOf(":") > 0) return true;
-  // IP address ending with number.
+  // IP addresses end with a digit.
   const lastCharCode = domain.charCodeAt(domain.length - 1);
   if (lastCharCode >= 48 && lastCharCode <= 57) return true;
   return false;
-};
+}
 
-exports.getBaseDomain = (domain: string): string => {
-  if (exports.isIp(domain)) return domain;
-  return tld.getDomain(domain) ?? domain;
-};
+export function getBaseDomain(domain: string): string {
+  if (isIp(domain)) return domain;
+  return tldsGetDomain(domain) ?? domain;
+}
 
-exports.wildcardForDomain = (domain: string): string => {
-  if (exports.isIp(domain)) return domain;
-  return "*." + exports.getBaseDomain(domain);
-};
+export function wildcardForDomain(domain: string): string {
+  if (isIp(domain)) return domain;
+  return "*." + getBaseDomain(domain);
+}
 
-const Url = require("url");
-exports.wildcardForUrl = (url: string): string => {
-  const domain = Url.parse(url).hostname;
-  return exports.wildcardForDomain(domain);
-};
+export function wildcardForUrl(url: string): string {
+  const domain = new URL(url).hostname;
+  return wildcardForDomain(domain);
+}

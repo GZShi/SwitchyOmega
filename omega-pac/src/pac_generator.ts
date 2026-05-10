@@ -1,7 +1,8 @@
-const U2 = require("uglify-js");
-const Profiles = require("./profiles");
+import * as b from "./astree/builders";
+import { mangle } from "./astree/mangler";
+import * as Profiles from "./profiles";
 
-function ascii(str: string): string {
+export function ascii(str: string): string {
   return str.replace(/[-￿]/g, (char: string) => {
     let hex = char.charCodeAt(0).toString(16);
     let result = "\\u";
@@ -12,24 +13,13 @@ function ascii(str: string): string {
     return result;
   });
 }
-exports.ascii = ascii;
 
-function compress(ast: any): any {
-  ast.figure_out_scope();
-  const compressor = U2.Compressor({
-    warnings: false,
-    keep_fargs: true,
-    if_return: false,
-  });
-  const compressed_ast = ast.transform(compressor);
-  compressed_ast.figure_out_scope();
-  compressed_ast.compute_char_frequency();
-  compressed_ast.mangle_names();
-  return compressed_ast;
+export function compress(ast: any): any {
+  mangle(ast);
+  return ast;
 }
-exports.compress = compress;
 
-function script(options: any, profile: any, args?: any): any {
+export function script(options: any, profile: any, args?: any): any {
   if (typeof profile === "string") {
     profile = Profiles.byName(profile, options);
   }
@@ -51,140 +41,54 @@ function script(options: any, profile: any, args?: any): any {
     if (p == null) {
       p = Profiles.profileNotFound(name, args?.profileNotFound);
     }
-    profileArr.push(
-      new U2.AST_ObjectKeyVal({ key: key, value: Profiles.compile(p) }),
-    );
+    profileArr.push(b.prop(key, Profiles.compile(p)));
   }
-  const profiles = new U2.AST_Object({ properties: profileArr });
+  const profiles = b.obj(profileArr);
 
-  const factory = new U2.AST_Function({
-    argnames: [
-      new U2.AST_SymbolFunarg({ name: "init" }),
-      new U2.AST_SymbolFunarg({ name: "profiles" }),
-    ],
-    body: [
-      new U2.AST_Return({
-        value: new U2.AST_Function({
-          argnames: [
-            new U2.AST_SymbolFunarg({ name: "url" }),
-            new U2.AST_SymbolFunarg({ name: "host" }),
-          ],
-          body: [
-            new U2.AST_Directive({ value: "use strict" }),
-            new U2.AST_Var({
-              definitions: [
-                new U2.AST_VarDef({
-                  name: new U2.AST_SymbolVar({ name: "result" }),
-                  value: new U2.AST_SymbolRef({ name: "init" }),
-                }),
-                new U2.AST_VarDef({
-                  name: new U2.AST_SymbolVar({ name: "scheme" }),
-                  value: new U2.AST_Call({
-                    expression: new U2.AST_Dot({
-                      expression: new U2.AST_SymbolRef({ name: "url" }),
-                      property: "substr",
-                    }),
-                    args: [
-                      new U2.AST_Number({ value: 0 }),
-                      new U2.AST_Call({
-                        expression: new U2.AST_Dot({
-                          expression: new U2.AST_SymbolRef({ name: "url" }),
-                          property: "indexOf",
-                        }),
-                        args: [new U2.AST_String({ value: ":" })],
-                      }),
-                    ],
-                  }),
-                }),
-              ],
-            }),
-            new U2.AST_Do({
-              body: new U2.AST_BlockStatement({
-                body: [
-                  new U2.AST_SimpleStatement({
-                    body: new U2.AST_Assign({
-                      left: new U2.AST_SymbolRef({ name: "result" }),
-                      operator: "=",
-                      right: new U2.AST_Sub({
-                        expression: new U2.AST_SymbolRef({ name: "profiles" }),
-                        property: new U2.AST_SymbolRef({ name: "result" }),
-                      }),
-                    }),
-                  }),
-                  new U2.AST_If({
-                    condition: new U2.AST_Binary({
-                      left: new U2.AST_UnaryPrefix({
-                        operator: "typeof",
-                        expression: new U2.AST_SymbolRef({ name: "result" }),
-                      }),
-                      operator: "===",
-                      right: new U2.AST_String({ value: "function" }),
-                    }),
-                    body: new U2.AST_SimpleStatement({
-                      body: new U2.AST_Assign({
-                        left: new U2.AST_SymbolRef({ name: "result" }),
-                        operator: "=",
-                        right: new U2.AST_Call({
-                          expression: new U2.AST_SymbolRef({ name: "result" }),
-                          args: [
-                            new U2.AST_SymbolRef({ name: "url" }),
-                            new U2.AST_SymbolRef({ name: "host" }),
-                            new U2.AST_SymbolRef({ name: "scheme" }),
-                          ],
-                        }),
-                      }),
-                    }),
-                  }),
-                ],
-              }),
-              condition: new U2.AST_Binary({
-                left: new U2.AST_Binary({
-                  left: new U2.AST_UnaryPrefix({
-                    operator: "typeof",
-                    expression: new U2.AST_SymbolRef({ name: "result" }),
-                  }),
-                  operator: "!==",
-                  right: new U2.AST_String({ value: "string" }),
-                }),
-                operator: "||",
-                right: new U2.AST_Binary({
-                  left: new U2.AST_Call({
-                    expression: new U2.AST_Dot({
-                      expression: new U2.AST_SymbolRef({ name: "result" }),
-                      property: "charCodeAt",
-                    }),
-                    args: [new U2.AST_Number({ value: 0 })],
-                  }),
-                  operator: "===",
-                  right: new U2.AST_Number({ value: "+".charCodeAt(0) }),
-                }),
-              }),
-            }),
-            new U2.AST_Return({
-              value: new U2.AST_SymbolRef({ name: "result" }),
-            }),
-          ],
-        }),
-      }),
-    ],
-  });
+  // factory: function(init, profiles) { return function(url, host) { ... }; }
+  const factory = b.func(
+    [b.id("init"), b.id("profiles")],
+    b.block([
+      b.ret(
+        b.func(
+          [b.id("url"), b.id("host")],
+          b.block([
+            b.directive("use strict"),
+            b.var_decl([
+              b.vardef(b.id("result"), b.id("init")),
+              b.vardef(b.id("scheme"),
+                b.call(b.dot(b.id("url"), "substr"), [
+                  b.num(0),
+                  b.call(b.dot(b.id("url"), "indexOf"), [b.str(":")]),
+                ])
+              ),
+            ]),
+            b.do_while(
+              b.block([
+                b.expr(b.assign(b.id("result"), "=", b.sub(b.id("profiles"), b.id("result")))),
+                b.if_stmt(
+                  b.binary(b.unary("typeof", b.id("result")), "===", b.str("function")),
+                  b.expr(b.assign(b.id("result"), "=", b.call(b.id("result"), [b.id("url"), b.id("host"), b.id("scheme")]))),
+                ),
+              ]),
+              b.binary(
+                b.binary(b.unary("typeof", b.id("result")), "!==", b.str("string")),
+                "||",
+                b.binary(b.call(b.dot(b.id("result"), "charCodeAt"), [b.num(0)]), "===", b.num("+".charCodeAt(0))),
+              ),
+            ),
+            b.ret(b.id("result")),
+          ]),
+        ),
+      ),
+    ]),
+  );
 
   const profileResult = Profiles.profileResult(profile);
 
-  return new U2.AST_Toplevel({
-    body: [
-      new U2.AST_Var({
-        definitions: [
-          new U2.AST_VarDef({
-            name: new U2.AST_SymbolVar({ name: "FindProxyForURL" }),
-            value: new U2.AST_Call({
-              expression: factory,
-              args: [profileResult, profiles],
-            }),
-          }),
-        ],
-      }),
-    ],
-  });
+  return b.toplevel([
+    b.var_decl([
+      b.vardef(b.id("FindProxyForURL"), b.call(factory, [profileResult, profiles])),
+    ]),
+  ]);
 }
-exports.script = script;

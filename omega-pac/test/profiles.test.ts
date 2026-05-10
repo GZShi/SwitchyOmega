@@ -1,11 +1,11 @@
-const chai = require("chai");
+import * as chai from "chai";
+import * as Profiles from "../src/profiles";
+import * as Conditions from "../src/conditions";
+import * as b from "../src/astree/builders";
+
 const should = chai.should();
 
 describe("Profiles", () => {
-  const Profiles = require("../src/profiles");
-  const Conditions = require("../src/conditions");
-  const U2 = require("uglify-js");
-
   const ruleListResult = (profileName: string, source: string) => ({
     profileName: profileName,
     source: source,

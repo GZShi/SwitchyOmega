@@ -1,8 +1,12 @@
-const U2 = require("uglify-js");
-const { Address4, Address6 } = require("ip-address");
-const Url = require("url");
-const { shExp2RegExp, escapeSlash } = require("./shexp_utils");
-const { AttachedCache } = require("./utils");
+import * as b from "./astree/builders";
+import { Address4, Address6 } from "ip-address";
+import { shExp2RegExp, escapeSlash } from "./shexp_utils";
+import { AttachedCache } from "./utils";
+
+// Module-level namespace used by condition handlers when they reach back to
+// peer helpers via `this` (historically they were bound to CommonJS exports).
+// Populated at the bottom of this file after every helper is defined.
+const self: any = {};
 
 // Internal state
 const colonCharCode = ":".charCodeAt(0);
@@ -10,27 +14,55 @@ const localHosts = ["127.0.0.1", "[::1]", "localhost"];
 const ipv6Max = new Address6("::/0").endAddress().canonicalForm();
 let _abbrs: Record<string, string> | null = null;
 
+// Minimal URL parser kept intentionally permissive: SwitchyOmega PAC tests use
+// pseudo-URLs like "http://time-07:00:00/" whose host contains colons and
+// would be rejected by the WHATWG URL constructor. We only need scheme + host
+// for rule matching, so a small regex is both faster and more tolerant.
+//
+// Matches:  scheme://host/...    (host captured up to the first "/" after "//")
+// Browsers produce real URLs before they ever reach this code, so losing the
+// extra validation of `new URL()` is not a regression in production.
+const urlPartsRegex = /^([a-zA-Z][a-zA-Z0-9+.\-]*):\/\/([^/?#]*)/;
+
 function requestFromUrl(url: any): {
   url: string;
   host: string;
   scheme: string;
 } {
-  if (typeof url === "string") {
-    url = Url.parse(url);
+  if (typeof url !== "string") {
+    // Backward compat: accept a pre-parsed URL-like object.
+    return {
+      url: url.href ?? url.toString(),
+      host: url.hostname,
+      scheme: (url.protocol ?? "").replace(":", ""),
+    };
   }
-  return {
-    url: Url.format(url),
-    host: url.hostname,
-    scheme: url.protocol.replace(":", ""),
-  };
+  const m = url.match(urlPartsRegex);
+  if (!m) {
+    return { url, host: "", scheme: "" };
+  }
+  let host = m[2];
+  // Strip userinfo (user:pass@) if present.
+  const atIdx = host.lastIndexOf("@");
+  if (atIdx >= 0) host = host.substring(atIdx + 1);
+  // Strip port and IPv6 literal brackets. Node's legacy url.parse reports
+  // hostname as "::1" (no brackets), so we normalise the same way here.
+  if (host.charCodeAt(0) === "[".charCodeAt(0)) {
+    const close = host.indexOf("]");
+    host = close >= 0 ? host.substring(1, close) : host.substring(1);
+  } else {
+    const colonIdx = host.lastIndexOf(":");
+    if (colonIdx >= 0 && /^\d+$/.test(host.substring(colonIdx + 1))) {
+      host = host.substring(0, colonIdx);
+    }
+  }
+  return { url, host, scheme: m[1] };
 }
-exports.requestFromUrl = requestFromUrl;
 
 function urlWildcard2HostWildcard(pattern: string): string | null {
   const m = pattern.match(/^\*:\/\/((?:\w|[?*._\-])+)\/\*$/);
   return m != null ? m[1] : null;
 }
-exports.urlWildcard2HostWildcard = urlWildcard2HostWildcard;
 
 // _conditionTypes (declared here so handlers can reference _handler)
 const _conditionTypes: Record<string, any> = {};
@@ -64,7 +96,6 @@ function comment(commentText: string, node: any): any {
   node.start.comments_before.push({ type: "comment2", value: commentText });
   return node;
 }
-exports.comment = comment;
 
 function safeRegex(expr: string): RegExp {
   try {
@@ -73,7 +104,6 @@ function safeRegex(expr: string): RegExp {
     return /(?!) /;
   }
 }
-exports.safeRegex = safeRegex;
 
 function isInt(num: any): boolean {
   return (
@@ -82,41 +112,26 @@ function isInt(num: any): boolean {
     parseFloat(String(num)) === parseInt(String(num), 10)
   );
 }
-exports.isInt = isInt;
 
 function regTest(expr: any, regexp: any): any {
   if (typeof regexp === "string") {
     regexp = safeRegex(escapeSlash(regexp));
   }
   if (typeof expr === "string") {
-    expr = new U2.AST_SymbolRef({ name: expr });
+    expr = b.id(expr);
   }
-  return new U2.AST_Call({
-    args: [expr],
-    expression: new U2.AST_Dot({
-      property: "test",
-      expression: new U2.AST_RegExp({ value: regexp }),
-    }),
-  });
+  return b.call(b.dot(b.re(regexp), "test"), [expr]);
 }
-exports.regTest = regTest;
 
 function between(val: any, min: any, max: any, commentText: string): any {
   if (min === max) {
     if (typeof min === "number") {
-      min = new U2.AST_Number({ value: min });
+      min = b.num(min);
     }
-    return comment(
-      commentText,
-      new U2.AST_Binary({
-        left: val,
-        operator: "===",
-        right: min,
-      }),
-    );
+    return comment(commentText, b.binary(val, "===", min));
   }
   if (min > max) {
-    return comment(commentText, new U2.AST_False({}));
+    return comment(commentText, b.bo(false));
   }
   if (isInt(min) && isInt(max) && max - min < 32) {
     commentText || (commentText = `${min} <= value && value <= ${max}`);
@@ -127,67 +142,37 @@ function between(val: any, min: any, max: any, commentText: string): any {
     } else {
       str = tmpl.substr(0, max - min + 1);
     }
-    const pos =
-      min === 0
-        ? val
-        : new U2.AST_Binary({
-            left: val,
-            operator: "-",
-            right: new U2.AST_Number({ value: min }),
-          });
+    const pos = min === 0 ? val : b.binary(val, "-", b.num(min));
     return comment(
       commentText,
-      new U2.AST_Binary({
-        left: new U2.AST_Call({
-          expression: new U2.AST_Dot({
-            expression: new U2.AST_String({ value: str }),
-            property: "charCodeAt",
-          }),
-          args: [pos],
-        }),
-        operator: ">",
-        right: new U2.AST_Number({ value: 0 }),
-      }),
+      b.binary(b.call(b.dot(b.str(str), "charCodeAt"), [pos]), ">", b.num(0)),
     );
   }
   if (typeof min === "number") {
-    min = new U2.AST_Number({ value: min });
+    min = b.num(min);
   }
   if (typeof max === "number") {
-    max = new U2.AST_Number({ value: max });
+    max = b.num(max);
   }
   return comment(
     commentText,
-    new U2.AST_Call({
-      args: [val, min, max],
-      expression: new U2.AST_Function({
-        argnames: [
-          new U2.AST_SymbolFunarg({ name: "value" }),
-          new U2.AST_SymbolFunarg({ name: "min" }),
-          new U2.AST_SymbolFunarg({ name: "max" }),
-        ],
-        body: [
-          new U2.AST_Return({
-            value: new U2.AST_Binary({
-              left: new U2.AST_Binary({
-                left: new U2.AST_SymbolRef({ name: "min" }),
-                operator: "<=",
-                right: new U2.AST_SymbolRef({ name: "value" }),
-              }),
-              operator: "&&",
-              right: new U2.AST_Binary({
-                left: new U2.AST_SymbolRef({ name: "value" }),
-                operator: "<=",
-                right: new U2.AST_SymbolRef({ name: "max" }),
-              }),
-            }),
-          }),
-        ],
-      }),
-    }),
+    b.call(
+      b.func(
+        [b.id("value"), b.id("min"), b.id("max")],
+        b.block([
+          b.ret(
+            b.binary(
+              b.binary(b.id("min"), "<=", b.id("value")),
+              "&&",
+              b.binary(b.id("value"), "<=", b.id("max")),
+            ),
+          ),
+        ]),
+      ),
+      [val, min, max],
+    ),
   );
 }
-exports.between = between;
 
 function parseIp(ip: string): any {
   if (ip.charCodeAt(0) === "[".charCodeAt(0)) {
@@ -203,16 +188,12 @@ function parseIp(ip: string): any {
     }
   }
 }
-exports.parseIp = parseIp;
 
 function normalizeIp(addr: any): string {
   return (
     addr.correctForm != null ? addr.correctForm : addr.canonicalForm
   ).call(addr);
 }
-exports.normalizeIp = normalizeIp;
-exports.ipv6Max = ipv6Max;
-exports.localHosts = localHosts;
 
 function getWeekdayList(condition: any): boolean[] {
   if (condition.days) {
@@ -229,7 +210,6 @@ function getWeekdayList(condition: any): boolean[] {
     return list;
   }
 }
-exports.getWeekdayList = getWeekdayList;
 
 // ---- _condCache ----
 const _condCache = new AttachedCache(function (condition: any) {
@@ -238,43 +218,38 @@ const _condCache = new AttachedCache(function (condition: any) {
   const result = tag ? tag.apply(null, arguments) : str(condition);
   return condition.conditionType + "$" + result;
 });
-exports._condCache = _condCache;
 
 // ---- Core functions ----
 function tag(condition: any): string {
   return _condCache.tag(condition);
 }
-exports.tag = tag;
 
 function analyze(condition: any): any {
   return _condCache.get(condition, () => ({
     analyzed: _getHandler(condition.conditionType).analyze.call(
-      exports,
+      self,
       condition,
     ),
   }));
 }
-exports.analyze = analyze;
 
 function match(condition: any, request: any): any {
   const cache = analyze(condition);
   return _getHandler(condition.conditionType).match.call(
-    exports,
+    self,
     condition,
     request,
     cache,
   );
 }
-exports.match = match;
 
 function compileCond(condition: any): any {
   const cache = analyze(condition);
   if (cache.compiled) return cache.compiled;
   const handler = _getHandler(condition.conditionType);
-  cache.compiled = handler.compile.call(exports, condition, cache);
+  cache.compiled = handler.compile.call(self, condition, cache);
   return cache.compiled;
 }
-exports.compile = compileCond;
 
 function str(condition: any, opts?: { abbr?: number }): string {
   const opt_abbr = opts != null && opts.abbr != null ? opts.abbr : -1;
@@ -291,12 +266,10 @@ function str(condition: any, opts?: { abbr?: number }): string {
       ? handler.abbrs[(handler.abbrs.length + opt_abbr) % handler.abbrs.length]
       : condition.conditionType;
   let result = typeStr + ":";
-  const part = strFn ? strFn.call(exports, condition) : condition.pattern;
+  const part = strFn ? strFn.call(self, condition) : condition.pattern;
   if (part) result += " " + part;
   return result;
 }
-exports.str = str;
-exports.colonCharCode = colonCharCode;
 
 function fromStr(input: string): any {
   input = input.trim();
@@ -315,13 +288,12 @@ function fromStr(input: string): any {
   const condition: any = { conditionType: conditionType };
   const fromStrFn = _getHandler(condition.conditionType).fromStr;
   if (fromStrFn) {
-    return fromStrFn.call(exports, input, condition);
+    return fromStrFn.call(self, input, condition);
   } else {
     condition.pattern = input;
     return condition;
   }
 }
-exports.fromStr = fromStr;
 
 function typeFromAbbr(abbr: string): string | undefined {
   if (!_abbrs) {
@@ -338,19 +310,17 @@ function typeFromAbbr(abbr: string): string | undefined {
   }
   return _abbrs[abbr.toUpperCase()];
 }
-exports.typeFromAbbr = typeFromAbbr;
 
 function _handler(conditionType: any): any {
   return _getHandler(conditionType);
 }
-exports._handler = _handler;
 
 // ---- _conditionTypes definitions ----
 _conditionTypes["TrueCondition"] = {
   abbrs: ["True"],
   analyze: (_c: any) => null,
   match: () => true,
-  compile: (_c: any) => new U2.AST_True({}),
+  compile: (_c: any) => b.bo(true),
   str: (_c: any) => "",
   fromStr: (_s: string, condition: any) => condition,
 };
@@ -359,7 +329,7 @@ _conditionTypes["FalseCondition"] = {
   abbrs: ["False", "Disabled"],
   analyze: (_c: any) => null,
   match: () => false,
-  compile: (_c: any) => new U2.AST_False({}),
+  compile: (_c: any) => b.bo(false),
   fromStr: (fromStrStr: string, condition: any) => {
     if (fromStrStr.length > 0) {
       condition.pattern = fromStrStr;
@@ -571,7 +541,7 @@ _conditionTypes["BypassCondition"] = {
   },
   str: function (this: any, condition: any) {
     const analyzeFn = this._handler(condition).analyze;
-    const cache = analyzeFn.call(exports, condition);
+    const cache = analyzeFn.call(self, condition);
     if (cache.normalizedPattern) {
       return cache.normalizedPattern;
     } else {
@@ -586,39 +556,19 @@ _conditionTypes["BypassCondition"] = {
     const conditions: any[] = [];
     if (cache.host === "<local>") {
       const hostEquals = (host: string) =>
-        new U2.AST_Binary({
-          left: new U2.AST_SymbolRef({ name: "host" }),
-          operator: "===",
-          right: new U2.AST_String({ value: host }),
-        });
-      return new U2.AST_Binary({
-        left: new U2.AST_Binary({
-          left: hostEquals("127.0.0.1"),
-          operator: "||",
-          right: hostEquals("::1"),
-        }),
-        operator: "||",
-        right: new U2.AST_Binary({
-          left: new U2.AST_Call({
-            expression: new U2.AST_Dot({
-              expression: new U2.AST_SymbolRef({ name: "host" }),
-              property: "indexOf",
-            }),
-            args: [new U2.AST_String({ value: "." })],
-          }),
-          operator: "<",
-          right: new U2.AST_Number({ value: 0 }),
-        }),
-      });
+        b.binary(b.id("host"), "===", b.str(host));
+      return b.binary(
+        b.binary(hostEquals("127.0.0.1"), "||", hostEquals("::1")),
+        "||",
+        b.binary(
+          b.call(b.dot(b.id("host"), "indexOf"), [b.str(".")]),
+          "<",
+          b.num(0),
+        ),
+      );
     }
     if (cache.scheme != null) {
-      conditions.push(
-        new U2.AST_Binary({
-          left: new U2.AST_SymbolRef({ name: "scheme" }),
-          operator: "===",
-          right: new U2.AST_String({ value: cache.scheme }),
-        }),
-      );
+      conditions.push(b.binary(b.id("scheme"), "===", b.str(cache.scheme)));
     }
     if (cache.host != null) {
       conditions.push(regTest("host", cache.host));
@@ -627,15 +577,11 @@ _conditionTypes["BypassCondition"] = {
     }
     switch (conditions.length) {
       case 0:
-        return new U2.AST_True({});
+        return b.bo(true);
       case 1:
         return conditions[0];
       case 2:
-        return new U2.AST_Binary({
-          left: conditions[0],
-          operator: "&&",
-          right: conditions[1],
-        });
+        return b.binary(conditions[0], "&&", conditions[1]);
     }
   },
 };
@@ -647,25 +593,15 @@ _conditionTypes["KeywordCondition"] = {
     return request.scheme === "http" && request.url.indexOf(_c.pattern) >= 0;
   },
   compile: (condition: any) => {
-    return new U2.AST_Binary({
-      left: new U2.AST_Binary({
-        left: new U2.AST_SymbolRef({ name: "scheme" }),
-        operator: "===",
-        right: new U2.AST_String({ value: "http" }),
-      }),
-      operator: "&&",
-      right: new U2.AST_Binary({
-        left: new U2.AST_Call({
-          expression: new U2.AST_Dot({
-            expression: new U2.AST_SymbolRef({ name: "url" }),
-            property: "indexOf",
-          }),
-          args: [new U2.AST_String({ value: condition.pattern })],
-        }),
-        operator: ">=",
-        right: new U2.AST_Number({ value: 0 }),
-      }),
-    });
+    return b.binary(
+      b.binary(b.id("scheme"), "===", b.str("http")),
+      "&&",
+      b.binary(
+        b.call(b.dot(b.id("url"), "indexOf"), [b.str(condition.pattern)]),
+        ">=",
+        b.num(0),
+      ),
+    );
   },
 };
 
@@ -711,71 +647,45 @@ _conditionTypes["IpCondition"] = {
     const cache = cacheContainer.analyzed;
     let hostLooksLikeIp: any;
     if (cache.addr.v4) {
-      hostLooksLikeIp = new U2.AST_Binary({
-        left: new U2.AST_Sub({
-          expression: new U2.AST_SymbolRef({ name: "host" }),
-          property: new U2.AST_Binary({
-            left: new U2.AST_Dot({
-              expression: new U2.AST_SymbolRef({ name: "host" }),
-              property: "length",
-            }),
-            operator: "-",
-            right: new U2.AST_Number({ value: 1 }),
-          }),
-        }),
-        operator: ">=",
-        right: new U2.AST_Number({ value: 0 }),
-      });
+      hostLooksLikeIp = b.binary(
+        b.sub(
+          b.id("host"),
+          b.binary(b.dot(b.id("host"), "length"), "-", b.num(1)),
+        ),
+        ">=",
+        b.num(0),
+      );
     } else {
-      hostLooksLikeIp = new U2.AST_Binary({
-        left: new U2.AST_Call({
-          expression: new U2.AST_Dot({
-            expression: new U2.AST_SymbolRef({ name: "host" }),
-            property: "indexOf",
-          }),
-          args: [new U2.AST_String({ value: ":" })],
-        }),
-        operator: ">=",
-        right: new U2.AST_Number({ value: 0 }),
-      });
+      hostLooksLikeIp = b.binary(
+        b.call(b.dot(b.id("host"), "indexOf"), [b.str(":")]),
+        ">=",
+        b.num(0),
+      );
     }
     if (cache.addr.subnetMask === 0) {
       return hostLooksLikeIp;
     }
-    let hostIsInNet = new U2.AST_Call({
-      expression: new U2.AST_SymbolRef({ name: "isInNet" }),
-      args: [
-        new U2.AST_SymbolRef({ name: "host" }),
-        new U2.AST_String({ value: cache.normalized }),
-        new U2.AST_String({ value: cache.mask }),
-      ],
-    });
+    let hostIsInNet = b.call(b.id("isInNet"), [
+      b.id("host"),
+      b.str(cache.normalized),
+      b.str(cache.mask),
+    ]);
     if (!cache.addr.v4) {
-      const hostIsInNetEx = new U2.AST_Call({
-        expression: new U2.AST_SymbolRef({ name: "isInNetEx" }),
-        args: [
-          new U2.AST_SymbolRef({ name: "host" }),
-          new U2.AST_String({ value: cache.normalized + cache.addr.subnet }),
-        ],
-      });
-      hostIsInNet = new U2.AST_Conditional({
-        condition: new U2.AST_Binary({
-          left: new U2.AST_UnaryPrefix({
-            operator: "typeof",
-            expression: new U2.AST_SymbolRef({ name: "isInNetEx" }),
-          }),
-          operator: "===",
-          right: new U2.AST_String({ value: "function" }),
-        }),
-        consequent: hostIsInNetEx,
-        alternative: hostIsInNet,
-      });
+      const hostIsInNetEx = b.call(b.id("isInNetEx"), [
+        b.id("host"),
+        b.str(cache.normalized + cache.addr.subnet),
+      ]);
+      hostIsInNet = b.cond(
+        b.binary(
+          b.unary("typeof", b.id("isInNetEx")),
+          "===",
+          b.str("function"),
+        ),
+        hostIsInNetEx,
+        hostIsInNet,
+      );
     }
-    return new U2.AST_Binary({
-      left: hostLooksLikeIp,
-      operator: "&&",
-      right: hostIsInNet,
-    });
+    return b.binary(hostLooksLikeIp, "&&", hostIsInNet);
   },
   str: (condition: any) => condition.ip + "/" + condition.prefixLength,
   fromStr: function (this: any, s: string, condition: any) {
@@ -818,16 +728,10 @@ _conditionTypes["HostLevelsCondition"] = {
     return dotCount >= condition.minValue;
   },
   compile: function (this: any, condition: any) {
-    const val = new U2.AST_Dot({
-      property: "length",
-      expression: new U2.AST_Call({
-        args: [new U2.AST_String({ value: "." })],
-        expression: new U2.AST_Dot({
-          expression: new U2.AST_SymbolRef({ name: "host" }),
-          property: "split",
-        }),
-      }),
-    });
+    const val = b.dot(
+      b.call(b.dot(b.id("host"), "split"), [b.str(".")]),
+      "length",
+    );
     return this.between(
       val,
       condition.minValue + 1,
@@ -857,28 +761,13 @@ _conditionTypes["WeekdayCondition"] = {
     return condition.startDay <= day && day <= condition.endDay;
   },
   compile: function (this: any, condition: any) {
-    const getDay = new U2.AST_Call({
-      args: [],
-      expression: new U2.AST_Dot({
-        property: "getDay",
-        expression: new U2.AST_New({
-          args: [],
-          expression: new U2.AST_SymbolRef({ name: "Date" }),
-        }),
-      }),
-    });
+    const getDay = b.call(b.dot(b.newexp(b.id("Date"), []), "getDay"), []);
     if (condition.days) {
-      return new U2.AST_Binary({
-        left: new U2.AST_Call({
-          expression: new U2.AST_Dot({
-            expression: new U2.AST_String({ value: condition.days }),
-            property: "charCodeAt",
-          }),
-          args: [getDay],
-        }),
-        operator: ">",
-        right: new U2.AST_Number({ value: 64 }),
-      });
+      return b.binary(
+        b.call(b.dot(b.str(condition.days), "charCodeAt"), [getDay]),
+        ">",
+        b.num(64),
+      );
     } else {
       return this.between(getDay, condition.startDay, condition.endDay, "");
     }
@@ -914,16 +803,7 @@ _conditionTypes["TimeCondition"] = {
     return condition.startHour <= hour && hour <= condition.endHour;
   },
   compile: function (this: any, condition: any) {
-    const val = new U2.AST_Call({
-      args: [],
-      expression: new U2.AST_Dot({
-        property: "getHours",
-        expression: new U2.AST_New({
-          args: [],
-          expression: new U2.AST_SymbolRef({ name: "Date" }),
-        }),
-      }),
-    });
+    const val = b.call(b.dot(b.newexp(b.id("Date"), []), "getHours"), []);
     return this.between(val, condition.startHour, condition.endHour, "");
   },
   str: (condition: any) => condition.startHour + "~" + condition.endHour,
@@ -939,5 +819,63 @@ _conditionTypes["TimeCondition"] = {
   },
 };
 
-exports._conditionTypes = _conditionTypes;
-exports._abbrs = _abbrs;
+// Populate the module-level `self` shim so that handlers that reach back to
+// peer helpers via `this.foo(...)` continue to work after the ESM migration.
+Object.assign(self, {
+  requestFromUrl,
+  urlWildcard2HostWildcard,
+  comment,
+  safeRegex,
+  isInt,
+  regTest,
+  between,
+  parseIp,
+  normalizeIp,
+  ipv6Max,
+  localHosts,
+  getWeekdayList,
+  _condCache,
+  tag,
+  analyze,
+  match,
+  compile: compileCond,
+  str,
+  colonCharCode,
+  fromStr,
+  typeFromAbbr,
+  _handler,
+  _conditionTypes,
+});
+Object.defineProperty(self, "_abbrs", {
+  get: () => _abbrs,
+  set: (v) => {
+    _abbrs = v;
+  },
+});
+
+export {
+  requestFromUrl,
+  urlWildcard2HostWildcard,
+  comment,
+  safeRegex,
+  isInt,
+  regTest,
+  between,
+  parseIp,
+  normalizeIp,
+  ipv6Max,
+  localHosts,
+  getWeekdayList,
+  _condCache,
+  tag,
+  analyze,
+  match,
+  compileCond as compile,
+  str,
+  colonCharCode,
+  fromStr,
+  typeFromAbbr,
+  _handler,
+  _conditionTypes,
+};
+export { _abbrs };

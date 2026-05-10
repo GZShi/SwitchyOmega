@@ -1,9 +1,9 @@
-const chai = require("chai");
-const should = chai.should();
+import { should as chaiShould } from "chai";
+import * as PacGenerator from "../src/pac_generator";
+
+chaiShould();
 
 describe("PacGenerator", () => {
-  const PacGenerator = require("../src/pac_generator");
-
   const options: any = {
     "+auto": {
       name: "auto",

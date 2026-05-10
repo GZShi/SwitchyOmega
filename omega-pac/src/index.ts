@@ -1,19 +1,45 @@
-const conditions = require('./conditions');
-const pacGenerator = require('./pac_generator');
-const profiles = require('./profiles');
-const ruleList = require('./rule_list');
-const shexpUtils = require('./shexp_utils');
-const utils = require('./utils');
+import * as Conditions from "./conditions";
+import * as PacGenerator from "./pac_generator";
+import * as Profiles from "./profiles";
+import * as RuleList from "./rule_list";
+import * as ShexpUtils from "./shexp_utils";
+import {
+  Revision,
+  AttachedCache,
+  isIp,
+  getBaseDomain,
+  wildcardForDomain,
+  wildcardForUrl,
+} from "./utils";
 
-module.exports = {
-  Conditions: conditions,
-  PacGenerator: pacGenerator,
-  Profiles: profiles,
-  RuleList: ruleList,
-  ShexpUtils: shexpUtils
+export {
+  Conditions,
+  PacGenerator,
+  Profiles,
+  RuleList,
+  ShexpUtils,
+  Revision,
+  AttachedCache,
+  isIp,
+  getBaseDomain,
+  wildcardForDomain,
+  wildcardForUrl,
 };
 
-// Flatten utils exports onto the main exports
-for (const name of Object.keys(utils)) {
-  module.exports[name] = utils[name];
-}
+// Default export keeps the legacy `const OmegaPac = require('omega-pac')`
+// consumer shape intact (flat access to namespaces + utils helpers).
+const OmegaPac = {
+  Conditions,
+  PacGenerator,
+  Profiles,
+  RuleList,
+  ShexpUtils,
+  Revision,
+  AttachedCache,
+  isIp,
+  getBaseDomain,
+  wildcardForDomain,
+  wildcardForUrl,
+};
+
+export default OmegaPac;

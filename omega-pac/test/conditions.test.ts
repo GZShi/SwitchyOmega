@@ -1,11 +1,11 @@
-const chai = require("chai");
+import * as chai from "chai";
+import * as FakeTimers from "@sinonjs/fake-timers";
+import * as Conditions from "../src/conditions";
+import * as b from "../src/astree/builders";
+
 const should = chai.should();
-const FakeTimers = require("@sinonjs/fake-timers");
 
 describe("Conditions", () => {
-  const Conditions = require("../src/conditions");
-  const U2 = require("uglify-js");
-
   const testCond = (condition: any, request: any, should_match: any) => {
     const o_request = request;
     should_match = !!should_match;
@@ -15,14 +15,10 @@ describe("Conditions", () => {
 
     const matchResult = Conditions.match(condition, request);
     const condExpr = Conditions.compile(condition);
-    const testFunc = new U2.AST_Function({
-      argnames: [
-        new U2.AST_SymbolFunarg({ name: "url" }),
-        new U2.AST_SymbolFunarg({ name: "host" }),
-        new U2.AST_SymbolFunarg({ name: "scheme" }),
-      ],
-      body: [new U2.AST_Return({ value: condExpr })],
-    });
+    const testFunc = b.func(
+      [b.id("url"), b.id("host"), b.id("scheme")],
+      b.block([b.ret(condExpr)]),
+    );
     let compiledFunc = eval("(" + testFunc.print_to_string() + ")");
     const compileResult = compiledFunc(
       request.url,
@@ -378,28 +374,14 @@ describe("Conditions", () => {
           ip: ip,
           prefixLength: prefixLen,
         };
-        const dummyIsInNet = new U2.AST_Function({
-          argnames: [],
-          body: [new U2.AST_Return({ value: new U2.AST_True({}) })],
-        });
-        const testFunc = new U2.AST_Function({
-          argnames: [
-            new U2.AST_SymbolFunarg({ name: "url" }),
-            new U2.AST_SymbolFunarg({ name: "host" }),
-            new U2.AST_SymbolFunarg({ name: "scheme" }),
-          ],
-          body: [
-            new U2.AST_Var({
-              definitions: [
-                new U2.AST_VarDef({
-                  name: new U2.AST_SymbolVar({ name: "isInNet" }),
-                  value: dummyIsInNet,
-                }),
-              ],
-            }),
-            new U2.AST_Return({ value: Conditions.compile(cond) }),
-          ],
-        });
+        const dummyIsInNet = b.func([], b.block([b.ret(b.bo(true))]));
+        const testFunc = b.func(
+          [b.id("url"), b.id("host"), b.id("scheme")],
+          b.block([
+            b.var_decl([b.vardef(b.id("isInNet"), dummyIsInNet)]),
+            b.ret(Conditions.compile(cond)),
+          ]),
+        );
         return eval("(" + testFunc.print_to_string() + ")");
       };
 

@@ -1,7 +1,14 @@
-const Conditions = require("./conditions");
+import * as Conditions from "./conditions";
 
 function strStartsWith(str: string, prefix: string): boolean {
   return str.substr(0, prefix.length) === prefix;
+}
+
+function decodeBase64Utf8(text: string): string {
+  const bin = atob(text);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
 }
 
 // ---- AutoProxy format ----
@@ -16,7 +23,7 @@ const AutoProxy: any = {
 
   preprocess: (text: string): string => {
     if (strStartsWith(text, AutoProxy.magicPrefix)) {
-      text = Buffer.from(text, "base64").toString("utf8");
+      text = decodeBase64Utf8(text);
     }
     return text;
   },
@@ -410,5 +417,4 @@ const Switchy: any = {
   },
 };
 
-exports.AutoProxy = AutoProxy;
-exports.Switchy = Switchy;
+export { AutoProxy, Switchy };

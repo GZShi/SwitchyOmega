@@ -1,5 +1,5 @@
 const regExpMetaChars: Record<number, boolean> = (() => {
-  const chars = '\\[\\^$.|?*+(){}/';
+  const chars = "\\[\\^$.|?*+(){}/";
   const set: Record<number, boolean> = {};
   for (let i = 0; i < chars.length; i++) {
     set[chars.charCodeAt(i)] = true;
@@ -7,20 +7,20 @@ const regExpMetaChars: Record<number, boolean> = (() => {
   return set;
 })();
 
-exports.regExpMetaChars = regExpMetaChars;
+export { regExpMetaChars };
 
-function escapeSlash(pattern: string): string {
+export function escapeSlash(pattern: string): string {
   const charCodeSlash = 47; // /
   const charCodeBackSlash = 92; // \
   let escaped = false;
   let start = 0;
-  let result = '';
+  let result = "";
 
   for (let i = 0; i < pattern.length; i++) {
     const code = pattern.charCodeAt(i);
     if (code === charCodeSlash && !escaped) {
       result += pattern.substring(start, i);
-      result += '\\';
+      result += "\\";
       start = i;
     }
     escaped = code === charCodeBackSlash && !escaped;
@@ -29,11 +29,9 @@ function escapeSlash(pattern: string): string {
   return result;
 }
 
-exports.escapeSlash = escapeSlash;
-
-function shExp2RegExp(
+export function shExp2RegExp(
   pattern: string,
-  options?: { trimAsterisk?: boolean }
+  options?: { trimAsterisk?: boolean },
 ): string {
   const trimAsterisk = options?.trimAsterisk || false;
   let start = 0;
@@ -49,37 +47,35 @@ function shExp2RegExp(
       end--;
     }
     if (end - start === 1 && pattern.charCodeAt(start) === charCodeAsterisk) {
-      return '';
+      return "";
     }
   }
 
-  let regex = '';
+  let regex = "";
   if (start === 0) {
-    regex += '^';
+    regex += "^";
   }
 
   for (let i = start; i < end; i++) {
     const code = pattern.charCodeAt(i);
     switch (code) {
       case charCodeAsterisk:
-        regex += '.*';
+        regex += ".*";
         break;
       case charCodeQuestion:
-        regex += '.';
+        regex += ".";
         break;
       default:
         if (regExpMetaChars[code]) {
-          regex += '\\';
+          regex += "\\";
         }
         regex += pattern[i];
     }
   }
 
   if (end === pattern.length) {
-    regex += '$';
+    regex += "$";
   }
 
   return regex;
 }
-
-exports.shExp2RegExp = shExp2RegExp;

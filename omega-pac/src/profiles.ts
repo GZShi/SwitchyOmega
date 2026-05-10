@@ -1,15 +1,13 @@
-const U2 = require("uglify-js");
-const ShexpUtils = require("./shexp_utils");
-const Conditions = require("./conditions");
-const RuleList = require("./rule_list");
-const { AttachedCache, Revision } = require("./utils");
+import * as b from "./astree/builders";
+import * as ShexpUtils from "./shexp_utils";
+import * as Conditions from "./conditions";
+import * as RuleList from "./rule_list";
+import { AttachedCache, Revision } from "./utils";
 
-class AST_Raw extends U2.AST_SymbolRef {
-  constructor(raw: string) {
-    super({ name: raw });
-    this.aborts = () => false;
-  }
-}
+// Module-level namespace used by profile handlers when they reach back to peer
+// helpers via `this` (historically bound to CommonJS exports). Populated after
+// every helper is defined.
+const self: any = {};
 
 // ---- Constants ----
 const builtinProfiles: Record<string, any> = {
@@ -60,7 +58,6 @@ function parseHostPort(
   if (!host) return undefined;
   return { scheme, host, port };
 }
-exports.parseHostPort = parseHostPort;
 
 function pacResult(
   proxy?: { scheme: string; host: string; port: number } | null,
@@ -75,12 +72,10 @@ function pacResult(
     return "DIRECT";
   }
 }
-exports.pacResult = pacResult;
 
 function isFileUrl(url: string): boolean {
   return !!(url && url.substr(0, 5).toUpperCase() === "FILE:");
 }
-exports.isFileUrl = isFileUrl;
 
 function nameAsKey(profileName: any): string {
   if (typeof profileName !== "string") {
@@ -88,7 +83,6 @@ function nameAsKey(profileName: any): string {
   }
   return "+" + profileName;
 }
-exports.nameAsKey = nameAsKey;
 
 function byName(profileName: any, options?: any): any {
   if (typeof profileName === "string") {
@@ -97,7 +91,6 @@ function byName(profileName: any, options?: any): any {
   }
   return profileName;
 }
-exports.byName = byName;
 
 function byKey(key: any, options?: any): any {
   if (typeof key === "string") {
@@ -105,7 +98,6 @@ function byKey(key: any, options?: any): any {
   }
   return key;
 }
-exports.byKey = byKey;
 
 function each(
   options: any,
@@ -123,30 +115,26 @@ function each(
     }
   }
 }
-exports.each = each;
 
 function profileResult(profileName: any): any {
   let key = nameAsKey(profileName);
   if (key === "+direct") {
     key = pacResult();
   }
-  return new U2.AST_String({ value: key });
+  return b.str(key);
 }
-exports.profileResult = profileResult;
 
 function isIncludable(profile: any): boolean {
   let includable = _getProfileHandler(profile).includable;
   if (typeof includable === "function") {
-    includable = includable.call(exports, profile);
+    includable = includable.call(self, profile);
   }
   return !!includable;
 }
-exports.isIncludable = isIncludable;
 
 function isInclusive(profile: any): boolean {
   return !!_getProfileHandler(profile).inclusive;
 }
-exports.isInclusive = isInclusive;
 
 const _profileTypes: Record<string, any> = {};
 
@@ -163,33 +151,27 @@ function _getProfileHandler(profileType: any): any {
   }
   return handler;
 }
-exports._handler = _getProfileHandler;
 
 function updateUrl(profile: any): string | undefined {
-  return _getProfileHandler(profile).updateUrl?.call(exports, profile);
+  return _getProfileHandler(profile).updateUrl?.call(self, profile);
 }
-exports.updateUrl = updateUrl;
 
 function updateContentTypeHints(profile: any): string[] | undefined {
   return _getProfileHandler(profile).updateContentTypeHints?.call(
-    exports,
+    self,
     profile,
   );
 }
-exports.updateContentTypeHints = updateContentTypeHints;
 
 function update(profile: any, data: string): boolean {
-  return _getProfileHandler(profile).update.call(exports, profile, data);
+  return _getProfileHandler(profile).update.call(self, profile, data);
 }
-exports.update = update;
 
 const _profileCache = new AttachedCache((profile: any) => profile.revision);
-exports._profileCache = _profileCache;
 
 function tag(profile: any): string {
   return _profileCache.tag(profile);
 }
-exports.tag = tag;
 
 function create(profile: any, opt_profileType?: string): any {
   if (typeof profile === "string") {
@@ -202,49 +184,43 @@ function create(profile: any, opt_profileType?: string): any {
   }
   const createFn = _getProfileHandler(profile).create;
   if (!createFn) return profile;
-  createFn.call(exports, profile);
+  createFn.call(self, profile);
   return profile;
 }
-exports.create = create;
 
 function updateRevision(profile: any, revision?: string): void {
   revision ??= Revision.fromTime();
   profile.revision = revision;
 }
-exports.updateRevision = updateRevision;
 
 function replaceRef(profile: any, fromName: string, toName: string): boolean {
   if (!isInclusive(profile)) return false;
   const handler = _getProfileHandler(profile);
-  return handler.replaceRef.call(exports, profile, fromName, toName);
+  return handler.replaceRef.call(self, profile, fromName, toName);
 }
-exports.replaceRef = replaceRef;
 
 function analyze(profile: any): any {
   const cache = _profileCache.get(profile, {});
   if (!Object.prototype.hasOwnProperty.call(cache, "analyzed")) {
     const analyzeFn = _getProfileHandler(profile).analyze;
-    const result = analyzeFn?.call(exports, profile);
+    const result = analyzeFn?.call(self, profile);
     cache.analyzed = result;
   }
   return cache;
 }
-exports.analyze = analyze;
 
 function dropCache(profile: any): void {
   _profileCache.drop(profile);
 }
-exports.dropCache = dropCache;
 
 function directReferenceSet(profile: any): Record<string, string> {
   if (!isInclusive(profile)) return {};
   const cache = _profileCache.get(profile, {});
   if (cache.directReferenceSet) return cache.directReferenceSet;
   const handler = _getProfileHandler(profile);
-  cache.directReferenceSet = handler.directReferenceSet.call(exports, profile);
+  cache.directReferenceSet = handler.directReferenceSet.call(self, profile);
   return cache.directReferenceSet;
 }
-exports.directReferenceSet = directReferenceSet;
 
 function profileNotFound(name: string, action?: any): any {
   if (action == null) {
@@ -268,7 +244,6 @@ function profileNotFound(name: string, action?: any): any {
   }
   throw action;
 }
-exports.profileNotFound = profileNotFound;
 
 function allReferenceSet(
   profile: any,
@@ -293,7 +268,6 @@ function allReferenceSet(
   if (!has_out) delete opt_args.out;
   return result;
 }
-exports.allReferenceSet = allReferenceSet;
 
 function referencedBySet(
   profile: any,
@@ -314,7 +288,6 @@ function referencedBySet(
   if (!has_out) delete opt_args.out;
   return result;
 }
-exports.referencedBySet = referencedBySet;
 
 function validResultProfilesFor(profile: any, options: any): any[] {
   profile = byName(profile, options);
@@ -330,25 +303,22 @@ function validResultProfilesFor(profile: any, options: any): any[] {
   });
   return result;
 }
-exports.validResultProfilesFor = validResultProfilesFor;
 
 function match(profile: any, request: any, opt_profileType?: string): any {
   opt_profileType ??= profile.profileType;
   const cache = analyze(profile);
   const matchFn = _getProfileHandler(opt_profileType).match;
-  return matchFn?.call(exports, profile, request, cache);
+  return matchFn?.call(self, profile, request, cache);
 }
-exports.match = match;
 
 function compile(profile: any, opt_profileType?: string): any {
   opt_profileType ??= profile.profileType;
   const cache = analyze(profile);
   if (cache.compiled) return cache.compiled;
   const handler = _getProfileHandler(opt_profileType);
-  cache.compiled = handler.compile.call(exports, profile, cache);
+  cache.compiled = handler.compile.call(self, profile, cache);
   return cache.compiled;
 }
-exports.compile = compile;
 
 // ---- _profileTypes ----
 _profileTypes["SystemProfile"] = {
@@ -360,7 +330,7 @@ _profileTypes["SystemProfile"] = {
 _profileTypes["DirectProfile"] = {
   includable: true,
   compile: function (this: any, _profile: any) {
-    return new U2.AST_String({ value: this.pacResult() });
+    return b.str(this.pacResult());
   },
 };
 
@@ -407,34 +377,21 @@ _profileTypes["FixedProfile"] = {
       !profile.proxyForHttps &&
       !profile.proxyForFtp
     ) {
-      return new U2.AST_String({
-        value: this.pacResult(profile.fallbackProxy),
-      });
+      return b.str(this.pacResult(profile.fallbackProxy));
     }
-    const body = [new U2.AST_Directive({ value: "use strict" })];
+    const body = [b.directive("use strict")];
 
     if (profile.bypassList && profile.bypassList.length) {
       let conditions: any = null;
       for (const cond of profile.bypassList) {
         const condition = Conditions.compile(cond);
         if (conditions) {
-          conditions = new U2.AST_Binary({
-            left: conditions,
-            operator: "||",
-            right: condition,
-          });
+          conditions = b.binary(conditions, "||", condition);
         } else {
           conditions = condition;
         }
       }
-      body.push(
-        new U2.AST_If({
-          condition: conditions,
-          body: new U2.AST_Return({
-            value: new U2.AST_String({ value: this.pacResult() }),
-          }),
-        }),
-      );
+      body.push(b.if_stmt(conditions, b.ret(b.str(this.pacResult()))));
     }
 
     if (
@@ -442,52 +399,23 @@ _profileTypes["FixedProfile"] = {
       !profile.proxyForHttps &&
       !profile.proxyForFtp
     ) {
-      body.push(
-        new U2.AST_Return({
-          value: new U2.AST_String({
-            value: this.pacResult(profile.fallbackProxy),
-          }),
-        }),
-      );
+      body.push(b.ret(b.str(this.pacResult(profile.fallbackProxy))));
     } else {
       const cases: any[] = [];
       for (const s of schemes) {
         if (!s.scheme || profile[s.prop]) {
-          const ret = [
-            new U2.AST_Return({
-              value: new U2.AST_String({
-                value: this.pacResult(profile[s.prop]),
-              }),
-            }),
-          ];
+          const ret = [b.ret(b.str(this.pacResult(profile[s.prop])))];
           if (s.scheme) {
-            cases.push(
-              new U2.AST_Case({
-                expression: new U2.AST_String({ value: s.scheme }),
-                body: ret,
-              }),
-            );
+            cases.push(b.case_stmt(b.str(s.scheme), ret));
           } else {
-            cases.push(new U2.AST_Default({ body: ret }));
+            cases.push(b.default_stmt(ret));
           }
         }
       }
-      body.push(
-        new U2.AST_Switch({
-          expression: new U2.AST_SymbolRef({ name: "scheme" }),
-          body: cases,
-        }),
-      );
+      body.push(b.switch_stmt(b.id("scheme"), cases));
     }
 
-    return new U2.AST_Function({
-      argnames: [
-        new U2.AST_SymbolFunarg({ name: "url" }),
-        new U2.AST_SymbolFunarg({ name: "host" }),
-        new U2.AST_SymbolFunarg({ name: "scheme" }),
-      ],
-      body: body,
-    });
+    return b.func([b.id("url"), b.id("host"), b.id("scheme")], b.block(body));
   },
 };
 
@@ -500,21 +428,14 @@ _profileTypes["PacProfile"] = {
     }
   },
   compile: (_profile: any) => {
-    return new U2.AST_Call({
-      args: [new U2.AST_This({})],
-      expression: new U2.AST_Dot({
-        property: "call",
-        expression: new U2.AST_Function({
-          argnames: [],
-          body: [
-            new AST_Raw(";\n" + _profile.pacScript + "\n\n/* End of PAC */;"),
-            new U2.AST_Return({
-              value: new U2.AST_SymbolRef({ name: "FindProxyForURL" }),
-            }),
-          ],
-        }),
-      }),
-    });
+    const innerFunc = b.func(
+      [],
+      b.block([
+        b.raw(";\n" + _profile.pacScript + "\n\n/* End of PAC */;"),
+        b.ret(b.id("FindProxyForURL")),
+      ]),
+    );
+    return b.call(b.dot(innerFunc, "call"), [b.this_expr()]);
   },
   updateUrl: (profile: any) => {
     if (isFileUrl(profile.pacUrl)) return undefined;
@@ -578,30 +499,19 @@ _profileTypes["SwitchProfile"] = {
     if (rules.length === 0) {
       return this.profileResult(profile.defaultProfileName);
     }
-    const body = [new U2.AST_Directive({ value: "use strict" })];
+    const body = [b.directive("use strict")];
     for (const rule of rules) {
       body.push(
-        new U2.AST_If({
-          condition: Conditions.compile(rule.condition),
-          body: new U2.AST_Return({
-            value: this.profileResult(rule.profileName),
-          }),
-        }),
+        b.if_stmt(
+          Conditions.compile(rule.condition),
+          b.ret(this.profileResult(rule.profileName)),
+        ),
       );
     }
-    body.push(
-      new U2.AST_Return({
-        value: this.profileResult(profile.defaultProfileName),
-      }),
-    );
-    return new U2.AST_Function({
-      argnames: [
-        new U2.AST_SymbolFunarg({ name: "url" }),
-        new U2.AST_SymbolFunarg({ name: "host" }),
-        new U2.AST_SymbolFunarg({ name: "scheme" }),
-      ],
-      body: body,
-    });
+    body.push(b.ret(this.profileResult(profile.defaultProfileName)));
+
+    const p = [b.id("url"), b.id("host"), b.id("scheme")];
+    return b.func(p, b.block(body));
   },
 };
 
@@ -698,9 +608,78 @@ _profileTypes["RuleListProfile"] = {
 _profileTypes["SwitchyRuleListProfile"] = "RuleListProfile";
 _profileTypes["AutoProxyRuleListProfile"] = "RuleListProfile";
 
-exports.builtinProfiles = builtinProfiles;
-exports.schemes = schemes;
-exports.pacProtocols = pacProtocols;
-exports.formatByType = formatByType;
-exports.ruleListFormats = ruleListFormats;
-exports._profileTypes = _profileTypes;
+// Populate the module-level `self` shim so that handlers using `this.*` still
+// reach peer helpers after the ESM migration.
+Object.assign(self, {
+  parseHostPort,
+  pacResult,
+  isFileUrl,
+  nameAsKey,
+  byName,
+  byKey,
+  each,
+  profileResult,
+  isIncludable,
+  isInclusive,
+  _handler: _getProfileHandler,
+  updateUrl,
+  updateContentTypeHints,
+  update,
+  _profileCache,
+  tag,
+  create,
+  updateRevision,
+  replaceRef,
+  analyze,
+  dropCache,
+  directReferenceSet,
+  profileNotFound,
+  allReferenceSet,
+  referencedBySet,
+  validResultProfilesFor,
+  match,
+  compile,
+  builtinProfiles,
+  schemes,
+  pacProtocols,
+  formatByType,
+  ruleListFormats,
+  _profileTypes,
+});
+
+export {
+  parseHostPort,
+  pacResult,
+  isFileUrl,
+  nameAsKey,
+  byName,
+  byKey,
+  each,
+  profileResult,
+  isIncludable,
+  isInclusive,
+  _getProfileHandler as _handler,
+  updateUrl,
+  updateContentTypeHints,
+  update,
+  _profileCache,
+  tag,
+  create,
+  updateRevision,
+  replaceRef,
+  analyze,
+  dropCache,
+  directReferenceSet,
+  profileNotFound,
+  allReferenceSet,
+  referencedBySet,
+  validResultProfilesFor,
+  match,
+  compile,
+  builtinProfiles,
+  schemes,
+  pacProtocols,
+  formatByType,
+  ruleListFormats,
+  _profileTypes,
+};
