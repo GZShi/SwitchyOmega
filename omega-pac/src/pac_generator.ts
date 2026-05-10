@@ -4,13 +4,7 @@ import * as Profiles from "./profiles";
 
 export function ascii(str: string): string {
   return str.replace(/[-￿]/g, (char: string) => {
-    let hex = char.charCodeAt(0).toString(16);
-    let result = "\\u";
-    for (let i = hex.length; i < 4; i++) {
-      result += "0";
-    }
-    result += hex;
-    return result;
+    return "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0");
   });
 }
 
@@ -56,25 +50,54 @@ export function script(options: any, profile: any, args?: any): any {
             b.directive("use strict"),
             b.var_decl([
               b.vardef(b.id("result"), b.id("init")),
-              b.vardef(b.id("scheme"),
+              b.vardef(
+                b.id("scheme"),
                 b.call(b.dot(b.id("url"), "substr"), [
                   b.num(0),
                   b.call(b.dot(b.id("url"), "indexOf"), [b.str(":")]),
-                ])
+                ]),
               ),
             ]),
             b.do_while(
               b.block([
-                b.expr(b.assign(b.id("result"), "=", b.sub(b.id("profiles"), b.id("result")))),
+                b.expr(
+                  b.assign(
+                    b.id("result"),
+                    "=",
+                    b.sub(b.id("profiles"), b.id("result")),
+                  ),
+                ),
                 b.if_stmt(
-                  b.binary(b.unary("typeof", b.id("result")), "===", b.str("function")),
-                  b.expr(b.assign(b.id("result"), "=", b.call(b.id("result"), [b.id("url"), b.id("host"), b.id("scheme")]))),
+                  b.binary(
+                    b.unary("typeof", b.id("result")),
+                    "===",
+                    b.str("function"),
+                  ),
+                  b.expr(
+                    b.assign(
+                      b.id("result"),
+                      "=",
+                      b.call(b.id("result"), [
+                        b.id("url"),
+                        b.id("host"),
+                        b.id("scheme"),
+                      ]),
+                    ),
+                  ),
                 ),
               ]),
               b.binary(
-                b.binary(b.unary("typeof", b.id("result")), "!==", b.str("string")),
+                b.binary(
+                  b.unary("typeof", b.id("result")),
+                  "!==",
+                  b.str("string"),
+                ),
                 "||",
-                b.binary(b.call(b.dot(b.id("result"), "charCodeAt"), [b.num(0)]), "===", b.num("+".charCodeAt(0))),
+                b.binary(
+                  b.call(b.dot(b.id("result"), "charCodeAt"), [b.num(0)]),
+                  "===",
+                  b.num("+".charCodeAt(0)),
+                ),
               ),
             ),
             b.ret(b.id("result")),
@@ -88,7 +111,10 @@ export function script(options: any, profile: any, args?: any): any {
 
   return b.toplevel([
     b.var_decl([
-      b.vardef(b.id("FindProxyForURL"), b.call(factory, [profileResult, profiles])),
+      b.vardef(
+        b.id("FindProxyForURL"),
+        b.call(factory, [profileResult, profiles]),
+      ),
     ]),
   ]);
 }

@@ -56,7 +56,7 @@ export class AttachedCache {
   }
 
   _setCache(obj: any, value: any): void {
-    if (!Object.prototype.hasOwnProperty.call(obj, this.prop)) {
+    if (!Object.hasOwn(obj, this.prop)) {
       Object.defineProperty(obj, this.prop, { writable: true });
     }
     obj[this.prop] = value;

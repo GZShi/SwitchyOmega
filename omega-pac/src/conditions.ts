@@ -2,11 +2,7 @@ import * as b from "./astree/builders";
 import { Address4, Address6 } from "ip-address";
 import { shExp2RegExp, escapeSlash } from "./shexp_utils";
 import { AttachedCache } from "./utils";
-
-// Module-level namespace used by condition handlers when they reach back to
-// peer helpers via `this` (historically they were bound to CommonJS exports).
-// Populated at the bottom of this file after every helper is defined.
-const self: any = {};
+import type { ParsedRequest, ConditionHandler } from "./types";
 
 // Internal state
 const colonCharCode = ":".charCodeAt(0);
@@ -24,11 +20,7 @@ let _abbrs: Record<string, string> | null = null;
 // extra validation of `new URL()` is not a regression in production.
 const urlPartsRegex = /^([a-zA-Z][a-zA-Z0-9+.\-]*):\/\/([^/?#]*)/;
 
-function requestFromUrl(url: any): {
-  url: string;
-  host: string;
-  scheme: string;
-} {
+function requestFromUrl(url: any): ParsedRequest {
   if (typeof url !== "string") {
     // Backward compat: accept a pre-parsed URL-like object.
     return {
@@ -47,7 +39,7 @@ function requestFromUrl(url: any): {
   if (atIdx >= 0) host = host.substring(atIdx + 1);
   // Strip port and IPv6 literal brackets. Node's legacy url.parse reports
   // hostname as "::1" (no brackets), so we normalise the same way here.
-  if (host.charCodeAt(0) === "[".charCodeAt(0)) {
+  if (host.startsWith("[")) {
     const close = host.indexOf("]");
     host = close >= 0 ? host.substring(1, close) : host.substring(1);
   } else {
@@ -65,7 +57,7 @@ function urlWildcard2HostWildcard(pattern: string): string | null {
 }
 
 // _conditionTypes (declared here so handlers can reference _handler)
-const _conditionTypes: Record<string, any> = {};
+const _conditionTypes: Record<string, ConditionHandler> = {};
 
 function _getHandler(conditionType: any): any {
   if (typeof conditionType !== "string") {
@@ -79,21 +71,14 @@ function _getHandler(conditionType: any): any {
 }
 
 function _setProp(obj: any, prop: string, value: any): void {
-  if (!Object.prototype.hasOwnProperty.call(obj, prop)) {
+  if (!Object.hasOwn(obj, prop)) {
     Object.defineProperty(obj, prop, { writable: true });
   }
   obj[prop] = value;
 }
 
 function comment(commentText: string, node: any): any {
-  if (!commentText) return node;
-  if (node.start == null) node.start = {};
-  Object.defineProperty(node.start, "_comments_dumped", {
-    get: () => false,
-    set: () => false,
-  });
-  if (node.start.comments_before == null) node.start.comments_before = [];
-  node.start.comments_before.push({ type: "comment2", value: commentText });
+  // uglify-js 2 comment injection removed — astring does not read these fields.
   return node;
 }
 
@@ -105,12 +90,8 @@ function safeRegex(expr: string): RegExp {
   }
 }
 
-function isInt(num: any): boolean {
-  return (
-    typeof num === "number" &&
-    !isNaN(num) &&
-    parseFloat(String(num)) === parseInt(String(num), 10)
-  );
+function isInt(num: unknown): boolean {
+  return typeof num === "number" && Number.isInteger(num);
 }
 
 function regTest(expr: any, regexp: any): any {
@@ -138,9 +119,9 @@ function between(val: any, min: any, max: any, commentText: string): any {
     const tmpl = "0123456789abcdefghijklmnopqrstuvwxyz";
     let str: string;
     if (max < tmpl.length) {
-      str = tmpl.substr(min, max - min + 1);
+      str = tmpl.slice(min, max + 1);
     } else {
-      str = tmpl.substr(0, max - min + 1);
+      str = tmpl.slice(0, max - min + 1);
     }
     const pos = min === 0 ? val : b.binary(val, "-", b.num(min));
     return comment(
@@ -175,8 +156,8 @@ function between(val: any, min: any, max: any, commentText: string): any {
 }
 
 function parseIp(ip: string): any {
-  if (ip.charCodeAt(0) === "[".charCodeAt(0)) {
-    ip = ip.substr(1, ip.length - 2);
+  if (ip.startsWith("[")) {
+    ip = ip.slice(1, -1);
   }
   try {
     return new Address4(ip);
@@ -212,10 +193,10 @@ function getWeekdayList(condition: any): boolean[] {
 }
 
 // ---- _condCache ----
-const _condCache = new AttachedCache(function (condition: any) {
+const _condCache = new AttachedCache((condition: any) => {
   const handler = _getHandler(condition.conditionType);
   const tag = handler.tag;
-  const result = tag ? tag.apply(null, arguments) : str(condition);
+  const result = tag ? tag(condition) : str(condition);
   return condition.conditionType + "$" + result;
 });
 
@@ -226,28 +207,20 @@ function tag(condition: any): string {
 
 function analyze(condition: any): any {
   return _condCache.get(condition, () => ({
-    analyzed: _getHandler(condition.conditionType).analyze.call(
-      self,
-      condition,
-    ),
+    analyzed: _getHandler(condition.conditionType).analyze(condition),
   }));
 }
 
 function match(condition: any, request: any): any {
   const cache = analyze(condition);
-  return _getHandler(condition.conditionType).match.call(
-    self,
-    condition,
-    request,
-    cache,
-  );
+  return _getHandler(condition.conditionType).match(condition, request, cache);
 }
 
 function compileCond(condition: any): any {
   const cache = analyze(condition);
   if (cache.compiled) return cache.compiled;
   const handler = _getHandler(condition.conditionType);
-  cache.compiled = handler.compile.call(self, condition, cache);
+  cache.compiled = handler.compile(condition, cache);
   return cache.compiled;
 }
 
@@ -266,7 +239,7 @@ function str(condition: any, opts?: { abbr?: number }): string {
       ? handler.abbrs[(handler.abbrs.length + opt_abbr) % handler.abbrs.length]
       : condition.conditionType;
   let result = typeStr + ":";
-  const part = strFn ? strFn.call(self, condition) : condition.pattern;
+  const part = strFn ? strFn(condition) : condition.pattern;
   if (part) result += " " + part;
   return result;
 }
@@ -277,8 +250,8 @@ function fromStr(input: string): any {
   if (i < 0) i = input.length;
   let conditionType: string;
   if (input.charCodeAt(i - 1) === colonCharCode) {
-    conditionType = input.substr(0, i - 1);
-    input = input.substr(i + 1).trim();
+    conditionType = input.slice(0, i - 1);
+    input = input.slice(i + 1).trim();
   } else {
     conditionType = "";
   }
@@ -288,7 +261,7 @@ function fromStr(input: string): any {
   const condition: any = { conditionType: conditionType };
   const fromStrFn = _getHandler(condition.conditionType).fromStr;
   if (fromStrFn) {
-    return fromStrFn.call(self, input, condition);
+    return fromStrFn(input, condition);
   } else {
     condition.pattern = input;
     return condition;
@@ -299,8 +272,7 @@ function typeFromAbbr(abbr: string): string | undefined {
   if (!_abbrs) {
     _abbrs = {};
     for (const type of Object.keys(_conditionTypes)) {
-      if (!Object.prototype.hasOwnProperty.call(_conditionTypes, type))
-        continue;
+      if (!Object.hasOwn(_conditionTypes, type)) continue;
       const { abbrs: abbrsList } = _conditionTypes[type];
       _abbrs[type.toUpperCase()] = type;
       for (const ab of abbrsList) {
@@ -411,7 +383,7 @@ _conditionTypes["HostWildcardCondition"] = {
     for (const pattern of condition.pattern.split("|")) {
       if (!pattern) continue;
       let p = pattern;
-      if (p.charCodeAt(0) === ".".charCodeAt(0)) {
+      if (p.startsWith(".")) {
         p = "*" + p;
       }
       let re: string;
@@ -491,7 +463,7 @@ _conditionTypes["BypassCondition"] = {
         cache.normalizedPattern += "[" + normalized + "]";
       }
     } else {
-      if (server.charCodeAt(0) === ".".charCodeAt(0)) {
+      if (server.startsWith(".")) {
         server = "*" + server;
       }
       cache.normalizedPattern = server;
@@ -516,15 +488,10 @@ _conditionTypes["BypassCondition"] = {
     }
     return cache;
   },
-  match: function (
-    this: any,
-    condition: any,
-    request: any,
-    cacheContainer: any,
-  ) {
+  match: function (condition: any, request: any, cacheContainer: any) {
     const cache = cacheContainer.analyzed;
     if (cache.scheme != null && cache.scheme !== request.scheme) return false;
-    if (cache.ip != null && !this.match(cache.ip, request)) return false;
+    if (cache.ip != null && !match(cache.ip, request)) return false;
     if (cache.host != null) {
       if (cache.host === "<local>") {
         return (
@@ -539,16 +506,16 @@ _conditionTypes["BypassCondition"] = {
     if (cache.url != null && !cache.url.test(request.url)) return false;
     return true;
   },
-  str: function (this: any, condition: any) {
-    const analyzeFn = this._handler(condition).analyze;
-    const cache = analyzeFn.call(self, condition);
+  str: function (condition: any) {
+    const handler = _getHandler(condition);
+    const cache = handler.analyze(condition);
     if (cache.normalizedPattern) {
       return cache.normalizedPattern;
     } else {
       return condition.pattern;
     }
   },
-  compile: function (this: any, condition: any, cacheContainer: any) {
+  compile: function (condition: any, cacheContainer: any) {
     const cache = cacheContainer.analyzed;
     if (cache.url != null) {
       return regTest("url", cache.url);
@@ -573,7 +540,7 @@ _conditionTypes["BypassCondition"] = {
     if (cache.host != null) {
       conditions.push(regTest("host", cache.host));
     } else if (cache.ip != null) {
-      conditions.push(this.compile(cache.ip));
+      conditions.push(compileCond(cache.ip));
     }
     switch (conditions.length) {
       case 0:
@@ -613,8 +580,8 @@ _conditionTypes["IpCondition"] = {
       normalized: null,
     };
     let ip = condition.ip;
-    if (ip.charCodeAt(0) === "[".charCodeAt(0)) {
-      ip = ip.substr(1, ip.length - 2);
+    if (ip.startsWith("[")) {
+      ip = ip.slice(1, -1);
     }
     const addrStr = ip + "/" + condition.prefixLength;
     cache.addr = parseIp(addrStr);
@@ -727,12 +694,12 @@ _conditionTypes["HostLevelsCondition"] = {
     }
     return dotCount >= condition.minValue;
   },
-  compile: function (this: any, condition: any) {
+  compile: function (condition: any) {
     const val = b.dot(
       b.call(b.dot(b.id("host"), "split"), [b.str(".")]),
       "length",
     );
-    return this.between(
+    return between(
       val,
       condition.minValue + 1,
       condition.maxValue + 1,
@@ -760,7 +727,7 @@ _conditionTypes["WeekdayCondition"] = {
     }
     return condition.startDay <= day && day <= condition.endDay;
   },
-  compile: function (this: any, condition: any) {
+  compile: function (condition: any) {
     const getDay = b.call(b.dot(b.newexp(b.id("Date"), []), "getDay"), []);
     if (condition.days) {
       return b.binary(
@@ -769,7 +736,7 @@ _conditionTypes["WeekdayCondition"] = {
         b.num(64),
       );
     } else {
-      return this.between(getDay, condition.startDay, condition.endDay, "");
+      return between(getDay, condition.startDay, condition.endDay, "");
     }
   },
   str: (condition: any) => {
@@ -802,9 +769,9 @@ _conditionTypes["TimeCondition"] = {
     const hour = new Date().getHours();
     return condition.startHour <= hour && hour <= condition.endHour;
   },
-  compile: function (this: any, condition: any) {
+  compile: function (condition: any) {
     const val = b.call(b.dot(b.newexp(b.id("Date"), []), "getHours"), []);
-    return this.between(val, condition.startHour, condition.endHour, "");
+    return between(val, condition.startHour, condition.endHour, "");
   },
   str: (condition: any) => condition.startHour + "~" + condition.endHour,
   fromStr: (s: string, condition: any) => {
@@ -819,39 +786,8 @@ _conditionTypes["TimeCondition"] = {
   },
 };
 
-// Populate the module-level `self` shim so that handlers that reach back to
-// peer helpers via `this.foo(...)` continue to work after the ESM migration.
-Object.assign(self, {
-  requestFromUrl,
-  urlWildcard2HostWildcard,
-  comment,
-  safeRegex,
-  isInt,
-  regTest,
-  between,
-  parseIp,
-  normalizeIp,
-  ipv6Max,
-  localHosts,
-  getWeekdayList,
-  _condCache,
-  tag,
-  analyze,
-  match,
-  compile: compileCond,
-  str,
-  colonCharCode,
-  fromStr,
-  typeFromAbbr,
-  _handler,
-  _conditionTypes,
-});
-Object.defineProperty(self, "_abbrs", {
-  get: () => _abbrs,
-  set: (v) => {
-    _abbrs = v;
-  },
-});
+// _self shim removed — ESM module-level functions are referenced directly
+// by handler definitions, no need for the `self` namespace anymore.
 
 export {
   requestFromUrl,

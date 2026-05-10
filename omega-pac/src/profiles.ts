@@ -3,11 +3,7 @@ import * as ShexpUtils from "./shexp_utils";
 import * as Conditions from "./conditions";
 import * as RuleList from "./rule_list";
 import { AttachedCache, Revision } from "./utils";
-
-// Module-level namespace used by profile handlers when they reach back to peer
-// helpers via `this` (historically bound to CommonJS exports). Populated after
-// every helper is defined.
-const self: any = {};
+import type { ParsedRequest, ProfileHandler } from "./types";
 
 // ---- Constants ----
 const builtinProfiles: Record<string, any> = {
@@ -53,8 +49,8 @@ function parseHostPort(
 ): { scheme: string; host: string; port: number } | undefined {
   const sep = str.lastIndexOf(":");
   if (sep < 0) return undefined;
-  const port = parseInt(str.substr(sep + 1), 10) || 80;
-  const host = str.substr(0, sep);
+  const port = parseInt(str.slice(sep + 1), 10) || 80;
+  const host = str.slice(0, sep);
   if (!host) return undefined;
   return { scheme, host, port };
 }
@@ -74,7 +70,7 @@ function pacResult(
 }
 
 function isFileUrl(url: string): boolean {
-  return !!(url && url.substr(0, 5).toUpperCase() === "FILE:");
+  return !!(url && url.toUpperCase().startsWith("FILE:"));
 }
 
 function nameAsKey(profileName: any): string {
@@ -103,14 +99,13 @@ function each(
   options: any,
   callback: (key: string, profile: any) => void,
 ): void {
-  const charCodePlus = "+".charCodeAt(0);
   for (const key of Object.keys(options)) {
-    if (key.charCodeAt(0) === charCodePlus) {
+    if (key.startsWith("+")) {
       callback(key, options[key]);
     }
   }
   for (const key of Object.keys(builtinProfiles)) {
-    if (key.charCodeAt(0) === charCodePlus) {
+    if (key.startsWith("+")) {
       callback(key, builtinProfiles[key]);
     }
   }
@@ -127,7 +122,7 @@ function profileResult(profileName: any): any {
 function isIncludable(profile: any): boolean {
   let includable = _getProfileHandler(profile).includable;
   if (typeof includable === "function") {
-    includable = includable.call(self, profile);
+    includable = includable(profile);
   }
   return !!includable;
 }
@@ -136,7 +131,7 @@ function isInclusive(profile: any): boolean {
   return !!_getProfileHandler(profile).inclusive;
 }
 
-const _profileTypes: Record<string, any> = {};
+const _profileTypes: Record<string, string | ProfileHandler> = {};
 
 function _getProfileHandler(profileType: any): any {
   if (typeof profileType !== "string") {
@@ -153,18 +148,15 @@ function _getProfileHandler(profileType: any): any {
 }
 
 function updateUrl(profile: any): string | undefined {
-  return _getProfileHandler(profile).updateUrl?.call(self, profile);
+  return _getProfileHandler(profile).updateUrl?.(profile);
 }
 
 function updateContentTypeHints(profile: any): string[] | undefined {
-  return _getProfileHandler(profile).updateContentTypeHints?.call(
-    self,
-    profile,
-  );
+  return _getProfileHandler(profile).updateContentTypeHints?.(profile);
 }
 
 function update(profile: any, data: string): boolean {
-  return _getProfileHandler(profile).update.call(self, profile, data);
+  return _getProfileHandler(profile).update(profile, data);
 }
 
 const _profileCache = new AttachedCache((profile: any) => profile.revision);
@@ -184,7 +176,7 @@ function create(profile: any, opt_profileType?: string): any {
   }
   const createFn = _getProfileHandler(profile).create;
   if (!createFn) return profile;
-  createFn.call(self, profile);
+  createFn(profile);
   return profile;
 }
 
@@ -196,14 +188,14 @@ function updateRevision(profile: any, revision?: string): void {
 function replaceRef(profile: any, fromName: string, toName: string): boolean {
   if (!isInclusive(profile)) return false;
   const handler = _getProfileHandler(profile);
-  return handler.replaceRef.call(self, profile, fromName, toName);
+  return handler.replaceRef(profile, fromName, toName);
 }
 
 function analyze(profile: any): any {
   const cache = _profileCache.get(profile, {});
-  if (!Object.prototype.hasOwnProperty.call(cache, "analyzed")) {
+  if (!Object.hasOwn(cache, "analyzed")) {
     const analyzeFn = _getProfileHandler(profile).analyze;
-    const result = analyzeFn?.call(self, profile);
+    const result = analyzeFn?.(profile);
     cache.analyzed = result;
   }
   return cache;
@@ -218,7 +210,7 @@ function directReferenceSet(profile: any): Record<string, string> {
   const cache = _profileCache.get(profile, {});
   if (cache.directReferenceSet) return cache.directReferenceSet;
   const handler = _getProfileHandler(profile);
-  cache.directReferenceSet = handler.directReferenceSet.call(self, profile);
+  cache.directReferenceSet = handler.directReferenceSet(profile);
   return cache.directReferenceSet;
 }
 
@@ -308,7 +300,7 @@ function match(profile: any, request: any, opt_profileType?: string): any {
   opt_profileType ??= profile.profileType;
   const cache = analyze(profile);
   const matchFn = _getProfileHandler(opt_profileType).match;
-  return matchFn?.call(self, profile, request, cache);
+  return matchFn?.(profile, request, cache);
 }
 
 function compile(profile: any, opt_profileType?: string): any {
@@ -316,7 +308,7 @@ function compile(profile: any, opt_profileType?: string): any {
   const cache = analyze(profile);
   if (cache.compiled) return cache.compiled;
   const handler = _getProfileHandler(opt_profileType);
-  cache.compiled = handler.compile.call(self, profile, cache);
+  cache.compiled = handler.compile(profile, cache);
   return cache.compiled;
 }
 
@@ -329,8 +321,8 @@ _profileTypes["SystemProfile"] = {
 
 _profileTypes["DirectProfile"] = {
   includable: true,
-  compile: function (this: any, _profile: any) {
-    return b.str(this.pacResult());
+  compile: function (_profile: any) {
+    return b.str(pacResult());
   },
 };
 
@@ -345,18 +337,18 @@ _profileTypes["FixedProfile"] = {
       ];
     }
   },
-  match: function (this: any, profile: any, request: any) {
+  match: function (profile: any, request: any) {
     if (profile.bypassList) {
       for (const cond of profile.bypassList) {
         if (Conditions.match(cond, request)) {
-          return [this.pacResult(), cond, { scheme: "direct" }, undefined];
+          return [pacResult(), cond, { scheme: "direct" }, undefined];
         }
       }
     }
     for (const s of schemes) {
       if (s.scheme === request.scheme && profile[s.prop]) {
         return [
-          this.pacResult(profile[s.prop]),
+          pacResult(profile[s.prop]),
           s.scheme,
           profile[s.prop],
           profile.auth?.[s.prop] ?? profile.auth?.["all"],
@@ -364,20 +356,20 @@ _profileTypes["FixedProfile"] = {
       }
     }
     return [
-      this.pacResult(profile.fallbackProxy),
+      pacResult(profile.fallbackProxy),
       "",
       profile.fallbackProxy,
       profile.auth?.fallbackProxy ?? profile.auth?.["all"],
     ];
   },
-  compile: function (this: any, profile: any) {
+  compile: function (profile: any) {
     if (
       (!profile.bypassList || !profile.fallbackProxy) &&
       !profile.proxyForHttp &&
       !profile.proxyForHttps &&
       !profile.proxyForFtp
     ) {
-      return b.str(this.pacResult(profile.fallbackProxy));
+      return b.str(pacResult(profile.fallbackProxy));
     }
     const body = [b.directive("use strict")];
 
@@ -391,7 +383,7 @@ _profileTypes["FixedProfile"] = {
           conditions = condition;
         }
       }
-      body.push(b.if_stmt(conditions, b.ret(b.str(this.pacResult()))));
+      body.push(b.if_stmt(conditions, b.ret(b.str(pacResult()))));
     }
 
     if (
@@ -399,12 +391,12 @@ _profileTypes["FixedProfile"] = {
       !profile.proxyForHttps &&
       !profile.proxyForFtp
     ) {
-      body.push(b.ret(b.str(this.pacResult(profile.fallbackProxy))));
+      body.push(b.ret(b.str(pacResult(profile.fallbackProxy))));
     } else {
       const cases: any[] = [];
       for (const s of schemes) {
         if (!s.scheme || profile[s.prop]) {
-          const ret = [b.ret(b.str(this.pacResult(profile[s.prop])))];
+          const ret = [b.ret(b.str(pacResult(profile[s.prop])))];
           if (s.scheme) {
             cases.push(b.case_stmt(b.str(s.scheme), ret));
           } else {
@@ -463,7 +455,7 @@ _profileTypes["SwitchProfile"] = {
     profile.defaultProfileName ??= "direct";
     profile.rules ??= [];
   },
-  directReferenceSet: function (this: any, profile: any) {
+  directReferenceSet: function (profile: any) {
     const refs: Record<string, string> = {};
     refs[nameAsKey(profile.defaultProfileName)] = profile.defaultProfileName;
     for (const rule of profile.rules) {
@@ -486,7 +478,7 @@ _profileTypes["SwitchProfile"] = {
     }
     return changed;
   },
-  match: function (this: any, profile: any, request: any, cache: any) {
+  match: function (profile: any, request: any, cache: any) {
     for (const rule of cache.analyzed) {
       if (Conditions.match(rule.condition, request)) {
         return rule;
@@ -494,21 +486,21 @@ _profileTypes["SwitchProfile"] = {
     }
     return [nameAsKey(profile.defaultProfileName), null];
   },
-  compile: function (this: any, profile: any, cache: any) {
+  compile: function (profile: any, cache: any) {
     const rules = cache.analyzed;
     if (rules.length === 0) {
-      return this.profileResult(profile.defaultProfileName);
+      return profileResult(profile.defaultProfileName);
     }
     const body = [b.directive("use strict")];
     for (const rule of rules) {
       body.push(
         b.if_stmt(
           Conditions.compile(rule.condition),
-          b.ret(this.profileResult(rule.profileName)),
+          b.ret(profileResult(rule.profileName)),
         ),
       );
     }
-    body.push(b.ret(this.profileResult(profile.defaultProfileName)));
+    body.push(b.ret(profileResult(profile.defaultProfileName)));
 
     const p = [b.id("url"), b.id("host"), b.id("scheme")];
     return b.func(p, b.block(body));
@@ -566,11 +558,11 @@ _profileTypes["RuleListProfile"] = {
       profile.defaultProfileName,
     );
   },
-  match: function (this: any, profile: any, request: any) {
-    return this.match(profile, request, "SwitchProfile");
+  match: function (profile: any, request: any) {
+    return match(profile, request, "SwitchProfile");
   },
-  compile: function (this: any, profile: any) {
-    return this.compile(profile, "SwitchProfile");
+  compile: function (profile: any) {
+    return compile(profile, "SwitchProfile");
   },
   updateUrl: (profile: any) => profile.sourceUrl,
   updateContentTypeHints: () => [
@@ -588,7 +580,7 @@ _profileTypes["RuleListProfile"] = {
       format = null;
     }
     for (const formatName of Object.keys(RuleList)) {
-      if (!Object.prototype.hasOwnProperty.call(RuleList, formatName)) continue;
+      if (!Object.hasOwn(RuleList, formatName)) continue;
       const result = RuleList[formatName].detect?.(data);
       if (result === true || (result !== false && format == null)) {
         profile.format = format = formatName;
@@ -608,44 +600,8 @@ _profileTypes["RuleListProfile"] = {
 _profileTypes["SwitchyRuleListProfile"] = "RuleListProfile";
 _profileTypes["AutoProxyRuleListProfile"] = "RuleListProfile";
 
-// Populate the module-level `self` shim so that handlers using `this.*` still
-// reach peer helpers after the ESM migration.
-Object.assign(self, {
-  parseHostPort,
-  pacResult,
-  isFileUrl,
-  nameAsKey,
-  byName,
-  byKey,
-  each,
-  profileResult,
-  isIncludable,
-  isInclusive,
-  _handler: _getProfileHandler,
-  updateUrl,
-  updateContentTypeHints,
-  update,
-  _profileCache,
-  tag,
-  create,
-  updateRevision,
-  replaceRef,
-  analyze,
-  dropCache,
-  directReferenceSet,
-  profileNotFound,
-  allReferenceSet,
-  referencedBySet,
-  validResultProfilesFor,
-  match,
-  compile,
-  builtinProfiles,
-  schemes,
-  pacProtocols,
-  formatByType,
-  ruleListFormats,
-  _profileTypes,
-});
+// _self shim removed — ESM module-level functions are referenced directly
+// by handler definitions, no need for the `self` namespace anymore.
 
 export {
   parseHostPort,

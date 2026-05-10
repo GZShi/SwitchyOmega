@@ -25,7 +25,7 @@ export function escapeSlash(pattern: string): string {
     }
     escaped = code === charCodeBackSlash && !escaped;
   }
-  result += pattern.substr(start);
+  result += pattern.slice(start);
   return result;
 }
 

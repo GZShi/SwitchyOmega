@@ -1,9 +1,5 @@
 import * as Conditions from "./conditions";
 
-function strStartsWith(str: string, prefix: string): boolean {
-  return str.substr(0, prefix.length) === prefix;
-}
-
 function decodeBase64Utf8(text: string): string {
   const bin = atob(text);
   const bytes = new Uint8Array(bin.length);
@@ -16,13 +12,13 @@ const AutoProxy: any = {
   magicPrefix: "W0F1dG9Qcm94", // Detect base-64 encoded "[AutoProxy".
 
   detect: (text: string): boolean | undefined => {
-    if (strStartsWith(text, AutoProxy.magicPrefix)) return true;
-    if (strStartsWith(text, "[AutoProxy")) return true;
+    if (text.startsWith(AutoProxy.magicPrefix)) return true;
+    if (text.startsWith("[AutoProxy")) return true;
     return undefined;
   },
 
   preprocess: (text: string): string => {
-    if (strStartsWith(text, AutoProxy.magicPrefix)) {
+    if (text.startsWith(AutoProxy.magicPrefix)) {
       text = decodeBase64Utf8(text);
     }
     return text;
@@ -88,7 +84,7 @@ const Switchy: any = {
   specialLineStart: "[;#@!",
 
   detect: (text: string): boolean | undefined => {
-    if (strStartsWith(text, Switchy.omegaPrefix)) return true;
+    if (text.startsWith(Switchy.omegaPrefix)) return true;
     return undefined;
   },
 
@@ -112,7 +108,7 @@ const Switchy: any = {
   },
 
   getParser: (text: string): string => {
-    if (!strStartsWith(text, Switchy.omegaPrefix)) {
+    if (!text.startsWith(Switchy.omegaPrefix)) {
       if (text[0] === "#" || text.indexOf("\n#") >= 0) {
         return "parseLegacy";
       }
@@ -295,7 +291,7 @@ const Switchy: any = {
       error = (fields: any) => {
         const err: any = new Error(fields.message);
         for (const key of Object.keys(fields)) {
-          if (Object.prototype.hasOwnProperty.call(fields, key)) {
+          if (Object.hasOwn(fields, key)) {
             err[key] = fields[key];
           }
         }
@@ -323,8 +319,8 @@ const Switchy: any = {
           // Directive line:
           let iSpace = line.indexOf(" ");
           if (iSpace < 0) iSpace = line.length;
-          const directive = line.substr(1, iSpace - 1);
-          line = line.substr(iSpace + 1).trim();
+          const directive = line.slice(1, iSpace);
+          line = line.slice(iSpace + 1).trim();
           switch (directive.toUpperCase()) {
             case "WITH":
               const feature = line.toUpperCase();
@@ -346,7 +342,7 @@ const Switchy: any = {
       if (line[0] === "!") {
         profile = withResult ? null : defaultProfileName;
         source = line;
-        line = line.substr(1);
+        line = line.slice(1);
       } else if (withResult) {
         const iSpace = line.lastIndexOf(" +");
         if (iSpace < 0) {
@@ -360,8 +356,8 @@ const Switchy: any = {
           }
           continue;
         }
-        profile = line.substr(iSpace + 2).trim();
-        line = line.substr(0, iSpace).trim();
+        profile = line.slice(iSpace + 2).trim();
+        line = line.slice(0, iSpace).trim();
         if (line === "*") {
           exclusiveProfile = profile;
         }
