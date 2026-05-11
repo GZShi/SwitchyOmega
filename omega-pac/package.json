@@ -21,6 +21,7 @@
     "build": "tsdown --config tsdown.config.ts",
     "dev": "tsdown --config tsdown.config.ts --watch",
     "test": "TZ=Europe/London mocha --require tsx/cjs --reporter spec test/*.test.ts",
+    "lint": "eslint src/ test/ --no-cache",
     "clean": "rm -rf dist omega_pac.min.js"
   },
   "dependencies": {
@@ -29,15 +30,19 @@
     "tldts": "^6.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@sinonjs/fake-timers": "^13.0.0",
     "@types/astring": "^1.7.4",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.6.0",
     "chai": "^4.3.0",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
     "mocha": "^10.0.0",
-    "tsdown": "^0.14.2",
+    "tsdown": "^0.22.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.2"
   }
 }

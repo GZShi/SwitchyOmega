@@ -33,34 +33,35 @@ const AutoProxy: any = {
     const exclusive_rules: any[] = [];
     for (let line of text.split(/\n|\r/)) {
       line = line.trim();
-      if (line.length === 0 || line[0] === "!" || line[0] === "[") continue;
+      if (line.length === 0 || line.startsWith("!") || line.startsWith("["))
+        continue;
       const source = line;
       let profile = matchProfileName;
       let list = normal_rules;
-      if (line[0] === "@" && line[1] === "@") {
+      if (line.startsWith("@") && line[1] === "@") {
         profile = defaultProfileName;
         list = exclusive_rules;
         line = line.substring(2);
       }
       let cond: any;
-      if (line[0] === "/") {
+      if (line.startsWith("/")) {
         cond = {
           conditionType: "UrlRegexCondition",
           pattern: line.substring(1, line.length - 1),
         };
-      } else if (line[0] === "|") {
+      } else if (line.startsWith("|")) {
         if (line[1] === "|") {
           cond = {
             conditionType: "HostWildcardCondition",
-            pattern: "*." + line.substring(2),
+            pattern: `*.${line.substring(2)}`,
           };
         } else {
           cond = {
             conditionType: "UrlWildcardCondition",
-            pattern: line.substring(1) + "*",
+            pattern: `${line.substring(1)}*`,
           };
         }
-      } else if (line.indexOf("*") < 0) {
+      } else if (!line.includes("*")) {
         cond = {
           conditionType: "KeywordCondition",
           pattern: line,
@@ -68,10 +69,10 @@ const AutoProxy: any = {
       } else {
         cond = {
           conditionType: "UrlWildcardCondition",
-          pattern: "http://*" + line + "*",
+          pattern: `http://*${line}*`,
         };
       }
-      list.push({ condition: cond, profileName: profile, source: source });
+      list.push({ condition: cond, profileName: profile, source });
     }
     // Exclusive rules have higher priority, so they come first.
     return exclusive_rules.concat(normal_rules);
@@ -109,7 +110,7 @@ const Switchy: any = {
 
   getParser: (text: string): string => {
     if (!text.startsWith(Switchy.omegaPrefix)) {
-      if (text[0] === "#" || text.indexOf("\n#") >= 0) {
+      if (text.startsWith("#") || text.includes("\n#")) {
         return "parseLegacy";
       }
     }
@@ -117,7 +118,7 @@ const Switchy: any = {
   },
 
   directReferenceSet: (profile: any): Record<string, string> | null => {
-    const { ruleList, matchProfileName, defaultProfileName } = profile;
+    const { ruleList } = profile;
     const parser = Switchy.getParser(ruleList);
     if (parser === "parseOmega") {
       if (ruleList.indexOf("@with result") >= 0) {
@@ -128,7 +129,7 @@ const Switchy: any = {
           if (pos >= 0) {
             const name = line.substring(pos + 2).trim();
             if (name) {
-              refs["+" + name] = name;
+              refs[`+${name}`] = name;
             }
           }
         }
@@ -150,38 +151,38 @@ const Switchy: any = {
     const withResult = opts?.withResult ?? false;
 
     if (withResult) {
-      ruleList += "@with result" + eol + eol;
+      ruleList += `@with result${eol}${eol}`;
     } else {
       ruleList += eol;
     }
 
-    const specialLineStart = Switchy.specialLineStart + "+";
+    const specialLineStart = `${Switchy.specialLineStart}+`;
     for (const rule of rules) {
       if (rule.note) {
-        ruleList += "@note " + rule.note + eol;
+        ruleList += `@note ${rule.note}${eol}`;
       }
       let line = Conditions.str(rule.condition);
       if (useExclusive && rule.profileName === defaultProfileName) {
-        line = "!" + line;
+        line = `!${line}`;
       } else {
-        if (specialLineStart.indexOf(line[0]) >= 0) {
-          line = ": " + line;
+        if (specialLineStart.includes(line[0])) {
+          line = `: ${line}`;
         }
         if (withResult) {
-          line += " +" + rule.profileName;
+          line += ` +${rule.profileName}`;
         }
       }
       ruleList += line + eol;
     }
 
     if (withResult) {
-      ruleList += eol + "* +" + defaultProfileName + eol;
+      ruleList += `${eol}* +${defaultProfileName}${eol}`;
     }
     return ruleList;
   },
 
   conditionFromLegacyWildcard: (pattern: string): any => {
-    if (pattern[0] === "@") {
+    if (pattern.startsWith("@")) {
       pattern = pattern.substring(1);
     }
     // Note: The original CS version had a bug where the else branch was missing
@@ -198,11 +199,11 @@ const Switchy: any = {
     //       pattern += '*'
     // This means the else block contains both if statements.
     // For non-@ patterns, add * prefix if needed and * suffix if needed.
-    if (pattern[0] !== "@") {
-      if (pattern.indexOf("://") <= 0 && pattern[0] !== "*") {
-        pattern = "*" + pattern;
+    if (!pattern.startsWith("@")) {
+      if (pattern.indexOf("://") <= 0 && !pattern.startsWith("*")) {
+        pattern = `*${pattern}`;
       }
-      if (pattern[pattern.length - 1] !== "*") {
+      if (!pattern.endsWith("*")) {
         pattern += "*";
       }
     } else {
@@ -219,7 +220,7 @@ const Switchy: any = {
     } else {
       return {
         conditionType: "UrlWildcardCondition",
-        pattern: pattern,
+        pattern,
       };
     }
   },
@@ -236,7 +237,7 @@ const Switchy: any = {
 
     for (let line of text.split(/\n|\r/)) {
       line = line.trim();
-      if (line.length === 0 || line[0] === ";") continue;
+      if (line.length === 0 || line.startsWith(";")) continue;
       if (!begin) {
         if (line.toUpperCase() === "#BEGIN") {
           begin = true;
@@ -244,14 +245,14 @@ const Switchy: any = {
         continue;
       }
       if (line.toUpperCase() === "#END") break;
-      if (line[0] === "[" && line[line.length - 1] === "]") {
+      if (line.startsWith("[") && line.endsWith("]")) {
         section = line.substring(1, line.length - 1).toUpperCase();
         continue;
       }
       const source = line;
       let profile = matchProfileName;
       let list = normal_rules;
-      if (line[0] === "!") {
+      if (line.startsWith("!")) {
         profile = defaultProfileName;
         list = exclusive_rules;
         line = line.substring(1);
@@ -271,7 +272,7 @@ const Switchy: any = {
           cond = null;
       }
       if (cond != null) {
-        list.push({ condition: cond, profileName: profile, source: source });
+        list.push({ condition: cond, profileName: profile, source });
       }
     }
     // Exclusive rules have higher priority, so they come first.
@@ -284,7 +285,7 @@ const Switchy: any = {
     defaultProfileName: string,
     args?: any,
   ): any[] => {
-    const opt_args = args || {};
+    const opt_args = args ?? {};
     const strict = opt_args.strict;
     let error: ((fields: any) => void) | null = null;
     if (strict) {
@@ -298,7 +299,7 @@ const Switchy: any = {
         throw err;
       };
     }
-    const includeSource = opt_args.source != null ? opt_args.source : true;
+    const includeSource = opt_args.source ?? true;
     const rules: any[] = [];
     const rulesWithDefaultProfile: any[] = [];
     let withResult = false;
@@ -339,7 +340,7 @@ const Switchy: any = {
       let source: string | null = null;
       let profile: string | null;
       if (strict) exclusiveProfile = null;
-      if (line[0] === "!") {
+      if (line.startsWith("!")) {
         profile = withResult ? null : defaultProfileName;
         source = line;
         line = line.slice(1);
@@ -348,7 +349,7 @@ const Switchy: any = {
         if (iSpace < 0) {
           if (error) {
             error({
-              message: "Missing result profile name: " + line,
+              message: `Missing result profile name: ${line}`,
               reason: "missingResultProfile",
               source: line,
               sourceLineNo: lno,
@@ -369,9 +370,9 @@ const Switchy: any = {
       if (!cond) {
         if (error) {
           error({
-            message: "Invalid rule: " + line,
+            message: `Invalid rule: ${line}`,
             reason: "invalidRule",
-            source: source != null ? source : line,
+            source: source ?? line,
             sourceLineNo: lno,
           });
         }
@@ -381,7 +382,7 @@ const Switchy: any = {
       const rule: any = {
         condition: cond,
         profileName: profile,
-        source: includeSource ? (source != null ? source : line) : undefined,
+        source: includeSource ? (source ?? line) : undefined,
       };
       if (noteForNextRule != null) {
         rule.note = noteForNextRule;

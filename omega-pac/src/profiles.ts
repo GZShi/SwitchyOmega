@@ -1,9 +1,8 @@
 import * as b from "./astree/builders";
-import * as ShexpUtils from "./shexp_utils";
 import * as Conditions from "./conditions";
 import * as RuleList from "./rule_list";
 import { AttachedCache, Revision } from "./utils";
-import type { ParsedRequest, ProfileHandler } from "./types";
+import type { ProfileHandler } from "./types";
 
 // ---- Constants ----
 const builtinProfiles: Record<string, any> = {
@@ -70,6 +69,7 @@ function pacResult(
 }
 
 function isFileUrl(url: string): boolean {
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- && guards method call chain, ?. would throw on null
   return !!(url && url.toUpperCase().startsWith("FILE:"));
 }
 
@@ -77,7 +77,7 @@ function nameAsKey(profileName: any): string {
   if (typeof profileName !== "string") {
     profileName = profileName.name;
   }
-  return "+" + profileName;
+  return `+${profileName}`;
 }
 
 function byName(profileName: any, options?: any): any {
@@ -229,7 +229,7 @@ function profileNotFound(name: string, action?: any): any {
       return null;
     case "dumb":
       return create({
-        name: name,
+        name,
         profileType: "VirtualProfile",
         defaultProfileName: "direct",
       });
@@ -244,17 +244,15 @@ function allReferenceSet(
 ): Record<string, any> {
   const o_profile = profile;
   profile = byName(profile, options);
-  if (profile == null) {
-    profile = profileNotFound(o_profile, opt_args?.profileNotFound);
-  }
-  if (opt_args == null) opt_args = {};
+  profile ??= profileNotFound(o_profile, opt_args?.profileNotFound);
+  opt_args ??= {};
   const has_out = opt_args.out != null;
-  if (opt_args.out == null) opt_args.out = {};
+  opt_args.out ??= {};
   const result = opt_args.out;
   if (profile) {
     result[nameAsKey(profile.name)] = profile.name;
     for (const name of Object.values(directReferenceSet(profile))) {
-      allReferenceSet(name as string, options, opt_args);
+      allReferenceSet(name, options, opt_args);
     }
   }
   if (!has_out) delete opt_args.out;
@@ -267,9 +265,9 @@ function referencedBySet(
   opt_args?: any,
 ): Record<string, any> {
   const profileKey = nameAsKey(profile);
-  if (opt_args == null) opt_args = {};
+  opt_args ??= {};
   const has_out = opt_args.out != null;
-  if (opt_args.out == null) opt_args.out = {};
+  opt_args.out ??= {};
   const result = opt_args.out;
   each(options, (key: string, prof: any) => {
     if (directReferenceSet(prof)[profileKey]) {
@@ -321,7 +319,7 @@ _profileTypes["SystemProfile"] = {
 
 _profileTypes["DirectProfile"] = {
   includable: true,
-  compile: function (_profile: any) {
+  compile(_profile: any) {
     return b.str(pacResult());
   },
 };
@@ -329,15 +327,13 @@ _profileTypes["DirectProfile"] = {
 _profileTypes["FixedProfile"] = {
   includable: true,
   create: (profile: any) => {
-    if (profile.bypassList == null) {
-      profile.bypassList = [
-        { conditionType: "BypassCondition", pattern: "127.0.0.1" },
-        { conditionType: "BypassCondition", pattern: "[::1]" },
-        { conditionType: "BypassCondition", pattern: "localhost" },
-      ];
-    }
+    profile.bypassList ??= [
+      { conditionType: "BypassCondition", pattern: "127.0.0.1" },
+      { conditionType: "BypassCondition", pattern: "[::1]" },
+      { conditionType: "BypassCondition", pattern: "localhost" },
+    ];
   },
-  match: function (profile: any, request: any) {
+  match(profile: any, request: any) {
     if (profile.bypassList) {
       for (const cond of profile.bypassList) {
         if (Conditions.match(cond, request)) {
@@ -362,7 +358,7 @@ _profileTypes["FixedProfile"] = {
       profile.auth?.fallbackProxy ?? profile.auth?.["all"],
     ];
   },
-  compile: function (profile: any) {
+  compile(profile: any) {
     if (
       (!profile.bypassList || !profile.fallbackProxy) &&
       !profile.proxyForHttp &&
@@ -373,7 +369,7 @@ _profileTypes["FixedProfile"] = {
     }
     const body = [b.directive("use strict")];
 
-    if (profile.bypassList && profile.bypassList.length) {
+    if (profile.bypassList?.length) {
       let conditions: any = null;
       for (const cond of profile.bypassList) {
         const condition = Conditions.compile(cond);
@@ -414,16 +410,14 @@ _profileTypes["FixedProfile"] = {
 _profileTypes["PacProfile"] = {
   includable: (profile: any) => !isFileUrl(profile.pacUrl),
   create: (profile: any) => {
-    if (profile.pacScript == null) {
-      profile.pacScript =
-        'function FindProxyForURL(url, host) {\n  return "DIRECT";\n}\n';
-    }
+    profile.pacScript ??=
+      'function FindProxyForURL(url, host) {\n  return "DIRECT";\n}\n';
   },
   compile: (_profile: any) => {
     const innerFunc = b.func(
       [],
       b.block([
-        b.raw(";\n" + _profile.pacScript + "\n\n/* End of PAC */;"),
+        b.raw(`;\n${_profile.pacScript}\n\n/* End of PAC */;`),
         b.ret(b.id("FindProxyForURL")),
       ]),
     );
@@ -455,7 +449,7 @@ _profileTypes["SwitchProfile"] = {
     profile.defaultProfileName ??= "direct";
     profile.rules ??= [];
   },
-  directReferenceSet: function (profile: any) {
+  directReferenceSet(profile: any) {
     const refs: Record<string, string> = {};
     refs[nameAsKey(profile.defaultProfileName)] = profile.defaultProfileName;
     for (const rule of profile.rules) {
@@ -478,7 +472,7 @@ _profileTypes["SwitchProfile"] = {
     }
     return changed;
   },
-  match: function (profile: any, request: any, cache: any) {
+  match(profile: any, request: any, cache: any) {
     for (const rule of cache.analyzed) {
       if (Conditions.match(rule.condition, request)) {
         return rule;
@@ -486,7 +480,7 @@ _profileTypes["SwitchProfile"] = {
     }
     return [nameAsKey(profile.defaultProfileName), null];
   },
-  compile: function (profile: any, cache: any) {
+  compile(profile: any, cache: any) {
     const rules = cache.analyzed;
     if (rules.length === 0) {
       return profileResult(profile.defaultProfileName);
@@ -558,10 +552,10 @@ _profileTypes["RuleListProfile"] = {
       profile.defaultProfileName,
     );
   },
-  match: function (profile: any, request: any) {
+  match(profile: any, request: any) {
     return match(profile, request, "SwitchProfile");
   },
-  compile: function (profile: any) {
+  compile(profile: any) {
     return compile(profile, "SwitchProfile");
   },
   updateUrl: (profile: any) => profile.sourceUrl,

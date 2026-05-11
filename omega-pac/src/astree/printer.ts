@@ -5,7 +5,7 @@
 import { generate, GENERATOR } from "astring";
 
 // Merge custom node types with astring's default generators.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const CUSTOM_GENERATOR: Record<string, (node: any, state: any) => void> = {
   ...GENERATOR,
   RawCode(node: any, state: any) {

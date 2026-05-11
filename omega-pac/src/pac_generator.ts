@@ -4,7 +4,7 @@ import * as Profiles from "./profiles";
 
 export function ascii(str: string): string {
   return str.replace(/[-￿]/g, (char: string) => {
-    return "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0");
+    return `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`;
   });
 }
 
@@ -32,9 +32,7 @@ export function script(options: any, profile: any, args?: any): any {
     } else {
       p = Profiles.byName(name, options);
     }
-    if (p == null) {
-      p = Profiles.profileNotFound(name, args?.profileNotFound);
-    }
+    p ??= Profiles.profileNotFound(name, args?.profileNotFound);
     profileArr.push(b.prop(key, Profiles.compile(p)));
   }
   const profiles = b.obj(profileArr);

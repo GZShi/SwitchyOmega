@@ -17,6 +17,7 @@ export default defineConfig([
     dts: false,
     minify: false,
     clean: true,
+    onSuccess: "eslint src/ --no-cache --max-warnings 0",
   },
   {
     entry: { "omega_pac.min": "src/index.ts" },
@@ -28,7 +29,7 @@ export default defineConfig([
     dts: false,
     minify: true,
     clean: false,
-    noExternal: [/.*/],
+    deps: { alwaysBundle: [/.*/] },
     inputOptions: {
       resolve: {
         // Force rolldown to honour `main`/`module` so tldts resolves to its

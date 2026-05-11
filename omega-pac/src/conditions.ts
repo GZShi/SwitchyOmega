@@ -171,9 +171,7 @@ function parseIp(ip: string): any {
 }
 
 function normalizeIp(addr: any): string {
-  return (
-    addr.correctForm != null ? addr.correctForm : addr.canonicalForm
-  ).call(addr);
+  return (addr.correctForm ?? addr.canonicalForm).call(addr);
 }
 
 function getWeekdayList(condition: any): boolean[] {
@@ -197,7 +195,7 @@ const _condCache = new AttachedCache((condition: any) => {
   const handler = _getHandler(condition.conditionType);
   const tag = handler.tag;
   const result = tag ? tag(condition) : str(condition);
-  return condition.conditionType + "$" + result;
+  return `${condition.conditionType}$${result}`;
 });
 
 // ---- Core functions ----
@@ -225,7 +223,7 @@ function compileCond(condition: any): any {
 }
 
 function str(condition: any, opts?: { abbr?: number }): string {
-  const opt_abbr = opts != null && opts.abbr != null ? opts.abbr : -1;
+  const opt_abbr = opts?.abbr ?? -1;
   const handler = _getHandler(condition.conditionType);
   if (handler.abbrs[0].length === 0) {
     const endCode = condition.pattern.charCodeAt(condition.pattern.length - 1);
@@ -238,9 +236,9 @@ function str(condition: any, opts?: { abbr?: number }): string {
     typeof opt_abbr === "number"
       ? handler.abbrs[(handler.abbrs.length + opt_abbr) % handler.abbrs.length]
       : condition.conditionType;
-  let result = typeStr + ":";
+  let result = `${typeStr}:`;
   const part = strFn ? strFn(condition) : condition.pattern;
-  if (part) result += " " + part;
+  if (part) result += ` ${part}`;
   return result;
 }
 
@@ -258,7 +256,7 @@ function fromStr(input: string): any {
 
   conditionType = typeFromAbbr(conditionType);
   if (!conditionType) return null;
-  const condition: any = { conditionType: conditionType };
+  const condition: any = { conditionType };
   const fromStrFn = _getHandler(condition.conditionType).fromStr;
   if (fromStrFn) {
     return fromStrFn(input, condition);
@@ -312,13 +310,13 @@ _conditionTypes["FalseCondition"] = {
 
 _conditionTypes["UrlRegexCondition"] = {
   abbrs: ["UR", "URegex", "UrlR", "UrlRegex"],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     return safeRegex(escapeSlash(condition.pattern));
   },
-  match: function (this: any, _c: any, request: any, cache: any) {
+  match(this: any, _c: any, request: any, cache: any) {
     return cache.analyzed.test(request.url);
   },
-  compile: function (this: any, _c: any, cache: any) {
+  compile(this: any, _c: any, cache: any) {
     return regTest("url", cache.analyzed);
   },
 };
@@ -334,7 +332,7 @@ _conditionTypes["UrlWildcardCondition"] = {
     "UrlWild",
     "UrlWildcard",
   ],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     const parts: string[] = [];
     for (const pattern of condition.pattern.split("|")) {
       if (!pattern) continue;
@@ -342,23 +340,23 @@ _conditionTypes["UrlWildcardCondition"] = {
     }
     return safeRegex(parts.join("|"));
   },
-  match: function (this: any, _c: any, request: any, cache: any) {
+  match(this: any, _c: any, request: any, cache: any) {
     return cache.analyzed.test(request.url);
   },
-  compile: function (this: any, _c: any, cache: any) {
+  compile(this: any, _c: any, cache: any) {
     return regTest("url", cache.analyzed);
   },
 };
 
 _conditionTypes["HostRegexCondition"] = {
   abbrs: ["R", "HR", "Regex", "HostR", "HRegex", "HostRegex"],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     return safeRegex(escapeSlash(condition.pattern));
   },
-  match: function (this: any, _c: any, request: any, cache: any) {
+  match(this: any, _c: any, request: any, cache: any) {
     return cache.analyzed.test(request.host);
   },
-  compile: function (this: any, _c: any, cache: any) {
+  compile(this: any, _c: any, cache: any) {
     return regTest("host", cache.analyzed);
   },
 };
@@ -378,13 +376,13 @@ _conditionTypes["HostWildcardCondition"] = {
     "HostWild",
     "HostWildcard",
   ],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     const parts: string[] = [];
     for (const pattern of condition.pattern.split("|")) {
       if (!pattern) continue;
       let p = pattern;
       if (p.startsWith(".")) {
-        p = "*" + p;
+        p = `*${p}`;
       }
       let re: string;
       if (p.indexOf("**.") === 0) {
@@ -400,17 +398,17 @@ _conditionTypes["HostWildcardCondition"] = {
     }
     return safeRegex(parts.join("|"));
   },
-  match: function (this: any, _c: any, request: any, cache: any) {
+  match(this: any, _c: any, request: any, cache: any) {
     return cache.analyzed.test(request.host);
   },
-  compile: function (this: any, _c: any, cache: any) {
+  compile(this: any, _c: any, cache: any) {
     return regTest("host", cache.analyzed);
   },
 };
 
 _conditionTypes["BypassCondition"] = {
   abbrs: ["B", "Bypass"],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     const cache: any = {
       host: null,
       ip: null,
@@ -426,7 +424,7 @@ _conditionTypes["BypassCondition"] = {
     let parts = server.split("://");
     if (parts.length > 1) {
       cache.scheme = parts[0];
-      cache.normalizedPattern = cache.scheme + "://";
+      cache.normalizedPattern = `${cache.scheme}://`;
       server = parts[1];
     }
 
@@ -440,7 +438,7 @@ _conditionTypes["BypassCondition"] = {
           ip: normalizeIp(addr),
           prefixLength: prefixLen,
         };
-        cache.normalizedPattern += cache.ip.ip + "/" + cache.ip.prefixLength;
+        cache.normalizedPattern += `${cache.ip.ip}/${cache.ip.prefixLength}`;
         return cache;
       }
     }
@@ -460,35 +458,32 @@ _conditionTypes["BypassCondition"] = {
       if (serverIp.v4) {
         cache.normalizedPattern += normalized;
       } else {
-        cache.normalizedPattern += "[" + normalized + "]";
+        cache.normalizedPattern += `[${normalized}]`;
       }
     } else {
       if (server.startsWith(".")) {
-        server = "*" + server;
+        server = `*${server}`;
       }
       cache.normalizedPattern = server;
     }
 
     if (matchPort) {
       cache.port = matchPort;
-      cache.normalizedPattern += ":" + cache.port;
+      cache.normalizedPattern += `:${cache.port}`;
       if (serverIp != null && !serverIp.v4) {
-        server =
-          "[" + (serverIp != null ? normalizeIp(serverIp) : server) + "]";
+        server = `[${serverIp != null ? normalizeIp(serverIp) : server}]`;
       }
       let serverRegex = shExp2RegExp(server);
       serverRegex = serverRegex.substring(1, serverRegex.length - 1);
-      const scheme = cache.scheme != null ? cache.scheme : "[^:]+";
-      cache.url = safeRegex(
-        "^" + scheme + ":\\/\\/" + serverRegex + ":" + matchPort + "\\/",
-      );
+      const scheme = cache.scheme ?? "[^:]+";
+      cache.url = safeRegex(`^${scheme}:\\/\\/${serverRegex}:${matchPort}\\/`);
     } else if (server !== "*") {
       const serverRegex = shExp2RegExp(server, { trimAsterisk: true });
       cache.host = safeRegex(serverRegex);
     }
     return cache;
   },
-  match: function (condition: any, request: any, cacheContainer: any) {
+  match(condition: any, request: any, cacheContainer: any) {
     const cache = cacheContainer.analyzed;
     if (cache.scheme != null && cache.scheme !== request.scheme) return false;
     if (cache.ip != null && !match(cache.ip, request)) return false;
@@ -506,7 +501,7 @@ _conditionTypes["BypassCondition"] = {
     if (cache.url != null && !cache.url.test(request.url)) return false;
     return true;
   },
-  str: function (condition: any) {
+  str(condition: any) {
     const handler = _getHandler(condition);
     const cache = handler.analyze(condition);
     if (cache.normalizedPattern) {
@@ -515,7 +510,7 @@ _conditionTypes["BypassCondition"] = {
       return condition.pattern;
     }
   },
-  compile: function (condition: any, cacheContainer: any) {
+  compile(condition: any, cacheContainer: any) {
     const cache = cacheContainer.analyzed;
     if (cache.url != null) {
       return regTest("url", cache.url);
@@ -574,7 +569,7 @@ _conditionTypes["KeywordCondition"] = {
 
 _conditionTypes["IpCondition"] = {
   abbrs: ["Ip"],
-  analyze: function (this: any, condition: any) {
+  analyze(this: any, condition: any) {
     const cache: any = {
       addr: null,
       normalized: null,
@@ -583,7 +578,7 @@ _conditionTypes["IpCondition"] = {
     if (ip.startsWith("[")) {
       ip = ip.slice(1, -1);
     }
-    const addrStr = ip + "/" + condition.prefixLength;
+    const addrStr = `${ip}/${condition.prefixLength}`;
     cache.addr = parseIp(addrStr);
     if (cache.addr == null) {
       throw new Error(`Invalid IP address ${addrStr}`);
@@ -591,26 +586,21 @@ _conditionTypes["IpCondition"] = {
     cache.normalized = normalizeIp(cache.addr);
     let mask: any;
     if (cache.addr.v4) {
-      mask = new Address4("255.255.255.255/" + cache.addr.subnetMask);
+      mask = new Address4(`255.255.255.255/${cache.addr.subnetMask}`);
     } else {
-      mask = new Address6(ipv6Max + "/" + cache.addr.subnetMask);
+      mask = new Address6(`${ipv6Max}/${cache.addr.subnetMask}`);
     }
     cache.mask = normalizeIp(mask.startAddress());
     return cache;
   },
-  match: function (
-    this: any,
-    condition: any,
-    request: any,
-    cacheContainer: any,
-  ) {
+  match(this: any, condition: any, request: any, cacheContainer: any) {
     const addr = parseIp(request.host);
     if (addr == null) return false;
     const cache = cacheContainer.analyzed;
     if (addr.v4 !== cache.addr.v4) return false;
     return addr.isInSubnet(cache.addr);
   },
-  compile: function (this: any, condition: any, cacheContainer: any) {
+  compile(this: any, condition: any, cacheContainer: any) {
     const cache = cacheContainer.analyzed;
     let hostLooksLikeIp: any;
     if (cache.addr.v4) {
@@ -654,8 +644,8 @@ _conditionTypes["IpCondition"] = {
     }
     return b.binary(hostLooksLikeIp, "&&", hostIsInNet);
   },
-  str: (condition: any) => condition.ip + "/" + condition.prefixLength,
-  fromStr: function (this: any, s: string, condition: any) {
+  str: (condition: any) => `${condition.ip}/${condition.prefixLength}`,
+  fromStr(this: any, s: string, condition: any) {
     const addr = parseIp(s);
     if (addr != null) {
       condition.ip = addr.addressMinusSuffix;
@@ -683,7 +673,7 @@ _conditionTypes["HostLevelsCondition"] = {
     "HostLevels",
   ],
   analyze: (_c: any) => ".".charCodeAt(0),
-  match: function (this: any, condition: any, request: any, cache: any) {
+  match(this: any, condition: any, request: any, cache: any) {
     const dotCharCode = cache.analyzed;
     let dotCount = 0;
     for (let i = 0; i < request.host.length; i++) {
@@ -694,7 +684,7 @@ _conditionTypes["HostLevelsCondition"] = {
     }
     return dotCount >= condition.minValue;
   },
-  compile: function (condition: any) {
+  compile(condition: any) {
     const val = b.dot(
       b.call(b.dot(b.id("host"), "split"), [b.str(".")]),
       "length",
@@ -706,7 +696,7 @@ _conditionTypes["HostLevelsCondition"] = {
       `${condition.minValue} <= hostLevels <= ${condition.maxValue}`,
     );
   },
-  str: (condition: any) => condition.minValue + "~" + condition.maxValue,
+  str: (condition: any) => `${condition.minValue}~${condition.maxValue}`,
   fromStr: (s: string, condition: any) => {
     const [minVal, maxVal] = s.split("~");
     condition.minValue = parseInt(minVal, 10);
@@ -727,7 +717,7 @@ _conditionTypes["WeekdayCondition"] = {
     }
     return condition.startDay <= day && day <= condition.endDay;
   },
-  compile: function (condition: any) {
+  compile(condition: any) {
     const getDay = b.call(b.dot(b.newexp(b.id("Date"), []), "getDay"), []);
     if (condition.days) {
       return b.binary(
@@ -743,11 +733,11 @@ _conditionTypes["WeekdayCondition"] = {
     if (condition.days) {
       return condition.days;
     } else {
-      return condition.startDay + "~" + condition.endDay;
+      return `${condition.startDay}~${condition.endDay}`;
     }
   },
   fromStr: (s: string, condition: any) => {
-    if (s.indexOf("~") < 0 && s.length === 7) {
+    if (!s.includes("~") && s.length === 7) {
       condition.days = s;
     } else {
       const [startDayStr, endDayStr] = s.split("~");
@@ -769,11 +759,11 @@ _conditionTypes["TimeCondition"] = {
     const hour = new Date().getHours();
     return condition.startHour <= hour && hour <= condition.endHour;
   },
-  compile: function (condition: any) {
+  compile(condition: any) {
     const val = b.call(b.dot(b.newexp(b.id("Date"), []), "getHours"), []);
     return between(val, condition.startHour, condition.endHour, "");
   },
-  str: (condition: any) => condition.startHour + "~" + condition.endHour,
+  str: (condition: any) => `${condition.startHour}~${condition.endHour}`,
   fromStr: (s: string, condition: any) => {
     const [startH, endH] = s.split("~");
     condition.startHour = parseInt(startH, 10);

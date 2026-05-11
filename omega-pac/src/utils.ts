@@ -37,11 +37,11 @@ export class AttachedCache {
   get(obj: any, otherwise: any): any {
     const tag = this.tag(obj);
     const cache = this._getCache(obj);
-    if (cache != null && cache.tag === tag) {
+    if (cache?.tag === tag) {
       return cache.value;
     }
     const value = typeof otherwise === "function" ? otherwise() : otherwise;
-    this._setCache(obj, { tag: tag, value: value });
+    this._setCache(obj, { tag, value });
     return value;
   }
 
@@ -79,7 +79,7 @@ export function getBaseDomain(domain: string): string {
 
 export function wildcardForDomain(domain: string): string {
   if (isIp(domain)) return domain;
-  return "*." + getBaseDomain(domain);
+  return `*.${  getBaseDomain(domain)}`;
 }
 
 export function wildcardForUrl(url: string): string {
