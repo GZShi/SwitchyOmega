@@ -1,25 +1,46 @@
-const options = require("./options");
-const log = require("./log");
-const storage = require("./storage");
-const browserStorage = require("./browser_storage");
-const optionsSync = require("./options_sync");
-const utils = require("./utils");
-const errors = require("./errors");
-const omegaPac = require("omega-pac");
+import OmegaPac from "omega-pac";
+import Log from "./log";
+import Storage from "./storage";
+import BrowserStorage from "./browser_storage";
+import Options from "./options";
+import OptionsSync from "./options_sync";
+import {
+  NetworkError,
+  HttpError,
+  HttpNotFoundError,
+  HttpServerError,
+  ContentTypeRejectedError,
+} from "./errors";
 
-module.exports = {
-  Log: log,
-  Storage: storage,
-  BrowserStorage: browserStorage,
-  Options: options,
-  OptionsSync: optionsSync,
-  OmegaPac: omegaPac,
+export {
+  Log,
+  Storage,
+  BrowserStorage,
+  Options,
+  OptionsSync,
+  OmegaPac,
+  NetworkError,
+  HttpError,
+  HttpNotFoundError,
+  HttpServerError,
+  ContentTypeRejectedError,
 };
 
-// Flatten utils and errors exports
-for (const name of Object.keys(utils)) {
-  module.exports[name] = utils[name];
-}
-for (const name of Object.keys(errors)) {
-  module.exports[name] = errors[name];
-}
+// Default export mirrors the UMD global shape consumed by the chromium
+// extension (`window.OmegaTarget.Options`, `OmegaTarget.Log.log(...)`, etc.)
+// and the CJS-interop form used by `const OmegaTarget = require("omega-target")`.
+const OmegaTarget = {
+  Log,
+  Storage,
+  BrowserStorage,
+  Options,
+  OptionsSync,
+  OmegaPac,
+  NetworkError,
+  HttpError,
+  HttpNotFoundError,
+  HttpServerError,
+  ContentTypeRejectedError,
+};
+
+export default OmegaTarget;

@@ -1,26 +1,26 @@
-const Storage = require("./storage");
-const Log = require("./log");
-const { Revision } = require("omega-pac");
-const jsondiffpatch = require("jsondiffpatch");
-const { TokenBucket: LimiterTokenBucket } = require("limiter");
+import Storage from "./storage";
+import Log from "./log";
+import { Revision } from "omega-pac";
+import * as jsondiffpatch from "jsondiffpatch";
+import { TokenBucket as LimiterTokenBucket } from "limiter";
+import type { StorageLike, OptionsSyncLike } from "./types";
 
-// Thin wrapper over limiter v3's TokenBucket preserving the legacy callback
-// and positional-args shape used by OptionsSync. The class doubles as an
-// `unlimited bucket` when constructed with no arguments.
+// Thin wrapper over limiter v3's TokenBucket preserving the legacy positional
+// constructor used by downstream callers (OptionsSync itself and tests).
 class TokenBucket {
-  _bucket: any;
+  _bucket: LimiterTokenBucket;
 
   constructor(
     bucketSize?: number,
     tokensPerInterval?: number,
     interval?: string | number,
-    parentBucket?: any,
+    parentBucket?: LimiterTokenBucket,
   ) {
     this._bucket = new LimiterTokenBucket({
       bucketSize: bucketSize ?? Number.MAX_SAFE_INTEGER,
       tokensPerInterval: tokensPerInterval ?? Number.MAX_SAFE_INTEGER,
-      interval: interval ?? "minute",
-      parentBucket: parentBucket ?? null,
+      interval: (interval ?? "minute") as any,
+      parentBucket: parentBucket ?? undefined,
     });
   }
 
@@ -28,19 +28,8 @@ class TokenBucket {
     return this._bucket.content;
   }
 
-  removeTokens(
-    count: number,
-    callback?: (err: any, tokens: number) => void,
-  ): any {
-    const promise = this._bucket.removeTokens(count);
-    if (typeof callback === "function") {
-      promise.then(
-        (tokens: number) => callback(null, tokens),
-        (err: any) => callback(err, 0),
-      );
-      return;
-    }
-    return promise;
+  removeTokens(count: number): Promise<number> {
+    return this._bucket.removeTokens(count);
   }
 
   tryRemoveTokens(count: number): boolean {
@@ -52,61 +41,52 @@ class TokenBucket {
   }
 }
 
-class OptionsSync {
+class OptionsSync implements OptionsSyncLike {
   static TokenBucket = TokenBucket;
 
-  _timeout: any = null;
-  _bucket: any = null;
-  _waiting: boolean = false;
+  _timeout: ReturnType<typeof setTimeout> | null = null;
+  _bucket: TokenBucket;
+  _waiting = false;
   _pending: Record<string, any> = {};
 
-  debounce: number = 1000;
-  pullThrottle: number = 1000;
-  storage: any = null;
-  enabled: boolean = true;
+  debounce = 1000;
+  pullThrottle = 1000;
+  storage: StorageLike;
+  enabled = true;
 
-  constructor(storage?: any, bucket?: any) {
-    this.storage = storage;
-    this._bucket = bucket;
-    this._pending = {};
-    if (this._bucket == null) {
-      this._bucket = new TokenBucket(10, 10, "minute", null);
-    }
-    if (this._bucket.clear == null) {
-      this._bucket.clear = () => {
+  private readonly _diffEngine = jsondiffpatch.create({
+    objectHash: (obj: any) => JSON.stringify(obj),
+    textDiff: { minLength: Infinity },
+  });
+
+  constructor(storage?: StorageLike, bucket?: TokenBucket) {
+    this.storage = storage as StorageLike;
+    this._bucket = bucket ?? new TokenBucket(10, 10, "minute");
+    if (typeof (this._bucket as any).clear !== "function") {
+      (this._bucket as any).clear = () => {
         this._bucket.tryRemoveTokens(this._bucket.content);
       };
     }
+    this._pending = {};
   }
 
   transformValue = (v: any, _key?: string): any => v;
 
-  merge: (key: string, newVal: any, oldVal: any) => any = (() => {
-    const diff = jsondiffpatch.create({
-      objectHash: (obj: any) => JSON.stringify(obj),
-      textDiff: { minLength: Infinity },
-    });
-    return (key: string, newVal: any, oldVal: any) => {
-      if (newVal === oldVal) return oldVal;
-      if (
-        (oldVal != null && oldVal.syncOptions === "disabled") ||
-        (newVal != null && newVal.syncOptions === "disabled")
-      ) {
+  merge = (key: string, newVal: any, oldVal: any) => {
+    if (newVal === oldVal) return oldVal;
+    if (
+      oldVal?.syncOptions === "disabled" ||
+      newVal?.syncOptions === "disabled"
+    ) {
+      return oldVal;
+    }
+    if (oldVal?.revision != null && newVal?.revision != null) {
+      if (Revision.compare(oldVal.revision, newVal.revision) >= 0)
         return oldVal;
-      }
-      if (
-        oldVal != null &&
-        oldVal.revision != null &&
-        newVal != null &&
-        newVal.revision != null
-      ) {
-        const result = Revision.compare(oldVal.revision, newVal.revision);
-        if (result >= 0) return oldVal;
-      }
-      if (diff.diff(oldVal, newVal) == null) return oldVal;
-      return newVal;
-    };
-  })();
+    }
+    if (this._diffEngine.diff(oldVal, newVal) == null) return oldVal;
+    return newVal;
+  };
 
   requestPush(changes: Record<string, any>): void {
     if (this._timeout != null) clearTimeout(this._timeout);
@@ -119,152 +99,136 @@ class OptionsSync {
       this._pending[key] = value;
     }
     if (!this.enabled) return;
-    this._timeout = setTimeout(this._doPush.bind(this), this.debounce);
+    this._timeout = setTimeout(() => this._doPush(), this.debounce);
   }
 
   pendingChanges(): Record<string, any> {
     return this._pending;
   }
 
-  _doPush(): void {
+  private _reEnqueue(set: Record<string, any>, remove: string[]) {
+    for (const key of Object.keys(set)) {
+      if (!(key in this._pending)) this._pending[key] = set[key];
+    }
+    for (const key of remove) {
+      if (!(key in this._pending)) this._pending[key] = undefined;
+    }
+  }
+
+  private async _doPush(): Promise<void> {
     this._timeout = null;
     if (this._waiting) return;
     this._waiting = true;
-    this._bucket.removeTokens(1, () => {
-      this.storage
-        .get(null)
-        .then((base: any) => {
-          const changes = this._pending;
-          this._pending = {};
-          this._waiting = false;
-          return Storage.operationsForChanges(changes, {
-            base: base,
-            merge: this.merge,
-          });
-        })
-        .then(
-          ({ set, remove }: { set: Record<string, any>; remove: string[] }) => {
-            const doSet =
-              Object.keys(set).length === 0
-                ? Promise.resolve(0)
-                : (Log.log("OptionsSync::set", set),
-                  this.storage.set(set).then(() => 1));
-            doSet
-              .then((cost: number) => {
-                const s: Record<string, any> = {};
-                if (remove.length > 0) {
-                  if (this._bucket.tryRemoveTokens(cost)) {
-                    Log.log("OptionsSync::remove", remove);
-                    return this.storage.remove(remove);
-                  } else {
-                    return Promise.reject("bucket");
-                  }
-                }
-                return;
-              })
-              .catch((e: any) => {
-                for (const key of Object.keys(set)) {
-                  if (!(key in this._pending)) {
-                    this._pending[key] = set[key];
-                  }
-                }
-                for (const key of remove) {
-                  if (!(key in this._pending)) {
-                    this._pending[key] = undefined;
-                  }
-                }
 
-                if (e === "bucket") {
-                  this._doPush();
-                } else if (e instanceof Storage.RateLimitExceededError) {
-                  Log.log("OptionsSync::rateLimitExceeded");
-                  this._bucket.clear();
-                  this.requestPush({});
-                  return;
-                } else if (e instanceof Storage.QuotaExceededError) {
-                  let valuesAffected = 0;
-                  for (const key of Object.keys(set)) {
-                    const value = set[key];
-                    if (key[0] === "+" && value.syncOptions !== "disabled") {
-                      value.syncOptions = "disabled";
-                      value.syncError = { reason: "quotaPerItem" };
-                      valuesAffected++;
-                    }
-                  }
-                  if (valuesAffected > 0) {
-                    this.requestPush({});
-                  } else {
-                    this._pending = {};
-                  }
-                  return;
-                } else {
-                  return Promise.reject(e);
-                }
-              });
-          },
-        );
+    await this._bucket.removeTokens(1);
+
+    const base = await this.storage.get(null);
+    const changes = this._pending;
+    this._pending = {};
+    this._waiting = false;
+
+    const { set, remove } = Storage.operationsForChanges(changes, {
+      base,
+      merge: this.merge,
     });
+
+    try {
+      let cost = 0;
+      if (Object.keys(set).length > 0) {
+        Log.log("OptionsSync::set", set);
+        await this.storage.set(set);
+        cost = 1;
+      }
+      if (remove.length > 0) {
+        if (!this._bucket.tryRemoveTokens(cost)) {
+          this._reEnqueue(set, remove);
+          return this._doPush();
+        }
+        Log.log("OptionsSync::remove", remove);
+        await this.storage.remove(remove);
+      }
+    } catch (e: any) {
+      this._reEnqueue(set, remove);
+
+      if (e === "bucket") {
+        return this._doPush();
+      }
+      if (e instanceof Storage.RateLimitExceededError) {
+        Log.log("OptionsSync::rateLimitExceeded");
+        this._bucket.clear();
+        this.requestPush({});
+        return;
+      }
+      if (e instanceof Storage.QuotaExceededError) {
+        let valuesAffected = 0;
+        for (const key of Object.keys(set)) {
+          const value: any = set[key];
+          if (key.startsWith("+") && value.syncOptions !== "disabled") {
+            value.syncOptions = "disabled";
+            value.syncError = { reason: "quotaPerItem" };
+            valuesAffected++;
+          }
+        }
+        if (valuesAffected > 0) {
+          this.requestPush({});
+        } else {
+          this._pending = {};
+        }
+        return;
+      }
+      throw e;
+    }
   }
 
   _logOperations(text: string, operations: any): void {
     if (Object.keys(operations.set).length) {
-      Log.log(text + "::set", operations.set);
+      Log.log(`${text}::set`, operations.set);
     }
     if (operations.remove.length) {
-      Log.log(text + "::remove", operations.remove);
+      Log.log(`${text}::remove`, operations.remove);
     }
   }
 
-  copyTo(local: any): Promise<void> {
-    return Promise.all([local.get(null), this.storage.get(null)]).then(
-      ([base, changes]: [any, any]) => {
-        for (const key of Object.keys(base)) {
-          if (!(key in changes)) {
-            if (
-              key[0] === "+" &&
-              !(base[key] != null && base[key].syncOptions === "disabled")
-            ) {
-              changes[key] = undefined;
-            }
-          }
-        }
-        return local
-          .apply({
-            changes: changes,
-            base: base,
-            merge: this.merge,
-          })
-          .then((operations: any) => {
-            this._logOperations("OptionsSync::copyTo", operations);
-          });
-      },
-    );
+  async copyTo(local: StorageLike): Promise<void> {
+    const [base, changes] = await Promise.all([
+      local.get(null),
+      this.storage.get(null),
+    ]);
+    for (const key of Object.keys(base)) {
+      if (key in changes) continue;
+      if (
+        key.startsWith("+") &&
+        (base[key] as any)?.syncOptions !== "disabled"
+      ) {
+        changes[key] = undefined;
+      }
+    }
+    const operations = await local.apply({
+      changes,
+      base,
+      merge: this.merge,
+    });
+    this._logOperations("OptionsSync::copyTo", operations);
   }
 
-  watchAndPull(local: any): void {
-    let pullScheduled: any = null;
+  watchAndPull(local: StorageLike): void {
+    let pullScheduled: ReturnType<typeof setTimeout> | null = null;
     const pull: Record<string, any> = {};
 
-    const doPull = () => {
-      local
-        .get(null)
-        .then((base: any) => {
-          // Capture a copy of pull since we will clear it immediately
-          const changes: Record<string, any> = {};
-          for (const key of Object.keys(pull)) {
-            changes[key] = pull[key];
-            delete pull[key];
-          }
-          pullScheduled = null;
-          return Storage.operationsForChanges(changes, {
-            base: base,
-            merge: this.merge,
-          });
-        })
-        .then((operations: any) => {
-          this._logOperations("OptionsSync::pull", operations);
-          return local.apply(operations);
-        });
+    const doPull = async () => {
+      const base = await local.get(null);
+      const changes: Record<string, any> = {};
+      for (const key of Object.keys(pull)) {
+        changes[key] = pull[key];
+        delete pull[key];
+      }
+      pullScheduled = null;
+      const operations = Storage.operationsForChanges(changes, {
+        base,
+        merge: this.merge,
+      });
+      this._logOperations("OptionsSync::pull", operations);
+      await local.apply(operations);
     };
 
     this.storage.watch(null, (changes: any) => {
@@ -277,4 +241,4 @@ class OptionsSync {
   }
 }
 
-module.exports = OptionsSync;
+export default OptionsSync;

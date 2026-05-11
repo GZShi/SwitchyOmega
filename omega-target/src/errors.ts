@@ -1,46 +1,33 @@
-class NetworkError extends Error {
-  cause: any;
+export class NetworkError extends Error {
+  override name = "NetworkError";
 
-  constructor(err: any) {
-    super("");
-    this.cause = err;
-    this.name = "NetworkError";
+  constructor(err?: unknown) {
+    super(err instanceof Error ? err.message : "", { cause: err });
   }
 }
 
-class HttpError extends NetworkError {
-  statusCode: any;
+export class HttpError extends NetworkError {
+  override name = "HttpError";
+  statusCode?: number;
 
-  constructor() {
-    super(undefined);
-    this.statusCode = this.cause?.statusCode;
-    this.name = "HttpError";
+  constructor(err?: Error & { statusCode?: number }) {
+    super(err);
+    this.statusCode = err?.statusCode;
   }
 }
 
-class HttpNotFoundError extends HttpError {
-  constructor() {
-    super();
-    this.name = "HttpNotFoundError";
-  }
+export class HttpNotFoundError extends HttpError {
+  override name = "HttpNotFoundError";
 }
 
-class HttpServerError extends HttpError {
-  constructor() {
-    super();
-    this.name = "HttpServerError";
-  }
+export class HttpServerError extends HttpError {
+  override name = "HttpServerError";
 }
 
-class ContentTypeRejectedError extends Error {
+export class ContentTypeRejectedError extends Error {
+  override name = "ContentTypeRejectedError";
+
   constructor() {
     super("");
-    this.name = "ContentTypeRejectedError";
   }
 }
-
-exports.NetworkError = NetworkError;
-exports.HttpError = HttpError;
-exports.HttpNotFoundError = HttpNotFoundError;
-exports.HttpServerError = HttpServerError;
-exports.ContentTypeRejectedError = ContentTypeRejectedError;

@@ -73,6 +73,7 @@ const omegaTargetMin = path.join(
   root,
   "node_modules",
   "omega-target",
+  "dist",
   "omega_target.min.js",
 );
 copyFile(omegaTargetMin, path.join(buildDir, "js", "omega_target.min.js"));

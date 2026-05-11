@@ -1,33 +1,32 @@
-const Log = require("./log");
+import Log from "./log";
+import type { StorageLike, StorageOperations, StorageMergeFn } from "./types";
 
-class Storage {
-  _items: any;
+class RateLimitExceededError extends Error {
+  override name = "RateLimitExceededError";
+}
 
-  static RateLimitExceededError = class RateLimitExceededError extends Error {
-    constructor() {
-      super();
-    }
-  };
+class QuotaExceededError extends Error {
+  override name = "QuotaExceededError";
+}
 
-  static QuotaExceededError = class QuotaExceededError extends Error {
-    constructor() {
-      super();
-    }
-  };
+class StorageUnavailableError extends Error {
+  override name = "StorageUnavailableError";
+}
 
-  static StorageUnavailableError = class StorageUnavailableError extends Error {
-    constructor() {
-      super();
-    }
-  };
+class Storage implements StorageLike {
+  _items: Record<string, any> | null = null;
+
+  static RateLimitExceededError = RateLimitExceededError;
+  static QuotaExceededError = QuotaExceededError;
+  static StorageUnavailableError = StorageUnavailableError;
 
   static operationsForChanges(
     changes: Record<string, any>,
     opts?: {
       base?: Record<string, any>;
-      merge?: (key: string, newVal: any, oldVal: any) => any;
+      merge?: StorageMergeFn;
     },
-  ): { set: Record<string, any>; remove: string[] } {
+  ): StorageOperations {
     const base = opts?.base;
     const merge = opts?.merge;
     const set: Record<string, any> = {};
@@ -48,58 +47,51 @@ class Storage {
         set[key] = newVal;
       }
     }
-    return { set: set, remove: remove };
+    return { set, remove };
   }
 
   get(keys: any): Promise<any> {
     Log.method("Storage#get", this, arguments);
     if (!this._items) return Promise.resolve({});
 
-    if (keys == null) {
-      keys = this._items;
-    }
-    const map: Record<string, any> = {};
-    if (typeof keys === "string") {
-      map[keys] = this._items[keys];
-    } else if (Array.isArray(keys)) {
-      for (const key of keys) {
-        map[key] = this._items[key];
-      }
-    } else if (typeof keys === "object") {
-      for (const key of Object.keys(keys)) {
-        const value = keys[key];
-        map[key] = this._items[key] != null ? this._items[key] : value;
-      }
-    }
-    return Promise.resolve(map);
+    const items = this._items;
+    if (keys == null) return Promise.resolve({ ...items });
+    if (typeof keys === "string")
+      return Promise.resolve({ [keys]: items[keys] });
+    if (Array.isArray(keys))
+      return Promise.resolve(
+        Object.fromEntries(keys.map((k) => [k, items[k]])),
+      );
+    // Object form: keys are defaults
+    return Promise.resolve(
+      Object.fromEntries(
+        Object.entries(keys).map(([k, def]) => [k, items[k] ?? def]),
+      ),
+    );
   }
 
   set(items: Record<string, any>): Promise<any> {
     Log.method("Storage#set", this, arguments);
-    if (this._items == null) this._items = {};
-    for (const key of Object.keys(items)) {
-      this._items[key] = items[key];
-    }
+    this._items ??= {};
+    Object.assign(this._items, items);
     return Promise.resolve(items);
   }
 
   remove(keys: any): Promise<void> {
     Log.method("Storage#remove", this, arguments);
-    if (this._items) {
-      if (keys == null) {
-        this._items = {};
-      } else if (Array.isArray(keys)) {
-        for (const key of keys) {
-          delete this._items[key];
-        }
-      } else {
-        delete this._items[keys];
-      }
+    if (!this._items) return Promise.resolve();
+
+    if (keys == null) {
+      this._items = {};
+    } else if (Array.isArray(keys)) {
+      for (const key of keys) delete this._items[key];
+    } else {
+      delete this._items[keys];
     }
     return Promise.resolve();
   }
 
-  watch(keys: any, callback: Function): Function {
+  watch(_keys: any, _callback: Function): Function {
     Log.method("Storage#watch", this, arguments);
     return () => null;
   }
@@ -114,4 +106,4 @@ class Storage {
   }
 }
 
-module.exports = Storage;
+export default Storage;

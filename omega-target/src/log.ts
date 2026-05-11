@@ -1,6 +1,4 @@
-const Log: any = require("./log");
-
-const replacer = (key: string, value: any): any => {
+const replacer = (key: string, value: unknown): unknown => {
   switch (key) {
     case "username":
     case "password":
@@ -12,41 +10,39 @@ const replacer = (key: string, value: any): any => {
   }
 };
 
-exports.str = function (obj: any): string {
-  if (typeof obj === "object" && obj !== null) {
-    if (obj.debugStr != null) {
-      if (typeof obj.debugStr === "function") {
-        return obj.debugStr();
-      } else {
-        return obj.debugStr;
-      }
-    } else if (obj instanceof Error) {
-      return obj.stack || obj.message;
-    } else {
-      return JSON.stringify(obj, replacer, 4);
+export function str(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") {
+    if (typeof obj === "function") {
+      return obj.name ? `<f: ${obj.name}>` : obj.toString();
     }
-  } else if (typeof obj === "function") {
-    if (obj.name) {
-      return "<f: " + obj.name + ">";
-    } else {
-      return obj.toString();
-    }
-  } else {
-    return "" + obj;
+    return String(obj);
   }
-};
+  const maybeWithDebug = obj as { debugStr?: string | (() => string) };
+  if (maybeWithDebug.debugStr != null) {
+    return typeof maybeWithDebug.debugStr === "function"
+      ? maybeWithDebug.debugStr()
+      : maybeWithDebug.debugStr;
+  }
+  if (obj instanceof Error) {
+    return obj.stack ?? obj.message;
+  }
+  return JSON.stringify(obj, replacer, 4);
+}
 
-exports.log = console.log.bind(console);
+export const log: (...args: unknown[]) => void = console.log.bind(console);
+export const error: (...args: unknown[]) => void = console.error.bind(console);
 
-exports.error = console.error.bind(console);
+export function func(name: string, args: ArrayLike<unknown>): void {
+  log(name, "(", Array.from(args), ")");
+}
 
-exports.func = function (name: string, args: any[]): void {
-  exports.log(name, "(", [].slice.call(args), ")");
-};
+export function method(
+  name: string,
+  self: unknown,
+  args: ArrayLike<unknown>,
+): void {
+  log(str(self), "<<", name, Array.from(args));
+}
 
-exports.method = function (name: string, self: any, args: any[]): void {
-  exports.log(exports.str(self), "<<", name, [].slice.call(args));
-};
-
-// Keep self-reference for circular require
-Object.assign(Log, exports);
+const Log = { str, log, error, func, method };
+export default Log;

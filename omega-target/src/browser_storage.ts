@@ -1,112 +1,80 @@
-const Storage = require("./storage");
+import InMemoryStorage from "./storage";
 
-class BrowserStorage extends Storage {
-  storage: any;
-  prefix: string;
-  proto: any;
-
-  constructor(storage: any, prefix?: string) {
+class BrowserStorage extends InMemoryStorage {
+  constructor(
+    private readonly _raw: Storage,
+    private readonly _prefix = "",
+  ) {
     super();
-    this.storage = storage;
-    this.prefix = prefix || "";
-    this.proto = Object.getPrototypeOf(this.storage);
   }
 
-  get(keys: any): Promise<any> {
-    const map: Record<string, any> = {};
-    const storage = this.storage;
-    const proto = this.proto;
-    const prefix = this.prefix;
-
-    if (keys == null) {
-      // Retrieving all keys needs iteration over all storage items.
-      let i = 0;
-      while (i < storage.length) {
-        const key = proto.key.call(storage, i);
-        if (key && key.substr(0, prefix.length) === prefix) {
-          try {
-            map[key.substring(prefix.length)] = JSON.parse(
-              proto.getItem.call(storage, key),
-            );
-          } catch (_e) {
-            // Skip unparseable items
-          }
-        }
-        i++;
-      }
-    } else if (typeof keys === "string") {
+  override async get(keys: any): Promise<Record<string, any>> {
+    const read = (key: string): any => {
+      const raw = this._raw.getItem(this._prefix + key);
+      if (raw == null) return undefined;
       try {
-        const raw = proto.getItem.call(storage, prefix + keys);
-        if (raw != null) map[keys] = JSON.parse(raw);
-      } catch (_e) {
-        // Skip unparseable
+        return JSON.parse(raw);
+      } catch {
+        return undefined;
       }
-    } else if (Array.isArray(keys)) {
-      for (const key of keys) {
-        try {
-          const raw = proto.getItem.call(storage, prefix + key);
-          if (raw != null) map[key] = JSON.parse(raw);
-        } catch (_e) {
-          // Skip unparseable
-        }
-      }
-    } else if (typeof keys === "object") {
-      for (const key of Object.keys(keys)) {
-        const defVal = keys[key];
-        try {
-          const raw = proto.getItem.call(storage, prefix + key);
-          if (raw != null) {
-            map[key] = JSON.parse(raw);
-          } else {
-            map[key] = defVal;
-          }
-        } catch (_e) {
-          map[key] = defVal;
-        }
-      }
-    }
-    return Promise.resolve(map);
-  }
-
-  set(items: Record<string, any>): Promise<any> {
-    const storage = this.storage;
-    const proto = this.proto;
-    const prefix = this.prefix;
-    for (const key of Object.keys(items)) {
-      const value = JSON.stringify(items[key]);
-      proto.setItem.call(storage, prefix + key, value);
-    }
-    return Promise.resolve(items);
-  }
-
-  remove(keys: any): Promise<void> {
-    const storage = this.storage;
-    const proto = this.proto;
-    const prefix = this.prefix;
+    };
 
     if (keys == null) {
-      if (prefix) {
-        let i = 0;
-        while (i < storage.length) {
-          const key = proto.key.call(storage, i);
-          if (key && key.substr(0, prefix.length) === prefix) {
-            proto.removeItem.call(storage, key);
+      const map: Record<string, any> = {};
+      for (let i = 0; i < this._raw.length; i++) {
+        const full = this._raw.key(i);
+        if (!full?.startsWith(this._prefix)) continue;
+        const short = full.slice(this._prefix.length);
+        const val = read(short);
+        if (val !== undefined) map[short] = val;
+      }
+      return map;
+    }
+
+    if (typeof keys === "string") {
+      const v = read(keys);
+      return v === undefined ? {} : { [keys]: v };
+    }
+
+    if (Array.isArray(keys)) {
+      return Object.fromEntries(
+        keys.map((k) => [k, read(k)]).filter(([, v]) => v !== undefined),
+      ) as Record<string, any>;
+    }
+
+    // Defaults object: each value is the default
+    return Object.fromEntries(
+      Object.entries(keys).map(([k, def]) => [k, read(k) ?? def]),
+    );
+  }
+
+  override async set(items: Record<string, any>): Promise<any> {
+    for (const key of Object.keys(items)) {
+      this._raw.setItem(this._prefix + key, JSON.stringify(items[key]));
+    }
+    return items;
+  }
+
+  override async remove(keys: any): Promise<void> {
+    if (keys == null) {
+      if (this._prefix) {
+        for (let i = 0; i < this._raw.length; ) {
+          const full = this._raw.key(i);
+          if (full?.startsWith(this._prefix)) {
+            this._raw.removeItem(full);
           } else {
             i++;
           }
         }
       } else {
-        proto.clear.call(storage);
+        this._raw.clear();
       }
     } else if (Array.isArray(keys)) {
-      for (const key of keys) {
-        proto.removeItem.call(storage, prefix + key);
-      }
+      for (const key of keys) this._raw.removeItem(this._prefix + key);
     } else {
-      proto.removeItem.call(storage, prefix + keys);
+      this._raw.removeItem(this._prefix + keys);
     }
-    return Promise.resolve();
   }
 }
 
-module.exports = BrowserStorage;
+export default BrowserStorage;

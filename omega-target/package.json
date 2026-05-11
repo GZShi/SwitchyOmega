@@ -2,12 +2,29 @@
   "name": "omega-target",
   "version": "0.0.1",
   "private": true,
-  "main": "./index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    },
+    "./browser": "./dist/omega_target.min.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
-    "build": "webpack",
-    "dev": "webpack --mode development",
+    "build": "tsdown --config tsdown.config.ts",
+    "dev": "tsdown --config tsdown.config.ts --watch",
     "test": "mocha --require tsx/cjs --reporter spec test/**/*.test.ts",
-    "clean": "rm -f index.js omega_target.min.js"
+    "lint": "eslint src/ test/ --no-cache",
+    "verify:parity": "node scripts/verify-parity.cjs",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "jsondiffpatch": "0.1.43",
@@ -15,22 +32,21 @@
     "omega-pac": "workspace:*"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.6.0",
     "@types/sinon": "^21.0.1",
     "@types/sinon-chai": "^4.0.0",
     "chai": "^4.3.0",
-    "esbuild-loader": "^4.4.3",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
     "mocha": "^10.0.0",
-    "node-polyfill-webpack-plugin": "^4.0.0",
     "sinon": "^17.0.0",
     "sinon-chai": "^3.7.0",
-    "terser-webpack-plugin": "^5.3.0",
-    "ts-loader": "^9.5.7",
+    "tsdown": "^0.22.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "webpack": "^5.90.0",
-    "webpack-cli": "^5.1.0"
+    "typescript-eslint": "^8.59.2"
   }
 }

@@ -1,4 +1,4 @@
-module.exports = (): any => ({
+const defaultOptions = (): Record<string, any> => ({
   schemaVersion: 2,
   "-enableQuickSwitch": false,
   "-refreshOnProfileChange": true,
@@ -57,3 +57,5 @@ module.exports = (): any => ({
     defaultProfileName: "direct",
   },
 });
+
+export default defaultOptions;
