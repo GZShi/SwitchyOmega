@@ -1,5 +1,5 @@
-const OmegaTarget = require("omega-target");
-const Url = require("url");
+import OmegaTarget from "omega-target";
+import Url from "url";
 const ContentTypeRejectedError = OmegaTarget.ContentTypeRejectedError;
 
 interface HintHandler {
@@ -46,9 +46,9 @@ const defaultHintHandler: HintHandler = function (
   body,
   { contentType, hint },
 ) {
-  if ("!" + contentType === hint) {
+  if (`!${contentType}` === hint) {
     throw new ContentTypeRejectedError(
-      "Response Content-Type blacklisted: " + contentType,
+      `Response Content-Type blacklisted: ${contentType}`,
     );
   }
   if (contentType === hint) return body;
@@ -56,18 +56,18 @@ const defaultHintHandler: HintHandler = function (
 };
 
 const hintHandlers: Record<string, HintHandler> = {
-  "*": function (_response, body) {
+  "*"(_response, body) {
     return body;
   },
 
-  "!text/html": function (_response, body, { contentType }) {
+  "!text/html"(_response, body, { contentType }) {
     if (contentType === "text/html") {
       let looksLikeHtml = false;
-      if (body.indexOf("<!DOCTYPE") >= 0 || body.indexOf("<!doctype") >= 0) {
+      if (body.includes("<!DOCTYPE") || body.includes("<!doctype")) {
         looksLikeHtml = true;
-      } else if (body.indexOf("</html>") >= 0) {
+      } else if (body.includes("</html>")) {
         looksLikeHtml = true;
-      } else if (body.indexOf("</body>") >= 0) {
+      } else if (body.includes("</body>")) {
         looksLikeHtml = true;
       }
       if (looksLikeHtml) {
@@ -77,17 +77,13 @@ const hintHandlers: Record<string, HintHandler> = {
     return undefined;
   },
 
-  "!application/xhtml+xml": function (...args: any[]) {
+  "!application/xhtml+xml"(...args: any[]) {
     return hintHandlers["!text/html"](...(args as [any, any, any]));
   },
 
-  "application/x-ns-proxy-autoconfig": function (
-    _response,
-    body,
-    { contentType },
-  ) {
+  "application/x-ns-proxy-autoconfig"(_response, body, { contentType }) {
     if (contentType === "application/x-ns-proxy-autoconfig") return body;
-    if (body.indexOf("FindProxyForURL") >= 0) return body;
+    if (body.includes("FindProxyForURL")) return body;
     return undefined;
   },
 };
@@ -106,11 +102,11 @@ async function fetchUrl(
       if (result != null) return result;
     }
     throw new ContentTypeRejectedError(
-      "Unrecognized Content-Type: " + contentType,
+      `Unrecognized Content-Type: ${contentType}`,
     );
   };
 
-  if (opt_bypass_cache && dest_url.indexOf("?") < 0) {
+  if (opt_bypass_cache && !dest_url.includes("?")) {
     const parsed: any = Url.parse(dest_url, true);
     parsed.search = undefined;
     parsed.query["_"] = Date.now();
@@ -124,4 +120,4 @@ async function fetchUrl(
   return getResBody(await httpGet(dest_url));
 }
 
-module.exports = fetchUrl;
+export { fetchUrl };

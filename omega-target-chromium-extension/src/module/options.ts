@@ -1,10 +1,11 @@
-const OmegaTarget = require("omega-target");
+import OmegaTarget from "omega-target";
 const OmegaPac = OmegaTarget.OmegaPac;
-const querystring = require("querystring");
-const WebRequestMonitor = require("./web_request_monitor");
-const ChromePort = require("./chrome_port");
-const fetchUrl = require("./fetch_url");
-const Url = require("url");
+import querystring from "querystring";
+import { WebRequestMonitor } from "./web_request_monitor";
+import { ChromePort } from "./chrome_port";
+import { fetchUrl } from "./fetch_url";
+import { upgrade } from "./upgrade";
+import Url from "url";
 
 class ChromeOptions extends OmegaTarget.Options {
   fetchUrl = fetchUrl;
@@ -37,11 +38,9 @@ class ChromeOptions extends OmegaTarget.Options {
   }
 
   setBadge(options?: any): void {
-    if (!options) {
-      options = this._proxyNotControllable
-        ? { text: "=", color: "#da4f49" }
-        : { text: "?", color: "#49afcd" };
-    }
+    options ??= this._proxyNotControllable
+      ? { text: "=", color: "#da4f49" }
+      : { text: "?", color: "#49afcd" };
     chrome.browserAction.setBadgeText({ text: options.text });
     chrome.browserAction.setBadgeBackgroundColor({ color: options.color });
     if (options.title) {
@@ -53,7 +52,7 @@ class ChromeOptions extends OmegaTarget.Options {
   }
 
   clearBadge(): void {
-    if (this.externalApi && this.externalApi.disabled) return;
+    if (this.externalApi?.disabled) return;
     if (this._badgeTitle) {
       this.currentProfileChanged("clearBadge");
     }
@@ -103,9 +102,9 @@ class ChromeOptions extends OmegaTarget.Options {
             if (this._options["-refreshOnProfileChange"]) {
               const url = tab.url;
               if (!url) return;
-              if (url.substr(0, 6) === "chrome") return;
-              if (url.substr(0, 6) === "about:") return;
-              if (url.substr(0, 4) === "moz-") return;
+              if (url.startsWith("chrome")) return;
+              if (url.startsWith("about:")) return;
+              if (url.startsWith("moz-")) return;
               chrome.tabs.reload(tab.id);
             }
           });
@@ -150,15 +149,15 @@ class ChromeOptions extends OmegaTarget.Options {
           };
           chrome.browserAction.setBadgeText({
             text: badge.text,
-            tabId: tabId,
+            tabId,
           });
           chrome.browserAction.setBadgeBackgroundColor({
             color: badge.color,
-            tabId: tabId,
+            tabId,
           });
         } else if (info.badgeSet) {
           info.badgeSet = false;
-          chrome.browserAction.setBadgeText({ text: "", tabId: tabId });
+          chrome.browserAction.setBadgeText({ text: "", tabId });
         }
         if (this._tabRequestInfoPorts[tabId] != null) {
           this._tabRequestInfoPorts[tabId].postMessage({
@@ -195,11 +194,11 @@ class ChromeOptions extends OmegaTarget.Options {
   }
 
   schedule(name: string, periodInMinutes: number, callback: Function): any {
-    name = "omega." + name;
+    name = `omega.${name}`;
     if (this._alarms == null) {
       this._alarms = {};
       chrome.alarms.onAlarm.addListener((alarm: any) => {
-        if (this._alarms != null && this._alarms[alarm.name] != null) {
+        if (this._alarms?.[alarm.name] != null) {
           this._alarms[alarm.name]();
         }
       });
@@ -209,7 +208,7 @@ class ChromeOptions extends OmegaTarget.Options {
       chrome.alarms.clear(name);
     } else {
       this._alarms[name] = callback;
-      chrome.alarms.create(name, { periodInMinutes: periodInMinutes } as any);
+      chrome.alarms.create(name, { periodInMinutes } as any);
     }
     return Promise.resolve();
   }
@@ -239,9 +238,9 @@ class ChromeOptions extends OmegaTarget.Options {
       if (profile[scheme.prop]) {
         const pacResult = OmegaPac.Profiles.pacResult(profile[scheme.prop]);
         if (scheme.scheme) {
-          result += scheme.scheme + ": " + pacResult + "\n";
+          result += `${scheme.scheme}: ${pacResult}\n`;
         } else {
-          result += pacResult + "\n";
+          result += `${pacResult}\n`;
         }
       }
     }
@@ -257,12 +256,13 @@ class ChromeOptions extends OmegaTarget.Options {
       type = "RuleListProfile";
     }
     if (type === "FixedProfile") {
-      return this.printFixedProfile(profile) || null;
+      return this.printFixedProfile(profile) ?? null;
     } else if (type === "PacProfile" && profile.pacUrl) {
       return profile.pacUrl;
     } else {
       return (
-        chrome.i18n.getMessage("browserAction_profileDetails_" + type) || null
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        chrome.i18n.getMessage(`browserAction_profileDetails_${type}`) || null
       );
     }
   }
@@ -271,7 +271,7 @@ class ChromeOptions extends OmegaTarget.Options {
     return OmegaTarget.Options.prototype.upgrade
       .call(this, options, changes)
       .catch((err: any) => {
-        if (options != null && options["schemaVersion"]) {
+        if (options?.["schemaVersion"]) {
           return Promise.reject(err);
         }
 
@@ -283,7 +283,7 @@ class ChromeOptions extends OmegaTarget.Options {
         }
 
         getOldOptions = getOldOptions.catch(() => {
-          if (options != null && options["config"]) {
+          if (options?.["config"]) {
             return Promise.resolve(options);
           } else if (localStorage["config"]) {
             return Promise.resolve(localStorage);
@@ -300,7 +300,7 @@ class ChromeOptions extends OmegaTarget.Options {
           };
           let upgraded: any;
           try {
-            upgraded = require("./upgrade")(oldOptions, i18n);
+            upgraded = upgrade(oldOptions, i18n);
           } catch (ex) {
             this.log.error(ex);
             return Promise.reject(ex);
@@ -318,24 +318,23 @@ class ChromeOptions extends OmegaTarget.Options {
       });
   }
 
-  onFirstRun(reason: string): void {
+  onFirstRun(_reason: string): void {
     chrome.tabs.create({ url: chrome.extension.getURL("options.html") });
   }
 
   getPageInfo({ tabId, url }: { tabId: number; url: string }): Promise<any> {
     const errorCount =
-      this._requestMonitor != null &&
-      this._requestMonitor.tabInfo[tabId] != null
+      this._requestMonitor?.tabInfo[tabId] != null
         ? this._requestMonitor.tabInfo[tabId].errorCount
         : undefined;
-    const result = errorCount ? { errorCount: errorCount } : null;
+    const result = errorCount ? { errorCount } : null;
 
     const getBadge = new Promise((resolve, _reject) => {
       if (!(chrome.browserAction.getBadgeText != null)) {
         resolve("");
         return;
       }
-      chrome.browserAction.getBadgeText({ tabId: tabId }, (text: string) => {
+      chrome.browserAction.getBadgeText({ tabId }, (text: string) => {
         resolve(text);
       });
     });
@@ -351,32 +350,30 @@ class ChromeOptions extends OmegaTarget.Options {
           this.clearBadge();
         }
         if (!resolvedUrl) return result;
-        if (resolvedUrl.substr(0, 6) === "chrome") {
+        if (resolvedUrl.startsWith("chrome")) {
           const errorPagePrefix = "chrome://errorpage/";
-          if (
-            resolvedUrl.substr(0, errorPagePrefix.length) === errorPagePrefix
-          ) {
+          if (resolvedUrl.startsWith(errorPagePrefix)) {
             resolvedUrl = querystring.parse(
-              resolvedUrl.substr(resolvedUrl.indexOf("?") + 1),
+              resolvedUrl.slice(resolvedUrl.indexOf("?") + 1),
             ).lasturl;
             if (!resolvedUrl) return result;
           } else {
             return result;
           }
         }
-        if (resolvedUrl.substr(0, 6) === "about:") return result;
-        if (resolvedUrl.substr(0, 4) === "moz-") return result;
+        if (resolvedUrl.startsWith("about:")) return result;
+        if (resolvedUrl.startsWith("moz-")) return result;
 
         const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
         return {
           url: resolvedUrl,
-          domain: domain,
+          domain,
           tempRuleProfileName: this.queryTempRule(domain),
-          errorCount: errorCount,
+          errorCount,
         };
       },
     );
   }
 }
 
-module.exports = ChromeOptions;
+export { ChromeOptions };

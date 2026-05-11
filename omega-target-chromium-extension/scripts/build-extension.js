@@ -49,15 +49,32 @@ if (fs.existsSync(buildDir)) {
 mkdir(buildDir);
 
 console.log("=== Step 1: Compile TypeScript background scripts ===");
-const coffeeDir = path.join(root, "src", "coffee");
-const coffeeFiles = fs.readdirSync(coffeeDir).filter((f) => f.endsWith(".ts"));
-for (const file of coffeeFiles) {
-  const src = path.join(coffeeDir, file);
+const backgroundDir = path.join(root, "src", "background");
+const backgroundFiles = fs
+  .readdirSync(backgroundDir)
+  .filter((f) => f.endsWith(".ts"));
+for (const file of backgroundFiles) {
+  const src = path.join(backgroundDir, file);
   // tsc may show type errors for standalone scripts using browser globals
   // but it still produces the output JS file.
   try {
     execSync(
-      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES5 --module none --skipLibCheck --outDir "${path.join(buildDir, "js")}" "${src}"`,
+      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${path.join(buildDir, "js")}" "${src}"`,
+      { cwd: root, stdio: "pipe" },
+    );
+  } catch (_e) {
+    // Ignore type errors; the JS file was written regardless.
+  }
+}
+
+// Compile popup TypeScript scripts (e.g. omega_target_web.ts)
+const popupDir = path.join(root, "src", "popup");
+const popupTsFiles = fs.readdirSync(popupDir).filter((f) => f.endsWith(".ts"));
+for (const file of popupTsFiles) {
+  const src = path.join(popupDir, file);
+  try {
+    execSync(
+      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${path.join(buildDir, "js")}" "${src}"`,
       { cwd: root, stdio: "pipe" },
     );
   } catch (_e) {
@@ -80,7 +97,7 @@ copyFile(omegaTargetMin, path.join(buildDir, "js", "omega_target.min.js"));
 
 console.log("=== Step 4: Copy target popup JS ===");
 copyFile(
-  path.join(root, "src", "js", "omega_target_popup.js"),
+  path.join(root, "src", "popup", "omega_target_popup.js"),
   path.join(buildDir, "js", "omega_target_popup.js"),
 );
 

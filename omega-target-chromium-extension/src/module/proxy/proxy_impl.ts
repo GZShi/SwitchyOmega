@@ -1,5 +1,5 @@
-const OmegaTarget = require("omega-target");
-const ProxyAuth = require("./proxy_auth");
+import OmegaTarget from "omega-target";
+import { ProxyAuth } from "./proxy_auth";
 const OmegaPac = OmegaTarget.OmegaPac;
 
 class ProxyImpl {
@@ -28,10 +28,10 @@ class ProxyImpl {
 
   _profileNotFound(name: string): any {
     this.log.error(
-      "Profile " + name + " not found! Things may go very, very wrong.",
+      `Profile ${name} not found! Things may go very, very wrong.`,
     );
     return OmegaPac.Profiles.create({
-      name: name,
+      name,
       profileType: "VirtualProfile",
       defaultProfileName: "direct",
     });
@@ -39,13 +39,13 @@ class ProxyImpl {
 
   setProxyAuth(profile: any, options: any): any {
     return new Promise<void>((resolve) => {
-      if (this._proxyAuth == null) this._proxyAuth = new ProxyAuth(this.log);
+      this._proxyAuth ??= new ProxyAuth(this.log);
       this._proxyAuth.listen();
       const referenced_profiles: any[] = [];
       const ref_set = OmegaPac.Profiles.allReferenceSet(profile, options, {
         profileNotFound: this._profileNotFound.bind(this),
       });
-      for (const name of Object.values(ref_set) as string[]) {
+      for (const name of Object.values(ref_set)) {
         const p = OmegaPac.Profiles.byName(name, options);
         if (p) referenced_profiles.push(p);
       }
@@ -55,7 +55,7 @@ class ProxyImpl {
   }
 
   getProfilePacScript(profile: any, meta: any, options: any): string {
-    if (meta == null) meta = profile;
+    meta ??= profile;
     let ast = OmegaPac.PacGenerator.script(options, profile, {
       profileNotFound: this._profileNotFound.bind(this),
     });
@@ -64,9 +64,9 @@ class ProxyImpl {
     let profileName = OmegaPac.PacGenerator.ascii(JSON.stringify(meta.name));
     profileName = profileName.replace(/\*/g, "\\u002a");
     profileName = profileName.replace(/\//g, "\\u002f");
-    const prefix = "/*OmegaProfile*" + profileName + "*" + meta.revision + "*/";
+    const prefix = `/*OmegaProfile*${profileName}*${meta.revision}*/`;
     return prefix + script;
   }
 }
 
-module.exports = ProxyImpl;
+export { ProxyImpl };

@@ -1,21 +1,30 @@
-const mod = {
-  Storage: require("./storage"),
-  Options: require("./options"),
-  ChromeTabs: require("./tabs"),
-  SwitchySharp: require("./switchysharp"),
-  ExternalApi: require("./external_api"),
-  WebRequestMonitor: require("./web_request_monitor"),
-  Inspect: require("./inspect"),
-  Url: require("url"),
-  proxy: require("./proxy"),
+import { ChromeStorage as Storage } from "./storage";
+import { ChromeOptions as Options } from "./options";
+import { ChromeTabs } from "./tabs";
+import { SwitchySharp } from "./switchysharp";
+import { ExternalApi } from "./external_api";
+import { WebRequestMonitor } from "./web_request_monitor";
+import { Inspect } from "./inspect";
+import Url from "url";
+import * as proxy from "./proxy";
+import omegaTarget from "omega-target";
+
+const mod: any = {
+  Storage,
+  Options,
+  ChromeTabs,
+  SwitchySharp,
+  ExternalApi,
+  WebRequestMonitor,
+  Inspect,
+  Url,
+  proxy,
 };
 
 // Merge omega-target exports
-const omegaTarget = require("omega-target");
 for (const name of Object.keys(omegaTarget)) {
-  if (mod[name as keyof typeof mod] == null) {
-    (mod as any)[name] = omegaTarget[name];
-  }
+  mod[name] ??= omegaTarget[name];
 }
 
-module.exports = mod;
+export { mod };
+export default mod;

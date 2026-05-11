@@ -2,13 +2,27 @@
   "name": "omega-target-chromium-extension",
   "version": "0.0.1",
   "private": true,
-  "main": "./index",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
-    "build": "node scripts/build-extension.js && webpack",
-    "dev": "node scripts/build-extension.js && webpack --mode development",
+    "build": "node scripts/build-extension.js && tsdown --config tsdown.config.ts",
+    "dev": "node scripts/build-extension.js && tsdown --config tsdown.config.ts --watch",
     "release": "BUILD=release npm run build && node scripts/release.js",
     "test": "echo 'No tests in omega-target-chromium-extension (covered by omega-pac/omega-target)'",
-    "clean": "rm -rf build/ tmp/ release.zip index.js"
+    "lint": "eslint src/ --no-cache",
+    "clean": "rm -rf build/ tmp/ dist/ index.js"
   },
   "dependencies": {
     "heap-js": "^2.7.1",
@@ -17,19 +31,15 @@
     "omega-web": "workspace:*"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.3",
-    "@types/mocha": "^10.0.10",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
     "archiver": "^7.0.0",
-    "chai": "^4.3.0",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
     "gettext-parser": "^8.0.0",
-    "mocha": "^10.0.0",
-    "node-polyfill-webpack-plugin": "^4.0.0",
-    "terser-webpack-plugin": "^5.3.0",
-    "ts-loader": "^9.5.7",
+    "tsdown": "^0.22.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "webpack": "^5.90.0",
-    "webpack-cli": "^5.1.0"
+    "typescript-eslint": "^8.59.2"
   }
 }

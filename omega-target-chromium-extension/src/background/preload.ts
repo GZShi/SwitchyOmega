@@ -18,7 +18,7 @@ if (chrome.contextMenus != null) {
       type: "checkbox",
       checked: false,
       contexts: ["browser_action"],
-      onclick: function (info: any): void {
+      onclick (info: any): void {
         (window as any).OmegaContextMenuQuickSwitchHandler(info);
       },
     });
@@ -27,7 +27,7 @@ if (chrome.contextMenus != null) {
   chrome.contextMenus.create({
     title: chrome.i18n.getMessage("popup_reportIssues"),
     contexts: ["browser_action"],
-    onclick: function (): void {
+    onclick (): void {
       OmegaDebug.reportIssue();
     },
   });
@@ -35,7 +35,7 @@ if (chrome.contextMenus != null) {
   chrome.contextMenus.create({
     title: chrome.i18n.getMessage("popup_errorLog"),
     contexts: ["browser_action"],
-    onclick: function (): void {
+    onclick (): void {
       OmegaDebug.downloadLog();
     },
   });

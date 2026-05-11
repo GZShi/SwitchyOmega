@@ -1,5 +1,4 @@
-const { Heap } = require("heap-js");
-const Url = require("url");
+import { Heap } from "heap-js";
 
 class WebRequestMonitor {
   getSummaryId: (req: any) => string;
@@ -66,9 +65,7 @@ class WebRequestMonitor {
     req._startTime = Date.now();
     this._requests[req.requestId] = req;
     this._recentRequests.push(req);
-    if (this.timer == null) {
-      this.timer = setInterval(this._tick.bind(this), 1000);
-    }
+    this.timer ??= setInterval(this._tick.bind(this), 1000);
     for (const callback of this._callbacks) {
       callback("start", req);
     }
@@ -166,16 +163,14 @@ class WebRequestMonitor {
 
     if (chrome.tabs.onReplaced != null) {
       chrome.tabs.onReplaced.addListener((added: any, removed: any) => {
-        if (this.tabInfo[added] == null)
-          this.tabInfo[added] = this._newTabInfo();
+        this.tabInfo[added] ??= this._newTabInfo();
         delete this.tabInfo[removed];
       });
     }
 
     chrome.tabs.onUpdated.addListener(
       (tabId: number, changeInfo: any, tab: any) => {
-        if (this.tabInfo[tab.id] == null)
-          this.tabInfo[tab.id] = this._newTabInfo();
+        this.tabInfo[tab.id] ??= this._newTabInfo();
         const info = this.tabInfo[tab.id];
         if (!info) return;
         for (const cb of this._tabCallbacks) {
@@ -186,8 +181,7 @@ class WebRequestMonitor {
 
     chrome.tabs.query({}, (tabs: any[]) => {
       for (const tab of tabs) {
-        if (this.tabInfo[tab.id] == null)
-          this.tabInfo[tab.id] = this._newTabInfo();
+        this.tabInfo[tab.id] ??= this._newTabInfo();
       }
     });
   }
@@ -218,22 +212,20 @@ class WebRequestMonitor {
       info.requests[req.requestId] = req;
       const oldStatus = info.requestStatus[req.requestId];
       if (oldStatus) {
-        info[this.eventCategory[oldStatus] + "Count"]--;
+        info[`${this.eventCategory[oldStatus]}Count`]--;
       } else {
         if (status === "timeoutAbort") return;
         info.requestCount++;
       }
       info.requestStatus[req.requestId] = status;
-      info[this.eventCategory[status] + "Count"]++;
+      info[`${this.eventCategory[status]}Count`]++;
 
       const id = this.getSummaryId != null ? this.getSummaryId(req) : undefined;
       if (id != null) {
         if (this.eventCategory[status] === "error") {
           if (this.eventCategory[oldStatus] !== "error") {
-            let summaryItem = info.summary[id];
-            if (summaryItem == null) {
-              summaryItem = info.summary[id] = { errorCount: 0 };
-            }
+            info.summary[id] ??= { errorCount: 0 };
+            const summaryItem = info.summary[id];
             summaryItem.errorCount++;
           }
         } else if (this.eventCategory[oldStatus] === "error") {
@@ -249,4 +241,4 @@ class WebRequestMonitor {
   }
 }
 
-module.exports = WebRequestMonitor;
+export { WebRequestMonitor };

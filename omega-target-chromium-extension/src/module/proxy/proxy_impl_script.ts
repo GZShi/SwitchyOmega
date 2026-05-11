@@ -1,5 +1,4 @@
-const OmegaTarget = require("omega-target");
-const ProxyImpl = require("./proxy_impl");
+import { ProxyImpl } from "./proxy_impl";
 
 class ScriptProxyImpl extends ProxyImpl {
   _proxyScriptUrl: string = "js/omega_webext_proxy_script.min.js";
@@ -10,14 +9,9 @@ class ScriptProxyImpl extends ProxyImpl {
 
   static isSupported(): boolean {
     return (
+      (typeof browser !== "undefined" && browser?.proxy?.register != null) ||
       (typeof browser !== "undefined" &&
-        browser != null &&
-        browser.proxy != null &&
-        browser.proxy.register != null) ||
-      (typeof browser !== "undefined" &&
-        browser != null &&
-        browser.proxy != null &&
-        browser.proxy.registerProxyScript != null)
+        browser?.proxy?.registerProxyScript != null)
     );
   }
 
@@ -32,7 +26,7 @@ class ScriptProxyImpl extends ProxyImpl {
       "Your browser is outdated! Full-URL based matching, etc. unsupported! " +
         "Please update your browser ASAP!",
     );
-    if (state == null) state = {};
+    state ??= {};
     this._options = options;
     state.currentProfileName = profile.name;
     if (profile.name === "") {
@@ -54,10 +48,10 @@ class ScriptProxyImpl extends ProxyImpl {
       ]).then(([info]: [any, any]) => {
         if (info.vendor === "Mozilla" && info.buildID < "20170918220054") {
           this.log.error(
-            "Your browser is outdated! SOCKS5 DNS/Auth unsupported! " +
-              "Please update your browser ASAP! (Current Build " +
-              info.buildID +
-              ")",
+            `Your browser is outdated! SOCKS5 DNS/Auth unsupported! ` +
+              `Please update your browser ASAP! (Current Build ${
+                info.buildID
+              })`,
           );
           this._proxyScriptState.useLegacyStringReturn = true;
         }
@@ -69,7 +63,7 @@ class ScriptProxyImpl extends ProxyImpl {
   _initWebextProxyScript(): Promise<void> {
     if (!this._proxyScriptInitialized) {
       browser.proxy.onProxyError.addListener((err: any) => {
-        if (err != null && err.message != null) {
+        if (err?.message != null) {
           if (err.message.indexOf("Invalid Proxy Rule: DIRECT") >= 0) return;
           if (err.message.indexOf("Return type must be a string") >= 0) {
             this.log.error(
@@ -131,4 +125,4 @@ class ScriptProxyImpl extends ProxyImpl {
   }
 }
 
-module.exports = ScriptProxyImpl;
+export { ScriptProxyImpl };

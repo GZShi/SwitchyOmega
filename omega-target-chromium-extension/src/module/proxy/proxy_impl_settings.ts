@@ -1,24 +1,19 @@
-const OmegaTarget = require("omega-target");
+import OmegaTarget from "omega-target";
 const OmegaPac = OmegaTarget.OmegaPac;
-const chromeApiPromisify = require("../chrome_api").chromeApiPromisify;
-const ProxyImpl = require("./proxy_impl");
+import { chromeApiPromisify } from "../chrome_api";
+import { ProxyImpl } from "./proxy_impl";
 
 class SettingsProxyImpl extends ProxyImpl {
   _proxyChangeWatchers: Function[] | null = null;
 
   static isSupported(): boolean {
-    return (
-      typeof chrome !== "undefined" &&
-      chrome != null &&
-      chrome.proxy != null &&
-      chrome.proxy.settings != null
-    );
+    return typeof chrome !== "undefined" && chrome?.proxy?.settings != null;
   }
 
   features: string[] = ["fullUrlHttp", "pacScript", "watchProxyChange"];
 
   applyProfile(profile: any, meta: any, options: any): any {
-    if (meta == null) meta = profile;
+    meta ??= profile;
     if (profile.profileType === "SystemProfile") {
       return chromeApiPromisify(
         chrome.proxy.settings,
@@ -82,11 +77,9 @@ class SettingsProxyImpl extends ProxyImpl {
           rules["singleProxy"] = profile.fallbackProxy;
         } else {
           for (const protocol of protocols) {
-            if (rules[protocol] == null) {
-              rules[protocol] = JSON.parse(
-                JSON.stringify(profile.fallbackProxy),
-              );
-            }
+            rules[protocol] ??= JSON.parse(
+              JSON.stringify(profile.fallbackProxy),
+            );
           }
         }
       } else {
@@ -110,25 +103,23 @@ class SettingsProxyImpl extends ProxyImpl {
   _formatBypassItem(condition: any): string {
     const str = OmegaPac.Conditions.str(condition);
     const i = str.indexOf(" ");
-    return str.substr(i + 1);
+    return str.slice(i + 1);
   }
 
   _proxyChangeListener = (details: any): void => {
-    const watchers = this._proxyChangeWatchers || [];
+    const watchers = this._proxyChangeWatchers ?? [];
     for (const watcher of watchers) {
       watcher(details);
     }
   };
 
   watchProxyChange(callback: Function): void {
-    if (this._proxyChangeWatchers == null) {
-      this._proxyChangeWatchers = [];
+    const isNew = this._proxyChangeWatchers == null;
+    this._proxyChangeWatchers ??= [];
+    if (isNew) {
       if (
         typeof chrome !== "undefined" &&
-        chrome != null &&
-        chrome.proxy != null &&
-        chrome.proxy.settings != null &&
-        chrome.proxy.settings.onChange != null
+        chrome?.proxy?.settings?.onChange != null
       ) {
         chrome.proxy.settings.onChange.addListener(
           this._proxyChangeListener.bind(this),
@@ -161,7 +152,7 @@ class SettingsProxyImpl extends ProxyImpl {
             }
           });
           return (
-            profile ||
+            profile ??
             OmegaPac.Profiles.create({
               profileType: "PacProfile",
               name: "",
@@ -179,11 +170,12 @@ class SettingsProxyImpl extends ProxyImpl {
           if (profile) return profile;
           const trimmed = script.trim();
           const magic = "/*OmegaProfile*";
-          if (trimmed.substr(0, magic.length) === magic) {
+          if (trimmed.startsWith(magic)) {
             const end = trimmed.indexOf("*/");
             if (end > 0) {
-              const tokens = trimmed.substring(magic.length, end).split("*");
-              let [profileName, revision] = tokens;
+              const tokens = trimmed.slice(magic.length, end).split("*");
+              let profileName = tokens[0];
+              const revision = tokens[1];
               try {
                 profileName = JSON.parse(profileName);
               } catch (_e) {
@@ -277,7 +269,7 @@ class SettingsProxyImpl extends ProxyImpl {
         for (const pattern of Object.keys(bypassSet)) {
           profile.bypassList.push({
             conditionType: "BypassCondition",
-            pattern: pattern,
+            pattern,
           });
         }
         return profile;
@@ -287,4 +279,4 @@ class SettingsProxyImpl extends ProxyImpl {
   }
 }
 
-module.exports = SettingsProxyImpl;
+export { SettingsProxyImpl };

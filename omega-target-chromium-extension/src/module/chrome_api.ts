@@ -1,6 +1,4 @@
-const OmegaTarget = require("omega-target");
-
-exports.chromeApiPromisify = function (target: any, method: string) {
+export function chromeApiPromisify(target: any, method: string) {
   return function (...args: any[]) {
     return new Promise((resolve, reject) => {
       const callback = function (...callbackArgs: any[]) {
@@ -17,7 +15,7 @@ exports.chromeApiPromisify = function (target: any, method: string) {
       };
 
       args.push(callback);
-      target[method].apply(target, args);
+      target[method](...args);
     });
   };
-};
+}

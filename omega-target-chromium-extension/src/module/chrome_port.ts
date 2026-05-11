@@ -5,7 +5,13 @@ class TrackedEvent {
   constructor(event: any) {
     this.event = event;
     this.callbacks = [];
-    const mes = ["hasListener", "hasListeners", "addRules", "getRules", "removeRules"];
+    const mes = [
+      "hasListener",
+      "hasListeners",
+      "addRules",
+      "getRules",
+      "removeRules",
+    ];
     for (const methodName of mes) {
       const method = this.event[methodName];
       if (method != null) {
@@ -37,7 +43,7 @@ class TrackedEvent {
 
   dispose(): void {
     this.removeAllListeners();
-    if (this.event.hasListeners != null && this.event.hasListeners()) {
+    if (this.event.hasListeners?.()) {
       throw new Error("Underlying Event still has listeners!");
     }
     this.event = null;
@@ -79,4 +85,4 @@ class ChromePort {
   }
 }
 
-module.exports = ChromePort;
+export { ChromePort };

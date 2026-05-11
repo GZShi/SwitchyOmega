@@ -1,21 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ES5",
-    "module": "commonjs",
-    "lib": ["ES2015", "ES2016", "ES2017", "ES2018", "ES2019", "ES2020"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM"],
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "allowJs": true,
     "declaration": false,
     "sourceMap": false,
     "outDir": "./dist",
     "rootDir": ".",
-    "moduleResolution": "node10",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["src/module/**/*.ts", "src/coffee/**/*.ts", "index.ts"],
-  "exclude": ["node_modules", "dist", "build"]
+  "include": ["src/**/*.ts", "index.ts"],
+  "exclude": ["node_modules", "dist", "build", "tmp"]
 }

@@ -1,6 +1,4 @@
-const OmegaTarget = require("omega-target");
-const OmegaPac = OmegaTarget.OmegaPac;
-const ChromePort = require("./chrome_port");
+import { ChromePort } from "./chrome_port";
 
 class SwitchySharp {
   static extId: string = "dpplabbmogkhghncfbfdeeokoefdjegm";
@@ -10,7 +8,7 @@ class SwitchySharp {
   _monitorTimerId: any = null;
 
   monitor(action?: string): void {
-    if (location.href.substr(0, 4) === "moz-") return;
+    if (location.href.startsWith("moz-")) return;
     if (this.port == null && this._monitorTimerId == null) {
       this._monitorTimerId = setInterval(this._connect.bind(this), 5000);
       if (action !== "reconnect") {
@@ -20,12 +18,10 @@ class SwitchySharp {
   }
 
   getOptions(): Promise<any> {
-    if (!this._getOptions) {
-      this._getOptions = new Promise((resolve) => {
-        this._getOptionsResolver = resolve;
-        this.monitor();
-      });
-    }
+    this._getOptions ??= new Promise((resolve) => {
+      this._getOptionsResolver = resolve;
+      this.monitor();
+    });
     return this._getOptions;
   }
 
@@ -74,4 +70,4 @@ class SwitchySharp {
   }
 }
 
-module.exports = SwitchySharp;
+export { SwitchySharp };

@@ -19,7 +19,7 @@ function _writeLogToLocalStorage(content: string): void {
 
 Log.log = function (...args: any[]): void {
   console.log(...args);
-  const content = args.map(Log.str.bind(Log)).join(" ") + "\n";
+  const content = `${args.map(Log.str.bind(Log)).join(" ")}\n`;
   _writeLogToLocalStorage(content);
 };
 
@@ -27,7 +27,7 @@ Log.error = function (...args: any[]): void {
   console.error(...args);
   const content = args.map(Log.str.bind(Log)).join(" ");
   localStorage["logLastError"] = content;
-  _writeLogToLocalStorage("ERROR: " + content + "\n");
+  _writeLogToLocalStorage(`ERROR: ${content}\n`);
 };
 
 const unhandledPromises: PromiseRejectionEvent[] = [];
@@ -36,9 +36,9 @@ let unhandledPromisesNextId = 1;
 
 self.addEventListener(
   "unhandledrejection",
-  function (event: PromiseRejectionEvent): void {
+  (event: PromiseRejectionEvent): void => {
     Log.error(
-      "[" + unhandledPromisesNextId + "] Unhandled rejection:\n",
+      `[${unhandledPromisesNextId}] Unhandled rejection:\n`,
       event.reason,
     );
     unhandledPromises.push(event);
@@ -49,11 +49,11 @@ self.addEventListener(
 
 self.addEventListener(
   "rejectionhandled",
-  function (event: PromiseRejectionEvent): void {
+  (event: PromiseRejectionEvent): void => {
     const index = unhandledPromises.indexOf(event);
     if (index < 0) return;
     Log.log(
-      "[" + unhandledPromisesId[index] + "] Rejection handled!",
+      `[${unhandledPromisesId[index]}] Rejection handled!`,
       event.promise,
     );
     unhandledPromises.splice(index, 1);
@@ -66,16 +66,13 @@ let drawContext: any = null;
 let drawError: any = null;
 
 function drawIcon(resultColor?: string, profileColor?: string): any {
-  const cacheKey =
-    "omega+" + (resultColor != null ? resultColor : "") + "+" + profileColor;
+  const cacheKey = `omega+${resultColor ?? ""}+${profileColor}`;
   let icon = iconCache[cacheKey];
   if (icon) return icon;
   try {
-    if (drawContext == null) {
-      drawContext = (
-        document.getElementById("canvas-icon") as HTMLCanvasElement
-      ).getContext("2d");
-    }
+    drawContext ??= (
+      document.getElementById("canvas-icon") as HTMLCanvasElement
+    ).getContext("2d");
     icon = {};
     for (const size of [16, 19, 24, 32, 38]) {
       drawContext.scale(size, size);
@@ -114,7 +111,8 @@ function isHidden(name: string): boolean {
 }
 
 function dispName(name: string): string {
-  return chrome.i18n.getMessage("profile_" + name) || name;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return chrome.i18n.getMessage(`profile_${name}`) || name;
 }
 
 function actionForUrl(url: string): Promise<any> {
@@ -128,7 +126,7 @@ function actionForUrl(url: string): Promise<any> {
       let currentName = dispName(current.name);
       if (current.profileType === "VirtualProfile") {
         const realCurrentName = current.defaultProfileName;
-        currentName += " [" + dispName(realCurrentName) + "]";
+        currentName += ` [${dispName(realCurrentName)}]`;
         current = options.profile(realCurrentName);
       }
       let details = "";
@@ -136,7 +134,7 @@ function actionForUrl(url: string): Promise<any> {
       let attached = false;
 
       const condition2Str = (condition: any) => {
-        return condition.pattern || OmegaPac.Conditions.str(condition);
+        return condition.pattern ?? OmegaPac.Conditions.str(condition);
       };
 
       for (const result of results) {
@@ -144,36 +142,32 @@ function actionForUrl(url: string): Promise<any> {
           if (result[1] == null) {
             attached = false;
             let name = result[0];
-            if (name[0] === "+") name = name.substr(1);
+            if (name[0] === "+") name = name.slice(1);
             if (isHidden(name)) {
               attached = true;
-            } else if (name !== (current as any).defaultProfileName) {
+            } else if (name !== current.defaultProfileName) {
               details += chrome.i18n.getMessage(
                 "browserAction_defaultRuleDetails",
               );
-              details += " => " + dispName(name) + "\n";
+              details += ` => ${dispName(name)}\n`;
             }
           } else if (result[1].length === 0) {
             if (result[0] === "DIRECT") {
-              details +=
-                chrome.i18n.getMessage("browserAction_directResult") + "\n";
+              details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
               direct = true;
             } else {
-              details += result[0] + "\n";
+              details += `${result[0]}\n`;
             }
           } else if (typeof result[1] === "string") {
-            details += result[1] + " => " + result[0] + "\n";
+            details += `${result[1]} => ${result[0]}\n`;
           } else {
-            const condition = condition2Str(
-              result[1].condition != null ? result[1].condition : result[1],
-            );
-            details += condition + " => ";
+            const condition = condition2Str(result[1].condition ?? result[1]);
+            details += `${condition} => `;
             if (result[0] === "DIRECT") {
-              details +=
-                chrome.i18n.getMessage("browserAction_directResult") + "\n";
+              details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
               direct = true;
             } else {
-              details += result[0] + "\n";
+              details += `${result[0]}\n`;
             }
           }
         } else if (result.profileName) {
@@ -183,16 +177,13 @@ function actionForUrl(url: string): Promise<any> {
             details += chrome.i18n.getMessage("browserAction_attachedPrefix");
             attached = false;
           }
-          const condition =
-            result.source != null
-              ? result.source
-              : condition2Str(result.condition);
-          details += condition + " => " + dispName(result.profileName) + "\n";
+          const condition = result.source ?? condition2Str(result.condition);
+          details += `${condition} => ${dispName(result.profileName)}\n`;
         }
       }
 
       if (!details) {
-        details = options.printProfile(current) || "";
+        details = options.printProfile(current) ?? "";
       }
 
       let resultColor = profile.color;
@@ -213,11 +204,11 @@ function actionForUrl(url: string): Promise<any> {
         profileColor = current.color;
       }
 
-      if (icon == null) icon = drawIcon(resultColor, profileColor);
+      icon ??= drawIcon(resultColor, profileColor);
 
-      let shortTitle = "Omega: " + currentName;
+      let shortTitle = `Omega: ${currentName}`;
       if (profile.name !== currentName) {
-        shortTitle += " => " + profile.name;
+        shortTitle += ` => ${profile.name}`;
       }
 
       return {
@@ -226,10 +217,10 @@ function actionForUrl(url: string): Promise<any> {
           dispName(profile.name),
           details,
         ]),
-        shortTitle: shortTitle,
-        icon: icon,
-        resultColor: resultColor,
-        profileColor: profileColor,
+        shortTitle,
+        icon,
+        resultColor,
+        profileColor,
       };
     })
     .catch(() => null);
@@ -244,8 +235,8 @@ const state = new OmegaTargetCurrent.BrowserStorage(
 
 let sync: any = null;
 if (
-  (typeof chrome !== "undefined" && chrome.storage && chrome.storage.sync) ||
-  (typeof browser !== "undefined" && browser.storage && browser.storage.sync)
+  (typeof chrome !== "undefined" && chrome.storage?.sync) ||
+  (typeof browser !== "undefined" && browser.storage?.sync)
 ) {
   const syncStorage = new OmegaTargetCurrent.Storage("sync");
   sync = new OmegaTargetCurrent.OptionsSync(syncStorage);
@@ -276,42 +267,43 @@ if (chrome.runtime.id !== OmegaTargetCurrent.SwitchySharp.extId) {
 const tabs = new OmegaTargetCurrent.ChromeTabs(actionForUrl);
 tabs.watch();
 
-options._inspect = new OmegaTargetCurrent.Inspect(function (
-  url: string,
-  tab: any,
-): void {
-  if (url === tab.url) {
-    options.clearBadge();
-    tabs.processTab(tab);
-    state.remove("inspectUrl");
-    return;
-  }
-  state.set({ inspectUrl: url });
-  actionForUrl(url).then(function (action: any) {
-    if (!action) return;
-    const parsedUrl = OmegaTargetCurrent.Url.parse(url);
-    let urlDisp: string;
-    if (parsedUrl.hostname === OmegaTargetCurrent.Url.parse(tab.url).hostname) {
-      urlDisp = parsedUrl.path;
-    } else {
-      urlDisp = parsedUrl.hostname;
+options._inspect = new OmegaTargetCurrent.Inspect(
+  (url: string, tab: any): void => {
+    if (url === tab.url) {
+      options.clearBadge();
+      tabs.processTab(tab);
+      state.remove("inspectUrl");
+      return;
     }
-    const title =
-      chrome.i18n.getMessage("browserAction_titleInspect", urlDisp) +
-      "\n" +
-      action.title;
-    chrome.browserAction.setTitle({ title: title, tabId: tab.id });
-    tabs.setTabBadge(tab, {
-      text: "#",
-      color: action.resultColor,
+    state.set({ inspectUrl: url });
+    actionForUrl(url).then((action: any) => {
+      if (!action) return;
+      const parsedUrl = OmegaTargetCurrent.Url.parse(url);
+      let urlDisp: string;
+      if (
+        parsedUrl.hostname === OmegaTargetCurrent.Url.parse(tab.url).hostname
+      ) {
+        urlDisp = parsedUrl.path;
+      } else {
+        urlDisp = parsedUrl.hostname;
+      }
+      const title = `${chrome.i18n.getMessage(
+        "browserAction_titleInspect",
+        urlDisp,
+      )}\n${action.title}`;
+      chrome.browserAction.setTitle({ title, tabId: tab.id });
+      tabs.setTabBadge(tab, {
+        text: "#",
+        color: action.resultColor,
+      });
     });
-  });
-});
+  },
+);
 
 options.setProxyNotControllable(null);
 let timeout: any = null;
 
-proxyImpl.watchProxyChange(function (details: any): void {
+proxyImpl.watchProxyChange((details: any): void => {
   if (options.externalApi.disabled) return;
   if (!details) return;
   const notControllableBefore = options.proxyNotControllable();
@@ -338,11 +330,11 @@ proxyImpl.watchProxyChange(function (details: any): void {
   Log.log("external proxy: ", details);
   if (timeout != null) clearTimeout(timeout);
   let parsed: any = null;
-  timeout = setTimeout(function (): void {
+  timeout = setTimeout((): void => {
     if (parsed) {
       options.setExternalProfile(parsed, {
-        noRevert: noRevert,
-        internal: internal,
+        noRevert,
+        internal,
       });
     }
   }, 500);
@@ -367,12 +359,12 @@ options.currentProfileChanged = function (reason: string): void {
     currentName = dispName(current.name);
     if (current.profileType === "VirtualProfile") {
       const realCurrentName = current.defaultProfileName;
-      currentName += " [" + dispName(realCurrentName) + "]";
+      currentName += ` [${dispName(realCurrentName)}]`;
       current = options.profile(realCurrentName);
     }
   }
 
-  const details = options.printProfile(current) || "";
+  const details = options.printProfile(current) ?? "";
   let title: string;
   let shortTitle: string;
   if (currentName) {
@@ -381,16 +373,16 @@ options.currentProfileChanged = function (reason: string): void {
       "",
       details,
     ]);
-    shortTitle = "Omega: " + currentName;
+    shortTitle = `Omega: ${currentName}`;
   } else {
     title = details;
-    shortTitle = "Omega: " + details;
+    shortTitle = `Omega: ${details}`;
   }
 
   if (external && current.profileType !== "SystemProfile") {
     const message = chrome.i18n.getMessage("browserAction_titleExternalProxy");
-    title = message + "\n" + title;
-    shortTitle = "Omega-Extern: " + details;
+    title = `${message}\n${title}`;
+    shortTitle = `Omega-Extern: ${details}`;
     options.setBadge();
   }
 
@@ -402,9 +394,9 @@ options.currentProfileChanged = function (reason: string): void {
   }
 
   tabs.resetAll({
-    icon: icon,
-    title: title,
-    shortTitle: shortTitle,
+    icon,
+    title,
+    shortTitle,
   });
 };
 
@@ -426,62 +418,64 @@ function refreshActivePageIfEnabled(): void {
   if (localStorage["omega.local.refreshOnProfileChange"] === "false") return;
   chrome.tabs.query(
     { active: true, lastFocusedWindow: true },
-    function (tabs: any[]): void {
+    (tabs: any[]): void => {
       const url = tabs[0].url;
       if (!url) return;
-      if (url.substr(0, 6) === "chrome") return;
-      if (url.substr(0, 6) === "about:") return;
-      if (url.substr(0, 4) === "moz-") return;
+      if (url.startsWith("chrome")) return;
+      if (url.startsWith("about:")) return;
+      if (url.startsWith("moz-")) return;
       chrome.tabs.reload(tabs[0].id, { bypassCache: true });
     },
   );
 }
 
-chrome.runtime.onMessage.addListener(function (
-  request: any,
-  _sender: any,
-  respond: (response: any) => void,
-): boolean | undefined {
-  if (!request || !request.method) return;
-  options.ready.then(function (): void {
-    let target: any;
-    let method: any;
-    if (request.method === "getState") {
-      target = state;
-      method = state.get;
-    } else {
-      target = options;
-      method = target[request.method];
-    }
-    if (typeof method !== "function") {
-      Log.error("No such method " + request.method + "!");
-      respond({ error: { reason: "noSuchMethod" } });
-      return;
-    }
-
-    const promise = Promise.resolve().then(() =>
-      method.apply(target, request.args),
-    );
-    if (request.refreshActivePage) {
-      promise.then(refreshActivePageIfEnabled);
-    }
-    if (request.noReply) return;
-
-    promise.then(function (result: any): void {
-      if (request.method === "updateProfile") {
-        for (const key of Object.keys(result)) {
-          result[key] = encodeError(result[key]);
-        }
+chrome.runtime.onMessage.addListener(
+  (
+    request: any,
+    _sender: any,
+    respond: (response: any) => void,
+  ): boolean | undefined => {
+    if (!request?.method) return;
+    options.ready.then((): void => {
+      let target: any;
+      let method: any;
+      if (request.method === "getState") {
+        target = state;
+        method = state.get;
+      } else {
+        target = options;
+        method = target[request.method];
       }
-      respond({ result: result });
+      if (typeof method !== "function") {
+        Log.error(`No such method ${request.method}!`);
+        respond({ error: { reason: "noSuchMethod" } });
+        return;
+      }
+
+      const promise = Promise.resolve().then(() =>
+        method.apply(target, request.args),
+      );
+      if (request.refreshActivePage) {
+        promise.then(refreshActivePageIfEnabled);
+      }
+      if (request.noReply) return;
+
+      promise.then((result: any): void => {
+        if (request.method === "updateProfile") {
+          for (const key of Object.keys(result)) {
+            result[key] = encodeError(result[key]);
+          }
+        }
+        respond({ result });
+      });
+
+      promise.catch((error: any): void => {
+        Log.error(`${request.method} ==>`, error);
+        respond({ error: encodeError(error) });
+      });
     });
 
-    promise.catch(function (error: any): void {
-      Log.error(request.method + " ==>", error);
-      respond({ error: encodeError(error) });
-    });
-  });
-
-  if (request.noReply) return;
-  return true;
-});
+    if (request.noReply) return;
+    return true;
+  },
+);

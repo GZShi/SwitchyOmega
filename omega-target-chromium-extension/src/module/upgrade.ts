@@ -1,7 +1,8 @@
-const OmegaTarget = require("omega-target");
+import OmegaTarget from "omega-target";
+import { Buffer } from "buffer";
 const OmegaPac = OmegaTarget.OmegaPac;
 
-module.exports = function (oldOptions: any, i18n: any): any | undefined {
+export function upgrade(oldOptions: any, i18n: any): any | undefined {
   let config: any;
   try {
     config = JSON.parse(oldOptions["config"]);
@@ -37,20 +38,23 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
 
     const rulelist = OmegaPac.Profiles.create({
       profileType: "RuleListProfile",
-      name: "__ruleListOf_" + auto.name,
+      name: `__ruleListOf_${auto.name}`,
       color: "#dd6633",
       format: config["ruleListAutoProxy"] ? "AutoProxy" : "Switchy",
       defaultProfileName: "direct",
-      sourceUrl: config["ruleListUrl"] || "",
+      sourceUrl: config["ruleListUrl"] ?? "",
     });
     options[OmegaPac.Profiles.nameAsKey(rulelist.name)] = rulelist;
 
     auto.defaultProfileName = rulelist.name;
 
-    const nameMap: Record<string, string> = { auto: auto.name, direct: "direct" };
+    const nameMap: Record<string, string> = {
+      auto: auto.name,
+      direct: "direct",
+    };
     let oldProfiles: any;
     try {
-      oldProfiles = JSON.parse(oldOptions["profiles"]) || {};
+      oldProfiles = JSON.parse(oldOptions["profiles"]) ?? {};
     } catch (_e) {
       oldProfiles = {};
     }
@@ -73,9 +77,8 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
         case "auto":
           profile = OmegaPac.Profiles.create({ profileType: "PacProfile" });
           const url = oldProfile["proxyConfigUrl"];
-          if (url.substr(0, 5) === "data:") {
-            const text = url.substr(url.indexOf(",") + 1);
-            const Buffer = require("buffer").Buffer;
+          if (url.startsWith("data:")) {
+            const text = url.slice(url.indexOf(",") + 1);
             profile.pacScript = new Buffer(text, "base64").toString("utf8");
           } else {
             profile.pacUrl = url;
@@ -88,26 +91,27 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
           if (!!oldProfile["useSameProxy"]) {
             profile.fallbackProxy = OmegaPac.Profiles.parseHostPort(
               oldProfile["proxyHttp"],
-              "http"
+              "http",
             );
           } else if (oldProfile["proxySocks"]) {
-            const protocol = oldProfile["socksVersion"] === 5 ? "socks5" : "socks4";
+            const protocol =
+              oldProfile["socksVersion"] === 5 ? "socks5" : "socks4";
             profile.fallbackProxy = OmegaPac.Profiles.parseHostPort(
               oldProfile["proxySocks"],
-              protocol
+              protocol,
             );
           } else {
             profile.proxyForHttp = OmegaPac.Profiles.parseHostPort(
               oldProfile["proxyHttp"],
-              "http"
+              "http",
             );
             profile.proxyForHttps = OmegaPac.Profiles.parseHostPort(
               oldProfile["proxyHttps"],
-              "http"
+              "http",
             );
             profile.proxyForFtp = OmegaPac.Profiles.parseHostPort(
               oldProfile["proxyFtp"],
-              "http"
+              "http",
             );
           }
           if (oldProfile["proxyExceptions"] != null) {
@@ -132,13 +136,11 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
       }
 
       if (profile) {
-        let color = oldProfile["color"];
-        profile.color =
-          colorTranslations[color] != null
-            ? colorTranslations[color]
-            : colorTranslations[""];
+        const color = oldProfile["color"];
+        profile.color = colorTranslations[color] ?? colorTranslations[""];
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         let name = (oldProfile["name"] || oldProfile["id"] || "").trim();
-        if (name[0] === "_") name = "p" + name;
+        if (name[0] === "_") name = `p${name}`;
         profile.name = name;
         let num = 1;
         while (OmegaPac.Profiles.byName(profile.name, options)) {
@@ -183,7 +185,8 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
       quickSwitch == null ? [] : quickSwitch.map((p: string) => nameMap[p]);
 
     if (config["ruleListProfileId"]) {
-      rulelist.matchProfileName = nameMap[config["ruleListProfileId"]] || "direct";
+      rulelist.matchProfileName =
+        nameMap[config["ruleListProfileId"]] || "direct";
     }
 
     let defaultRule: any;
@@ -211,7 +214,9 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
         switch (rule["patternType"]) {
           case "wildcard": {
             const pattern = rule["urlPattern"];
-            return OmegaPac.RuleList["Switchy"].conditionFromLegacyWildcard(pattern);
+            return OmegaPac.RuleList["Switchy"].conditionFromLegacyWildcard(
+              pattern,
+            );
           }
           default:
             return {
@@ -233,4 +238,4 @@ module.exports = function (oldOptions: any, i18n: any): any | undefined {
     return options;
   }
   return undefined;
-};
+}

@@ -1,6 +1,3 @@
-const OmegaTarget = require("omega-target");
-const OmegaPac = OmegaTarget.OmegaPac;
-
 class Inspect {
   _enabled: boolean = false;
   onInspect: (url: string, tab: any) => void;
@@ -73,4 +70,4 @@ class Inspect {
   }
 }
 
-module.exports = Inspect;
+export { Inspect };

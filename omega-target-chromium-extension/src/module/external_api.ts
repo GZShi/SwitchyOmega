@@ -1,6 +1,4 @@
-const OmegaTarget = require("omega-target");
-const OmegaPac = OmegaTarget.OmegaPac;
-const ChromePort = require("./chrome_port");
+import { ChromePort } from "./chrome_port";
 
 class ExternalApi {
   options: any;
@@ -45,7 +43,7 @@ class ExternalApi {
   }
 
   onMessage(msg: any, port: any): void {
-    this.options.log.log(port.sender.id + " -> " + msg.action, msg);
+    this.options.log.log(`${port.sender.id} -> ${msg.action}`, msg);
     switch (msg.action) {
       case "disable":
         if (!this.checkPerm(port, 16)) return;
@@ -54,7 +52,7 @@ class ExternalApi {
         this._previousProfileName =
           (this.options.currentProfile() != null
             ? this.options.currentProfile().name
-            : null) || "system";
+            : null) ?? "system";
         this.options.applyProfile("system").then(() => {
           let reason = "disabled";
           if (this.knownExts[port.sender.id] >= 32) {
@@ -91,4 +89,4 @@ class ExternalApi {
   }
 }
 
-module.exports = ExternalApi;
+export { ExternalApi };

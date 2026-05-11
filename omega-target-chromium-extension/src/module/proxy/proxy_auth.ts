@@ -1,4 +1,4 @@
-const OmegaTarget = require("omega-target");
+import OmegaTarget from "omega-target";
 const OmegaPac = OmegaTarget.OmegaPac;
 
 class ProxyAuth {
@@ -39,7 +39,7 @@ class ProxyAuth {
   }
 
   _keyForProxy(proxy: any): string {
-    return proxy.host.toLowerCase() + ":" + proxy.port;
+    return `${proxy.host.toLowerCase()}:${proxy.port}`;
   }
 
   setProxies(profiles: any[]): void {
@@ -61,8 +61,8 @@ class ProxyAuth {
         }
         list.push({
           config: proxy,
-          auth: auth,
-          name: profile.name + "." + scheme.prop,
+          auth,
+          name: `${profile.name}.${scheme.prop}`,
         });
       }
 
@@ -70,7 +70,7 @@ class ProxyAuth {
       if (fallback != null) {
         this._fallbacks.push({
           auth: fallback,
-          name: profile.name + ".all",
+          name: `${profile.name}.all`,
         });
       }
     }
@@ -114,4 +114,4 @@ class ProxyAuth {
   }
 }
 
-module.exports = ProxyAuth;
+export { ProxyAuth };

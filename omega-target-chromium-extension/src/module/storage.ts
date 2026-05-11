@@ -1,5 +1,5 @@
-const chromeApiPromisify = require("./chrome_api").chromeApiPromisify;
-const OmegaTarget = require("omega-target");
+import { chromeApiPromisify } from "./chrome_api";
+import OmegaTarget from "omega-target";
 
 class ChromeStorage extends OmegaTarget.Storage {
   areaName: string;
@@ -9,7 +9,7 @@ class ChromeStorage extends OmegaTarget.Storage {
   static watchers: Record<string, any> = {};
 
   static parseStorageErrors(err: any): any {
-    if (err != null && err.message) {
+    if (err?.message) {
       const sustainedPerMinute = "MAX_SUSTAINED_WRITE_OPERATIONS_PER_MINUTE";
       if (err.message.indexOf("QUOTA_BYTES_PER_ITEM") >= 0) {
         err = new OmegaTarget.Storage.QuotaExceededError();
@@ -78,9 +78,7 @@ class ChromeStorage extends OmegaTarget.Storage {
     this.areaName = areaName;
     if (
       typeof browser !== "undefined" &&
-      browser != null &&
-      browser.storage != null &&
-      browser.storage[areaName] != null
+      browser?.storage?.[areaName] != null
     ) {
       this.storage = browser.storage[areaName];
     } else {
@@ -94,7 +92,7 @@ class ChromeStorage extends OmegaTarget.Storage {
   }
 
   get(keys: any): any {
-    if (keys == null) keys = null;
+    keys ??= null;
     return Promise.resolve(this.storage.get(keys)).catch(
       ChromeStorage.parseStorageErrors,
     );
@@ -116,9 +114,7 @@ class ChromeStorage extends OmegaTarget.Storage {
   }
 
   watch(keys: any, callback: Function): () => void {
-    if (ChromeStorage.watchers[this.areaName] == null) {
-      ChromeStorage.watchers[this.areaName] = {};
-    }
+    ChromeStorage.watchers[this.areaName] ??= {};
     const area = ChromeStorage.watchers[this.areaName];
 
     let id = Date.now().toString();
@@ -135,7 +131,7 @@ class ChromeStorage extends OmegaTarget.Storage {
       keys = keyMap;
     }
 
-    area[id] = { keys: keys, callback: callback };
+    area[id] = { keys, callback };
 
     if (!ChromeStorage.onChangedListenerInstalled) {
       chrome.storage.onChanged.addListener(ChromeStorage.onChangedListener);
@@ -148,4 +144,4 @@ class ChromeStorage extends OmegaTarget.Storage {
   }
 }
 
-module.exports = ChromeStorage;
+export { ChromeStorage };

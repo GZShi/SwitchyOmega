@@ -1,7 +1,7 @@
-const OmegaTarget = require("omega-target");
+import OmegaTarget from "omega-target";
 const OmegaPac = OmegaTarget.OmegaPac;
-const NativePromise = (typeof Promise !== "undefined" ? Promise : null) as typeof Promise | null;
-const ProxyImpl = require("./proxy_impl");
+const NativePromise = typeof Promise !== "undefined" ? Promise : null;
+import { ProxyImpl } from "./proxy_impl";
 
 class ListenerProxyImpl extends ProxyImpl {
   _options: any = null;
@@ -12,8 +12,8 @@ class ListenerProxyImpl extends ProxyImpl {
   static isSupported(): boolean {
     return (
       NativePromise != null &&
-      typeof browser !== "undefined" && browser != null &&
-      browser.proxy != null && browser.proxy.onRequest != null
+      typeof browser !== "undefined" &&
+      browser?.proxy?.onRequest != null
     );
   }
 
@@ -60,7 +60,7 @@ class ListenerProxyImpl extends ProxyImpl {
               case "SystemProfile":
                 return undefined;
               default:
-                throw new Error("Unsupported profile: " + profile.profileType);
+                throw new Error(`Unsupported profile: ${profile.profileType}`);
             }
           }
           let next: any;
@@ -77,8 +77,8 @@ class ListenerProxyImpl extends ProxyImpl {
           profile = OmegaPac.Profiles.byKey(next, this._options);
         }
 
-        throw new Error("Profile not found: " + next);
-      })
+        throw new Error(`Profile not found: ${next}`);
+      }),
     );
   }
 
@@ -106,4 +106,4 @@ class ListenerProxyImpl extends ProxyImpl {
   }
 }
 
-module.exports = ListenerProxyImpl;
+export { ListenerProxyImpl };

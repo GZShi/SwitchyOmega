@@ -18,7 +18,7 @@ class ChromeTabs {
     chrome.tabs.onActivated.addListener((info: any) => {
       chrome.tabs.get(info.tabId, (tab: any) => {
         if (chrome.runtime.lastError) return;
-        if (this._dirtyTabs.hasOwnProperty(info.tabId)) {
+        if (Object.hasOwn(this._dirtyTabs, info.tabId)) {
           this.onUpdated(tab.id, {}, tab);
         }
       });
@@ -43,7 +43,7 @@ class ChromeTabs {
   }
 
   onUpdated(tabId: number, changeInfo: any, tab: any): void {
-    if (this._dirtyTabs.hasOwnProperty(tab.id)) {
+    if (Object.hasOwn(this._dirtyTabs, tab.id)) {
       delete this._dirtyTabs[tab.id];
     } else if (changeInfo.url == null) {
       if (changeInfo.status != null && changeInfo.status !== "loading") {
@@ -53,12 +53,15 @@ class ChromeTabs {
     this.processTab(tab, changeInfo);
   }
 
-  processTab(tab: any, changeInfo: any): void {
+  processTab(tab: any): void {
     if (this._badgeTab) {
       for (const id of Object.keys(this._badgeTab)) {
         try {
           if (chrome.browserAction.setBadgeText != null) {
-            chrome.browserAction.setBadgeText({ text: "", tabId: parseInt(id) });
+            chrome.browserAction.setBadgeText({
+              text: "",
+              tabId: parseInt(id),
+            });
           }
         } catch (_e) {
           // ignore
@@ -96,7 +99,7 @@ class ChromeTabs {
   }
 
   setTabBadge(tab: any, badge: any): void {
-    if (this._badgeTab == null) this._badgeTab = {};
+    this._badgeTab ??= {};
     this._badgeTab[tab.id] = true;
     if (chrome.browserAction.setBadgeText != null) {
       chrome.browserAction.setBadgeText({ text: badge.text, tabId: tab.id });
@@ -113,7 +116,7 @@ class ChromeTabs {
     if (icon == null) return;
     let params: any;
     if (tabId != null) {
-      params = { imageData: icon, tabId: tabId };
+      params = { imageData: icon, tabId };
     } else {
       params = { imageData: icon };
     }
@@ -137,12 +140,12 @@ class ChromeTabs {
   }
 
   clearIcon(tabId?: number): void {
-    if (this._defaultAction == null || this._defaultAction.icon == null) return;
+    if (this._defaultAction?.icon == null) return;
     this._chromeSetIcon({
       imageData: this._defaultAction.icon,
-      tabId: tabId,
+      tabId,
     });
   }
 }
 
-module.exports = ChromeTabs;
+export { ChromeTabs };
