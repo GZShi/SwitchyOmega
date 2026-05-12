@@ -30,15 +30,15 @@ function getColor(profile: any): string {
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     target = profilesStore.getVirtualTarget(profile, {});
   }
-  return target?.color || '#aaa';
+  return target?.color ?? '#aaa';
 }
 
 function dispName(name: string): string {
-  return omega.getMessage('profile_' + name) || name;
+  return omega.getMessage(`profile_${  name}`) || name;
 }
 
 const selectedProfile = computed(() =>
-  props.profiles.find(x => x?.name === props.modelValue) || null,
+  props.profiles.find(x => x?.name === props.modelValue) ?? null,
 );
 
 const selectedLabel = computed(() =>
@@ -83,19 +83,40 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="rootRef" class="dropdown omega-profile-select" :class="{ open: isOpen }">
-    <button class="btn btn-default dropdown-toggle" type="button"
-            @click="toggle($event)">
-      <span :class="['glyphicon', getIcon(selectedProfile)]"
-            :style="{ color: getColor(selectedProfile) }"></span>
+  <div
+    ref="rootRef"
+    class="dropdown omega-profile-select"
+    :class="{ open: isOpen }"
+  >
+    <button
+      class="btn btn-default dropdown-toggle"
+      type="button"
+      @click="toggle($event)"
+    >
+      <span
+        :class="['glyphicon', getIcon(selectedProfile)]"
+        :style="{ color: getColor(selectedProfile) }"
+      />
       {{ selectedLabel }}
-      <span class="caret"></span>
+      <span class="caret" />
     </button>
-    <ul v-if="isOpen" class="dropdown-menu" style="display: block;">
-      <li v-for="p in profiles" :key="p.name">
-        <a href="#" @click.prevent="select(p.name)">
-          <span :class="['glyphicon', getIcon(p)]"
-                :style="{ color: getColor(p) }"></span>
+    <ul
+      v-if="isOpen"
+      class="dropdown-menu"
+      style="display: block;"
+    >
+      <li
+        v-for="p in profiles"
+        :key="p.name"
+      >
+        <a
+          href="#"
+          @click.prevent="select(p.name)"
+        >
+          <span
+            :class="['glyphicon', getIcon(p)]"
+            :style="{ color: getColor(p) }"
+          />
           {{ dispName(p.name) }}
         </a>
       </li>

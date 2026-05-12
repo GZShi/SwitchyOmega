@@ -40,13 +40,7 @@ function hideAlert() {
   }
 }
 
-function alertClassForType(type: string): string {
-  if (!type) return '';
-  const t = type === 'error' ? 'danger' : type;
-  return 'alert-' + t;
-}
-
-const alertIcons: Record<string, string> = {
+	const alertIcons: Record<string, string> = {
   success: 'glyphicon-ok',
   warning: 'glyphicon-warning-sign',
   error: 'glyphicon-remove',
@@ -88,7 +82,7 @@ function handleWelcomeResult(result: string) {
       }
     });
     if (profileName) {
-      router.push('/profile/' + encodeURIComponent(profileName));
+      router.push(`/profile/${  encodeURIComponent(profileName)}`);
       // Load options guide (shepherd.js)
       const script = document.createElement('script');
       script.src = 'js/options_guide.js';
@@ -136,7 +130,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="omega-options" class="omega-layout">
+  <div
+    id="omega-options"
+    class="omega-layout"
+  >
     <!-- Sidebar Navigation -->
     <NavigationSidebar />
 

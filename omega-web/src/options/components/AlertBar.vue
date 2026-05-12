@@ -8,8 +8,11 @@ defineProps<{
 
 <template>
   <div class="alert-bar-wrapper">
-    <div :class="['alert', 'alert-' + (type === 'error' ? 'danger' : type)]" role="alert">
-      <span :class="['glyphicon', 'glyphicon-' + icon]"></span>
+    <div
+      :class="['alert', 'alert-' + (type === 'error' ? 'danger' : type)]"
+      role="alert"
+    >
+      <span :class="['glyphicon', 'glyphicon-' + icon]" />
       {{ message }}
     </div>
   </div>

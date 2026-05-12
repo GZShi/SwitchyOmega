@@ -1,20 +1,20 @@
-import { defineStore } from 'pinia';
-import { computed } from 'vue';
-import { useOptionsStore } from './options';
-import { useOmegaPac } from '@/composables/useOmegaPac';
+import { defineStore } from "pinia";
+import { computed } from "vue";
+import { useOptionsStore } from "./options";
+import { useOmegaPac } from "@/composables/useOmegaPac";
 
-export const useProfilesStore = defineStore('profiles', () => {
+export const useProfilesStore = defineStore("profiles", () => {
   const optionsStore = useOptionsStore();
   const OmegaPac = useOmegaPac();
 
   const profileIcons: Record<string, string> = {
-    DirectProfile: 'glyphicon-transfer',
-    SystemProfile: 'glyphicon-globe',
-    FixedProfile: 'glyphicon-cog',
-    PacProfile: 'glyphicon-file',
-    VirtualProfile: 'glyphicon-chevron-right',
-    SwitchProfile: 'glyphicon-retweet',
-    RuleListProfile: 'glyphicon-list',
+    DirectProfile: "glyphicon-transfer",
+    SystemProfile: "glyphicon-globe",
+    FixedProfile: "glyphicon-cog",
+    PacProfile: "glyphicon-file",
+    VirtualProfile: "glyphicon-chevron-right",
+    SwitchProfile: "glyphicon-retweet",
+    RuleListProfile: "glyphicon-list",
   };
 
   const profileOrder: Record<string, number> = {
@@ -26,14 +26,14 @@ export const useProfilesStore = defineStore('profiles', () => {
   };
 
   const builtinProfiles = computed(() => {
-    return OmegaPac.Profiles?.builtinProfiles || {};
+    return OmegaPac.Profiles?.builtinProfiles ?? {};
   });
 
   const allProfiles = computed(() => {
     const opts = optionsStore.options;
     const result: Array<{ key: string; name: string; profile: any }> = [];
     for (const key of Object.keys(opts)) {
-      if (key.startsWith('+')) {
+      if (key.startsWith("+")) {
         const name = key.slice(1);
         result.push({ key, name, profile: opts[key] });
       }
@@ -43,14 +43,14 @@ export const useProfilesStore = defineStore('profiles', () => {
 
   const visibleProfiles = computed(() =>
     allProfiles.value.filter(
-      (p) => !p.name.startsWith('__') && !p.name.startsWith('_'),
+      (p) => !p.name.startsWith("__") && !p.name.startsWith("_"),
     ),
   );
 
   const sortedProfiles = computed(() =>
     [...visibleProfiles.value].sort((a, b) => {
-      const typeA = a.profile?.profileType || '';
-      const typeB = b.profile?.profileType || '';
+      const typeA = a.profile?.profileType ?? "";
+      const typeB = b.profile?.profileType ?? "";
       const orderA = profileOrder[typeA] ?? 0;
       const orderB = profileOrder[typeB] ?? 0;
       if (orderA !== orderB) return orderA - orderB;
@@ -58,7 +58,17 @@ export const useProfilesStore = defineStore('profiles', () => {
     }),
   );
 
-  const profileColors = ['#9ce', '#9d9', '#fa8', '#fe9', '#d497ee', '#47b', '#5b5', '#d63', '#ca0'];
+  const profileColors = [
+    "#9ce",
+    "#9d9",
+    "#fa8",
+    "#fe9",
+    "#d497ee",
+    "#47b",
+    "#5b5",
+    "#d63",
+    "#ca0",
+  ];
   const profileColorPalette = (() => {
     const c = [...profileColors];
     const result: string[][] = [];
@@ -66,7 +76,7 @@ export const useProfilesStore = defineStore('profiles', () => {
     return result;
   })();
 
-  const charCodeUnderscore = '_'.charCodeAt(0);
+  const charCodeUnderscore = "_".charCodeAt(0);
 
   function isProfileNameHidden(name: string): boolean {
     return name.charCodeAt(0) === charCodeUnderscore;
@@ -80,26 +90,29 @@ export const useProfilesStore = defineStore('profiles', () => {
   }
 
   function getAttachedName(name: string): string {
-    return '__ruleListOf_' + name;
+    return `__ruleListOf_${name}`;
   }
 
   function getParentName(name: string): string | undefined {
-    if (name.startsWith('__ruleListOf_')) {
-      return name.substring('__ruleListOf_'.length);
+    if (name.startsWith("__ruleListOf_")) {
+      return name.substring("__ruleListOf_".length);
     }
     return undefined;
   }
 
   function getVirtualTarget(profile: any, profiles: Record<string, any>): any {
     let target = profile;
-    while (target?.profileType === 'VirtualProfile' && target.defaultProfileName) {
-      target = profiles['+' + target.defaultProfileName];
+    while (
+      target?.profileType === "VirtualProfile" &&
+      target.defaultProfileName
+    ) {
+      target = profiles[`+${target.defaultProfileName}`];
     }
-    return target || profile;
+    return target ?? profile;
   }
 
   function profileByName(name: string): any {
-    return optionsStore.options['+' + name];
+    return optionsStore.options[`+${name}`];
   }
 
   function referencedBySet(name: string): Record<string, string> {

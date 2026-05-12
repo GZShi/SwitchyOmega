@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { usePopupStore } from '@/stores/popup';
 import PopupMenuNav from './PopupMenuNav.vue';
@@ -70,7 +70,7 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
       return;
     }
     // Click by selector
-    const el = document.querySelector(handler) as HTMLElement | null;
+    const el = document.querySelector(handler);
     el?.click();
   }
 });

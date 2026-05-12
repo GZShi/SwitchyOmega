@@ -70,7 +70,7 @@ export const usePopupStore = defineStore("popup", () => {
 
   // -- Computed --
   const currentProfile = computed(() => {
-    return availableProfiles.value["+" + currentProfileName.value] || null;
+    return availableProfiles.value[`+${currentProfileName.value}`] || null;
   });
 
   const sortedCustomProfiles = computed(() => {
@@ -132,19 +132,19 @@ export const usePopupStore = defineStore("popup", () => {
         return;
       }
 
-      availableProfiles.value = avails || {};
-      currentProfileName.value = curName || "";
+      availableProfiles.value = avails ?? {};
+      currentProfileName.value = curName ?? "";
       isSystemProfile.value = !!isSys;
       currentProfileCanAddRule.value = !!canAddRule;
-      externalProfile.value = extProfile || null;
+      externalProfile.value = extProfile ?? null;
 
       // Build profile lists
       const charCodeUnderscore = "_".charCodeAt(0);
       const builtin: Profile[] = [];
       const custom: Profile[] = [];
-      let preselectedProfileName = "direct";
+      const preselectedProfileName = "direct";
 
-      for (const key of Object.keys(avails || {})) {
+      for (const key of Object.keys(avails ?? {})) {
         const profile = avails[key];
         if (profile.builtin) {
           builtin.push(profile);
@@ -160,8 +160,8 @@ export const usePopupStore = defineStore("popup", () => {
           const shown =
             name.charCodeAt(0) !== charCodeUnderscore ||
             name.charCodeAt(1) !== charCodeUnderscore;
-          if (shown && avails["+" + name]) {
-            valid.push(avails["+" + name]);
+          if (shown && avails[`+${name}`]) {
+            valid.push(avails[`+${name}`]);
           }
         }
       }
@@ -232,10 +232,10 @@ export const usePopupStore = defineStore("popup", () => {
     let domainLooksLikeIp = false;
     let domainForPattern = domain;
 
-    if (domain.indexOf(":") >= 0) {
+    if (domain.includes(":")) {
       domainLooksLikeIp = true;
-      if (domain[0] !== "[") {
-        domainForPattern = "[" + domain + "]";
+      if (!domain.startsWith("[")) {
+        domainForPattern = `[${domain}]`;
       }
     } else if (!isNaN(Number(domain[domain.length - 1]))) {
       domainLooksLikeIp = true;
@@ -251,17 +251,17 @@ export const usePopupStore = defineStore("popup", () => {
         .replace(/\]/g, "\\]");
       conditionSuggestion = {
         HostWildcardCondition: domainForPattern,
-        HostRegexCondition: "^" + ipEscaped + "$",
-        UrlWildcardCondition: "*://" + domainForPattern + "/*",
-        UrlRegexCondition: "://" + ipEscaped + "(:\\d+)?/",
+        HostRegexCondition: `^${ipEscaped}$`,
+        UrlWildcardCondition: `*://${domainForPattern}/*`,
+        UrlRegexCondition: `://${ipEscaped}(:\\d+)?/`,
         KeywordCondition: domainForPattern,
       };
     } else {
       conditionSuggestion = {
-        HostWildcardCondition: "*." + domain,
-        HostRegexCondition: "(^|\\.)" + escaped + "$",
-        UrlWildcardCondition: "*://*." + domain + "/*",
-        UrlRegexCondition: "://([^/.]+\\.)*" + escaped + "(:\\d+)?/",
+        HostWildcardCondition: `*.${domain}`,
+        HostRegexCondition: `(^|\\.)${escaped}$`,
+        UrlWildcardCondition: `*://*.${domain}/*`,
+        UrlRegexCondition: `://([^/.]+\\.)*${escaped}(:\\d+)?/`,
         KeywordCondition: domain,
       };
     }

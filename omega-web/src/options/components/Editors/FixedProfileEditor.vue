@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
+import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
@@ -26,7 +26,7 @@ const schemeProps: Record<string, string> = {
   ftp: 'proxyForFtp',
 };
 const protocols = [
-  { value: '', label: '(' + (omega.getMessage('options_proxy_scheme_default') || 'same as default') + ')' },
+  { value: '', label: `(${  omega.getMessage('options_proxy_scheme_default') || 'same as default'  })` },
   { value: 'http', label: 'HTTP' },
   { value: 'https', label: 'HTTPS' },
   { value: 'socks4', label: 'SOCKS4' },
@@ -41,9 +41,7 @@ const defaultProtocols = [
 
 function getProxy(scheme: string): any {
   const prop = schemeProps[scheme];
-  if (!props.profile[prop]) {
-    props.profile[prop] = { host: '', port: null, scheme: 'http' };
-  }
+  props.profile[prop] ??= { host: '', port: null, scheme: 'http' };
   return props.profile[prop];
 }
 
@@ -77,10 +75,10 @@ function saveAuth(auth: { username: string; password: string } | null) {
 
 const bypassList = computed({
   get: () => {
-    const list = props.profile.bypassList || [];
+    const list = props.profile.bypassList ?? [];
     return list.map((item: any) => {
       if (typeof item === 'string') return item;
-      return item.pattern || '';
+      return item.pattern ?? '';
     }).join('\n');
   },
   set: (val: string) => {
@@ -109,53 +107,80 @@ const bypassList = computed({
               <th>{{ omega.getMessage('options_proxy_protocol') }}</th>
               <th>{{ omega.getMessage('options_proxy_server') }}</th>
               <th>{{ omega.getMessage('options_proxy_port') }}</th>
-              <th></th>
+              <th />
             </tr>
           </thead>
           <tbody>
-            <template v-for="scheme in urlSchemes" :key="scheme">
+            <template
+              v-for="scheme in urlSchemes"
+              :key="scheme"
+            >
               <tr v-if="scheme === '' || showAdvanced">
                 <!-- Scheme label -->
                 <td>{{ schemeDisp[scheme] }}</td>
                 <!-- Protocol -->
                 <td>
-                  <select class="form-control"
-                          v-model="getProxy(scheme).scheme"
-                          @change="optionsStore.markDirty()">
-                    <option v-for="opt in getProtocolOptions(scheme)"
-                            :key="opt.value" :value="opt.value">
+                  <select
+                    v-model="getProxy(scheme).scheme"
+                    class="form-control"
+                    @change="optionsStore.markDirty()"
+                  >
+                    <option
+                      v-for="opt in getProtocolOptions(scheme)"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
                       {{ opt.label }}
                     </option>
                   </select>
                 </td>
                 <!-- Server -->
                 <td>
-                  <input v-if="getProxy(scheme).scheme || scheme === ''"
-                         class="form-control" type="text"
-                         v-model="getProxy(scheme).host"
-                         required
-                         @change="optionsStore.markDirty()" />
-                  <input v-else class="form-control" type="text"
-                         :placeholder="getProxy('').host" disabled />
+                  <input
+                    v-if="getProxy(scheme).scheme || scheme === ''"
+                    v-model="getProxy(scheme).host"
+                    class="form-control"
+                    type="text"
+                    required
+                    @change="optionsStore.markDirty()"
+                  >
+                  <input
+                    v-else
+                    class="form-control"
+                    type="text"
+                    :placeholder="getProxy('').host"
+                    disabled
+                  >
                 </td>
                 <!-- Port -->
                 <td>
-                  <input v-if="getProxy(scheme).scheme || scheme === ''"
-                         class="form-control" type="number" min="1"
-                         v-model="getProxy(scheme).port"
-                         required
-                         @change="optionsStore.markDirty()" />
-                  <input v-else class="form-control" type="number"
-                         :placeholder="String(getProxy('').port || '')" disabled />
+                  <input
+                    v-if="getProxy(scheme).scheme || scheme === ''"
+                    v-model="getProxy(scheme).port"
+                    class="form-control"
+                    type="number"
+                    min="1"
+                    required
+                    @change="optionsStore.markDirty()"
+                  >
+                  <input
+                    v-else
+                    class="form-control"
+                    type="number"
+                    :placeholder="String(getProxy('').port || '')"
+                    disabled
+                  >
                 </td>
                 <!-- Auth -->
                 <td class="proxy-actions">
-                  <button class="btn btn-xs proxy-auth-toggle"
-                          :class="isProxyAuthActive(scheme) ? 'btn-success' : 'btn-default'"
-                          type="button"
-                          :title="omega.getMessage('options_proxy_auth')"
-                          @click="openAuthModal(scheme)">
-                    <span class="glyphicon glyphicon-lock"></span>
+                  <button
+                    class="btn btn-xs proxy-auth-toggle"
+                    :class="isProxyAuthActive(scheme) ? 'btn-success' : 'btn-default'"
+                    type="button"
+                    :title="omega.getMessage('options_proxy_auth')"
+                    @click="openAuthModal(scheme)"
+                  >
+                    <span class="glyphicon glyphicon-lock" />
                   </button>
                 </td>
               </tr>
@@ -164,8 +189,11 @@ const bypassList = computed({
           <tbody v-if="!showAdvanced">
             <tr class="fixed-show-advanced">
               <td colspan="5">
-                <button class="btn btn-link" @click="showAdvanced = true">
-                  <span class="glyphicon glyphicon-chevron-down"></span>
+                <button
+                  class="btn btn-link"
+                  @click="showAdvanced = true"
+                >
+                  <span class="glyphicon glyphicon-chevron-down" />
                   {{ omega.getMessage('options_proxy_expand') }}
                 </button>
               </td>
@@ -177,14 +205,22 @@ const bypassList = computed({
 
     <section class="settings-group">
       <h3>{{ omega.getMessage('options_group_bypassList') }}</h3>
-      <p class="help-block">{{ omega.getMessage('options_bypassListHelp') }}</p>
       <p class="help-block">
-        <a href="https://developer.chrome.com/extensions/proxy#bypass_list" target="_blank">
+        {{ omega.getMessage('options_bypassListHelp') }}
+      </p>
+      <p class="help-block">
+        <a
+          href="https://developer.chrome.com/extensions/proxy#bypass_list"
+          target="_blank"
+        >
           {{ omega.getMessage('options_bypassListHelpLinkText') }}
         </a>
       </p>
-      <textarea class="monospace form-control width-limit" rows="10"
-                v-model="bypassList"></textarea>
+      <textarea
+        v-model="bypassList"
+        class="monospace form-control width-limit"
+        rows="10"
+      />
     </section>
 
     <ProxyAuthModal

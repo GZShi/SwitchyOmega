@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
-import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 
@@ -10,7 +9,6 @@ const props = defineProps<{ profile: any; profileName: string }>();
 const emit = defineEmits<{ close: [] }>();
 const router = useRouter();
 const omega = useOmegaTarget();
-const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
@@ -52,7 +50,7 @@ async function submit() {
         }
       }
       emit('close');
-      router.push('/profile/' + encodeURIComponent(toName));
+      router.push(`/profile/${  encodeURIComponent(toName)}`);
     } catch (err: any) {
       nameError.value = String(err);
     }
@@ -64,32 +62,61 @@ async function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="modal-backdrop fade in"></div>
-      <div class="modal fade in" style="display: block;" @keydown.esc="emit('close')">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" @click="emit('close')">&times;</button>
-              <h4 class="modal-title">{{ omega.getMessage('options_renameProfile') }}</h4>
+    <div class="modal-backdrop fade in" />
+    <div
+      class="modal fade in"
+      style="display: block;"
+      @keydown.esc="emit('close')"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button
+              type="button"
+              class="close"
+              @click="emit('close')"
+            >
+              &times;
+            </button>
+            <h4 class="modal-title">
+              {{ omega.getMessage('options_renameProfile') }}
+            </h4>
+          </div>
+          <div class="modal-body">
+            <div
+              class="form-group"
+              :class="{ 'has-error': nameError }"
+            >
+              <label>{{ omega.getMessage('options_renameProfileName') }}</label>
+              <input
+                v-model="newName"
+                class="form-control"
+                type="text"
+                autofocus
+                @keydown.enter="submit()"
+              >
+              <span
+                v-if="nameError"
+                class="help-block"
+              >{{ nameError }}</span>
             </div>
-            <div class="modal-body">
-              <div class="form-group" :class="{ 'has-error': nameError }">
-                <label>{{ omega.getMessage('options_renameProfileName') }}</label>
-                <input v-model="newName" class="form-control" type="text"
-                       @keydown.enter="submit()" autofocus />
-                <span v-if="nameError" class="help-block">{{ nameError }}</span>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-default" @click="emit('close')">
-                {{ omega.getMessage('dialog_cancel') }}
-              </button>
-              <button class="btn btn-primary" @click="submit()">
-                {{ omega.getMessage('options_renameProfile') }}
-              </button>
-            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-default"
+              @click="emit('close')"
+            >
+              {{ omega.getMessage('dialog_cancel') }}
+            </button>
+            <button
+              class="btn btn-primary"
+              @click="submit()"
+            >
+              {{ omega.getMessage('options_renameProfile') }}
+            </button>
           </div>
         </div>
       </div>
+    </div>
   </Teleport>
 </template>

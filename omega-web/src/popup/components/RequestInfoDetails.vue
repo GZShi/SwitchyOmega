@@ -22,7 +22,7 @@ computed(() => {
 });
 
 function getProfileName(name: string): string {
-  return target.getMessage('profile_' + name) || name;
+  return target.getMessage(`profile_${  name}`) || name;
 }
 
 function addConditionsForDomains() {
@@ -30,7 +30,7 @@ function addConditionsForDomains() {
   for (const [domain, enabled] of Object.entries(domainsForCondition.value)) {
     if (enabled) domains[domain] = true;
   }
-  const profileName = profileForDomains.value || store.rule.profileName;
+  const _profileName = profileForDomains.value ?? store.rule.profileName;
 
   // Open options page to add conditions for all domains
   const conditions = Object.keys(domains).map(domain => ({
@@ -38,9 +38,9 @@ function addConditionsForDomains() {
     pattern: domain,
   }));
   target.openOptions(
-    '#/profile/' +
-    encodeURIComponent(store.currentProfileName) +
-    '?addCondition=' + encodeURIComponent(JSON.stringify(conditions)),
+    `#/profile/${ 
+    encodeURIComponent(store.currentProfileName) 
+    }?addCondition=${  encodeURIComponent(JSON.stringify(conditions))}`,
   ).then(() => store.closeWindow());
 }
 
@@ -55,29 +55,53 @@ function openManage() {
       <p>
         {{ target.getMessage('popup_requestErrorCount', [String(store.requestInfo.domains.length)]) }}
       </p>
-      <div v-for="d in store.requestInfo.domains" :key="d.domain"
-           style="margin: 3px 0;">
+      <div
+        v-for="d in store.requestInfo.domains"
+        :key="d.domain"
+        style="margin: 3px 0;"
+      >
         <label>
-          <input type="checkbox" v-model="domainsForCondition[d.domain]" />
+          <input
+            v-model="domainsForCondition[d.domain]"
+            type="checkbox"
+          >
           {{ d.domain }} ({{ d.errorCount }})
         </label>
       </div>
       <div style="margin-top: 8px;">
-        <select v-model="profileForDomains"
-                style="width: 100%;">
-          <option v-for="p in store.validResultProfiles" :key="p.name" :value="p.name">
+        <select
+          v-model="profileForDomains"
+          style="width: 100%;"
+        >
+          <option
+            v-for="p in store.validResultProfiles"
+            :key="p.name"
+            :value="p.name"
+          >
             {{ getProfileName(p.name) }}
           </option>
         </select>
       </div>
-      <p class="om-dialog-controls" style="margin-top: 10px;">
-        <button class="om-btn om-btn-link" @click="store.returnToMenu()">
+      <p
+        class="om-dialog-controls"
+        style="margin-top: 10px;"
+      >
+        <button
+          class="om-btn om-btn-link"
+          @click="store.returnToMenu()"
+        >
           {{ target.getMessage('popup_cancel') }}
         </button>
-        <button class="om-btn om-btn-link" @click="openManage()">
+        <button
+          class="om-btn om-btn-link"
+          @click="openManage()"
+        >
           {{ target.getMessage('popup_manageExt') }}
         </button>
-        <button class="om-btn om-btn-primary" @click="addConditionsForDomains()">
+        <button
+          class="om-btn om-btn-primary"
+          @click="addConditionsForDomains()"
+        >
           {{ target.getMessage('popup_add') }}
         </button>
       </p>

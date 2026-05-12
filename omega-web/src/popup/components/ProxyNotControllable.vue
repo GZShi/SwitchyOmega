@@ -19,13 +19,22 @@ function openManage() {
       {{ target.getMessage('popup_proxyNotControllableDetails') }}
     </p>
     <p class="om-dialog-controls">
-      <button class="om-btn om-btn-default" @click="store.closeWindow()">
+      <button
+        class="om-btn om-btn-default"
+        @click="store.closeWindow()"
+      >
         {{ target.getMessage('popup_close') }}
       </button>
-      <button class="om-btn om-btn-link" @click="openManage()">
+      <button
+        class="om-btn om-btn-link"
+        @click="openManage()"
+      >
         {{ target.getMessage('popup_learnMore') }}
       </button>
-      <button class="om-btn om-btn-primary" @click="openManage()">
+      <button
+        class="om-btn om-btn-primary"
+        @click="openManage()"
+      >
         {{ target.getMessage('popup_manageExt') }}
       </button>
     </p>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
@@ -22,17 +22,17 @@ function saveAuth(auth: { username: string; password: string } | null) {
       delete props.profile.auth.all;
     }
   } else {
-    if (!props.profile.auth) props.profile.auth = {};
+    props.profile.auth ??= {};
     props.profile.auth.all = auth;
   }
   optionsStore.markDirty();
 }
 
-const urlRegex = /^(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
-const urlWithFile = /^(ftp|http|https|file):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
+const urlRegex = /^(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?$/;
+const urlWithFile = /^(ftp|http|https|file):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?$/;
 
-const isFileUrl = (url: string) => OmegaPac.Profiles?.isFileUrl?.(url) || false;
-const pacUrlIsFile = ref(isFileUrl(props.profile.pacUrl || ''));
+const isFileUrl = (url: string) => OmegaPac.Profiles?.isFileUrl?.(url) ?? false;
+const pacUrlIsFile = ref(isFileUrl(props.profile.pacUrl ?? ''));
 const updating = ref(false);
 
 const referenced = computed(() => {
@@ -42,7 +42,7 @@ const referenced = computed(() => {
 });
 
 const pacUrlValid = computed(() => {
-  const url = props.profile.pacUrl || '';
+  const url = props.profile.pacUrl ?? '';
   if (!url) return true;
   return referenced.value ? urlRegex.test(url) : urlWithFile.test(url);
 });
@@ -50,7 +50,7 @@ const pacUrlValid = computed(() => {
 const hasAuth = computed(() => !!(props.profile.auth?.all));
 
 function updatePacUrl() {
-  pacUrlIsFile.value = isFileUrl(props.profile.pacUrl || '');
+  pacUrlIsFile.value = isFileUrl(props.profile.pacUrl ?? '');
   optionsStore.markDirty();
 }
 
@@ -79,30 +79,46 @@ function formatDate(ts: any): string {
     <!-- PAC URL section -->
     <section class="settings-group">
       <h3>{{ omega.getMessage('options_group_pacUrl') }}</h3>
-      <input v-model="profile.pacUrl" type="text" class="form-control width-limit"
-             @change="updatePacUrl()" />
-      <p class="help-block">{{ omega.getMessage('options_pacUrlHelp') }}</p>
+      <input
+        v-model="profile.pacUrl"
+        type="text"
+        class="form-control width-limit"
+        @change="updatePacUrl()"
+      >
+      <p class="help-block">
+        {{ omega.getMessage('options_pacUrlHelp') }}
+      </p>
 
-      <div v-if="pacUrlIsFile && !referenced" class="has-warning">
+      <div
+        v-if="pacUrlIsFile && !referenced"
+        class="has-warning"
+      >
         <p class="help-block">
-          <span class="glyphicon glyphicon-warning-sign"></span>
+          <span class="glyphicon glyphicon-warning-sign" />
           {{ omega.getMessage('options_pacUrlFile') }}
         </p>
       </div>
-      <div v-if="pacUrlIsFile && referenced" class="has-error">
+      <div
+        v-if="pacUrlIsFile && referenced"
+        class="has-error"
+      >
         <p class="help-block">
-          <span class="glyphicon glyphicon-remove-sign"></span>
+          <span class="glyphicon glyphicon-remove-sign" />
           {{ omega.getMessage('options_pacUrlFile') }}
         </p>
-        <p class="help-block">{{ omega.getMessage('options_pacUrlFileDisabled') }}</p>
+        <p class="help-block">
+          {{ omega.getMessage('options_pacUrlFileDisabled') }}
+        </p>
       </div>
 
       <p v-if="profile.pacUrl && !pacUrlIsFile">
-        <button class="btn"
-                :class="profile.pacUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
-                :disabled="updating"
-                @click="downloadProfile()">
-          <span class="glyphicon glyphicon-download-alt"></span>
+        <button
+          class="btn"
+          :class="profile.pacUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
+          :disabled="updating"
+          @click="downloadProfile()"
+        >
+          <span class="glyphicon glyphicon-download-alt" />
           {{ omega.getMessage('options_downloadProfileNow') }}
         </button>
       </p>
@@ -112,37 +128,54 @@ function formatDate(ts: any): string {
     <section class="settings-group">
       <h3>
         {{ omega.getMessage('options_group_pacScript') }}
-        <button class="btn btn-xs proxy-auth-toggle"
-                :class="hasAuth ? 'btn-success' : 'btn-default'"
-                type="button"
-                :title="omega.getMessage('options_proxy_auth')"
-                @click="openAuthModal()">
-          <span class="glyphicon glyphicon-lock"></span>
+        <button
+          class="btn btn-xs proxy-auth-toggle"
+          :class="hasAuth ? 'btn-success' : 'btn-default'"
+          type="button"
+          :title="omega.getMessage('options_proxy_auth')"
+          @click="openAuthModal()"
+        >
+          <span class="glyphicon glyphicon-lock" />
         </button>
       </h3>
 
-      <div v-if="hasAuth" class="alert alert-warning width-limit">
+      <div
+        v-if="hasAuth"
+        class="alert alert-warning width-limit"
+      >
         <p>{{ omega.getMessage('options_proxy_authAllWarningPac') }}</p>
-        <p v-if="profile.pacUrl">{{ omega.getMessage('options_proxy_authAllWarningPacUrl') }}</p>
-        <p v-if="!profile.pacUrl">{{ omega.getMessage('options_proxy_authAllWarningPacScript') }}</p>
+        <p v-if="profile.pacUrl">
+          {{ omega.getMessage('options_proxy_authAllWarningPacUrl') }}
+        </p>
+        <p v-if="!profile.pacUrl">
+          {{ omega.getMessage('options_proxy_authAllWarningPacScript') }}
+        </p>
         <p v-if="referenced">
-          <span class="glyphicon glyphicon-warning-sign"></span>
+          <span class="glyphicon glyphicon-warning-sign" />
           {{ omega.getMessage('options_proxy_authReferencedWarning') }}
         </p>
       </div>
 
       <div v-if="!pacUrlIsFile">
-        <p v-if="profile.pacUrl && profile.lastUpdate" class="alert alert-success width-limit">
+        <p
+          v-if="profile.pacUrl && profile.lastUpdate"
+          class="alert alert-success width-limit"
+        >
           {{ omega.getMessage('options_pacScriptLastUpdate', [formatDate(profile.lastUpdate)]) }}
         </p>
-        <p v-if="profile.pacUrl && !profile.lastUpdate" class="alert alert-danger width-limit">
+        <p
+          v-if="profile.pacUrl && !profile.lastUpdate"
+          class="alert alert-danger width-limit"
+        >
           {{ omega.getMessage('options_pacScriptObsolete') }}
         </p>
-        <textarea v-model="profile.pacScript"
-                  class="monospace form-control width-limit"
-                  rows="20"
-                  :disabled="!pacUrlValid || !!profile.pacUrl"
-                  @change="optionsStore.markDirty()"></textarea>
+        <textarea
+          v-model="profile.pacScript"
+          class="monospace form-control width-limit"
+          rows="20"
+          :disabled="!pacUrlValid || !!profile.pacUrl"
+          @change="optionsStore.markDirty()"
+        />
       </div>
     </section>
 

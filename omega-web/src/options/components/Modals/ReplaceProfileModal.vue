@@ -46,13 +46,23 @@ function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="modal-backdrop fade in"></div>
-    <div class="modal fade in" style="display: block;" @keydown.esc="emit('close')">
+    <div class="modal-backdrop fade in" />
+    <div
+      class="modal fade in"
+      style="display: block;"
+      @keydown.esc="emit('close')"
+    >
       <div class="modal-dialog">
         <div class="modal-content">
           <form @submit.prevent="submit">
             <div class="modal-header">
-              <button type="button" class="close" @click="emit('close')">&times;</button>
+              <button
+                type="button"
+                class="close"
+                @click="emit('close')"
+              >
+                &times;
+              </button>
               <h4 class="modal-title">
                 {{ omega.getMessage('options_modalHeader_replaceProfile') }}
               </h4>
@@ -81,11 +91,18 @@ function submit() {
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-default" @click="emit('close')">
+              <button
+                type="button"
+                class="btn btn-default"
+                @click="emit('close')"
+              >
                 {{ omega.getMessage('dialog_cancel') }}
               </button>
-              <button type="submit" class="btn btn-primary"
-                      :disabled="!fromValue || !toValue || fromValue === toValue">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                :disabled="!fromValue || !toValue || fromValue === toValue"
+              >
                 {{ omega.getMessage('dialog_ok') }}
               </button>
             </div>

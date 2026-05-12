@@ -7,27 +7,47 @@ const omega = useOmegaTarget();
 
 <template>
   <Teleport to="body">
-    <div class="modal-backdrop fade in"></div>
-      <div class="modal fade in" style="display: block;" @keydown.esc="emit('close')">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" @click="emit('close')">&times;</button>
-              <h4 class="modal-title">{{ omega.getMessage('options_modalHeader_resetOptions') }}</h4>
-            </div>
-            <div class="modal-body">
-              <p class="text-danger">{{ omega.getMessage('options_resetOptionsConfirm') }}</p>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-default" @click="emit('close')">
-                {{ omega.getMessage('dialog_cancel') }}
-              </button>
-              <button class="btn btn-danger" @click="emit('confirm')">
-                {{ omega.getMessage('options_reset') }}
-              </button>
-            </div>
+    <div class="modal-backdrop fade in" />
+    <div
+      class="modal fade in"
+      style="display: block;"
+      @keydown.esc="emit('close')"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button
+              type="button"
+              class="close"
+              @click="emit('close')"
+            >
+              &times;
+            </button>
+            <h4 class="modal-title">
+              {{ omega.getMessage('options_modalHeader_resetOptions') }}
+            </h4>
+          </div>
+          <div class="modal-body">
+            <p class="text-danger">
+              {{ omega.getMessage('options_resetOptionsConfirm') }}
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-default"
+              @click="emit('close')"
+            >
+              {{ omega.getMessage('dialog_cancel') }}
+            </button>
+            <button
+              class="btn btn-danger"
+              @click="emit('confirm')"
+            >
+              {{ omega.getMessage('options_reset') }}
+            </button>
           </div>
         </div>
       </div>
+    </div>
   </Teleport>
 </template>

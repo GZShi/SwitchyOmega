@@ -14,7 +14,7 @@ const profilesStore = useProfilesStore();
 
 const updating = ref(false);
 
-const ruleListFormats = computed(() => OmegaPac.Profiles?.ruleListFormats || ['Switchy', 'AutoProxy']);
+const ruleListFormats = computed(() => OmegaPac.Profiles?.ruleListFormats ?? ['Switchy', 'AutoProxy']);
 
 const validProfiles = computed(() => {
   const profiles: any[] = [];
@@ -30,7 +30,7 @@ const validProfiles = computed(() => {
 });
 
 function getFormatLabel(format: string): string {
-  return omega.getMessage('ruleListFormat_' + format) || format;
+  return omega.getMessage(`ruleListFormat_${  format}`) || format;
 }
 
 async function downloadProfile() {
@@ -74,11 +74,19 @@ function formatDate(ts: any): string {
       </div>
       <div class="form-group">
         <label>{{ omega.getMessage('options_ruleListFormat') }}</label>
-        <div class="radio inline-form-control no-min-width" v-for="fmt in ruleListFormats" :key="fmt">
+        <div
+          v-for="fmt in ruleListFormats"
+          :key="fmt"
+          class="radio inline-form-control no-min-width"
+        >
           <label>
-            <input type="radio" name="formatInput" :value="fmt"
-                   v-model="profile.format"
-                   @change="optionsStore.markDirty()" />
+            <input
+              v-model="profile.format"
+              type="radio"
+              name="formatInput"
+              :value="fmt"
+              @change="optionsStore.markDirty()"
+            >
             {{ getFormatLabel(fmt) }}
           </label>
         </div>
@@ -88,37 +96,53 @@ function formatDate(ts: any): string {
     <!-- Source URL -->
     <section class="settings-group">
       <h3>{{ omega.getMessage('options_group_ruleListUrl') }}</h3>
-      <input v-model="profile.sourceUrl" type="url" class="form-control width-limit"
-             @change="optionsStore.markDirty()" />
-      <p class="help-block">{{ omega.getMessage('options_ruleListUrlHelp') }}</p>
+      <input
+        v-model="profile.sourceUrl"
+        type="url"
+        class="form-control width-limit"
+        @change="optionsStore.markDirty()"
+      >
+      <p class="help-block">
+        {{ omega.getMessage('options_ruleListUrlHelp') }}
+      </p>
     </section>
 
     <!-- Rule List Text -->
     <section class="settings-group">
       <h3>{{ omega.getMessage('options_group_ruleListText') }}</h3>
 
-      <p v-if="profile.sourceUrl && profile.lastUpdate" class="alert alert-success width-limit">
+      <p
+        v-if="profile.sourceUrl && profile.lastUpdate"
+        class="alert alert-success width-limit"
+      >
         {{ omega.getMessage('options_ruleListLastUpdate', [formatDate(profile.lastUpdate)]) }}
       </p>
-      <p v-if="profile.sourceUrl && !profile.lastUpdate" class="alert alert-danger width-limit">
+      <p
+        v-if="profile.sourceUrl && !profile.lastUpdate"
+        class="alert alert-danger width-limit"
+      >
         {{ omega.getMessage('options_ruleListObsolete') }}
       </p>
 
       <p>
-        <button class="btn btn-default"
-                :disabled="!profile.sourceUrl || updating"
-                :class="profile.sourceUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
-                @click="downloadProfile()">
-          <span class="glyphicon glyphicon-download-alt"></span>
+        <button
+          class="btn btn-default"
+          :disabled="!profile.sourceUrl || updating"
+          :class="profile.sourceUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
+          @click="downloadProfile()"
+        >
+          <span class="glyphicon glyphicon-download-alt" />
           {{ omega.getMessage('options_downloadProfileNow') }}
         </button>
       </p>
 
-      <textarea v-model="profile.ruleList"
-                class="monospace form-control width-limit"
-                rows="20"
-                :disabled="!!profile.sourceUrl"
-                @change="optionsStore.markDirty()"></textarea>
+      <textarea
+        v-model="profile.ruleList"
+        class="monospace form-control width-limit"
+        rows="20"
+        :disabled="!!profile.sourceUrl"
+        @change="optionsStore.markDirty()"
+      />
     </section>
   </div>
 </template>

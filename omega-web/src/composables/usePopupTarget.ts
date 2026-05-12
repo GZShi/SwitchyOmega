@@ -1,15 +1,15 @@
 // Promise-based wrapper around OmegaTargetPopup callback-based API.
-import type { OmegaTargetPopup } from '@/types/globals';
+import type { OmegaTargetPopup } from "@/types/globals";
 
 function getPopup(): OmegaTargetPopup {
   const target = window.OmegaTargetPopup;
   if (!target) {
-    console.warn('OmegaTargetPopup is not available.');
+    console.warn("OmegaTargetPopup is not available.");
   }
   return target as OmegaTargetPopup;
 }
 
-function promisify<T>(fn: (cb: (err: any, result: T) => void) => void): Promise<T> {
+function promisify<T>(fn: (cb: (...args: any[]) => void) => void): Promise<T> {
   return new Promise((resolve, reject) => {
     fn((err: any, result: T) => {
       if (err) {
@@ -18,6 +18,12 @@ function promisify<T>(fn: (cb: (err: any, result: T) => void) => void): Promise<
         resolve(result);
       }
     });
+  });
+}
+
+function promisifyVoid(fn: (cb: () => void) => void): Promise<void> {
+  return new Promise((resolve) => {
+    fn(() => resolve());
   });
 }
 
@@ -34,23 +40,28 @@ export function usePopupTarget() {
     },
 
     applyProfile(profileName: string): Promise<void> {
-      return promisify((cb) => target.applyProfile(profileName, cb));
+      return promisifyVoid(() => target.applyProfile(profileName));
     },
 
-    setDefaultProfile(profileName: string, defaultProfileName: string): Promise<void> {
-      return promisify((cb) => target.setDefaultProfile(profileName, defaultProfileName, cb));
+    setDefaultProfile(
+      profileName: string,
+      defaultProfileName: string,
+    ): Promise<void> {
+      return promisifyVoid(() =>
+        target.setDefaultProfile(profileName, defaultProfileName),
+      );
     },
 
     addTempRule(domain: string, profileName: string): Promise<void> {
-      return promisify((cb) => target.addTempRule(domain, profileName, cb));
+      return promisifyVoid(() => target.addTempRule(domain, profileName));
     },
 
-    openOptions(hash?: string | null): Promise<void> {
-      return promisify((cb) => target.openOptions(hash, cb));
+    openOptions(hash?: string): Promise<void> {
+      return promisifyVoid(() => target.openOptions(hash));
     },
 
     openManage(): Promise<void> {
-      return promisify((cb) => target.openManage(cb));
+      return promisifyVoid(() => target.openManage());
     },
 
     getMessage(key: string, substitutions?: string | string[]): string {

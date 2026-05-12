@@ -11,7 +11,7 @@ const showResetModal = ref(false);
 const version = ref('2.5.x');
 
 function downloadLog() {
-  const log = localStorage['log'] || '';
+  const log = localStorage['log'] ?? '';
   const blob = new Blob([log], { type: 'text/plain;charset=utf-8' });
   if ((window as any).saveAs) {
     (window as any).saveAs(blob, `OmegaLog_${Date.now()}.txt`);
@@ -34,19 +34,32 @@ function handleReset(opt?: any) {
 <template>
   <div class="omega-page">
     <h3>SwitchyOmega</h3>
-    <p class="text-muted">{{ omega.getMessage('about_version') }} {{ version }}</p>
+    <p class="text-muted">
+      {{ omega.getMessage('about_version') }} {{ version }}
+    </p>
     <p>
-      <button class="btn btn-default" @click="downloadLog()">
+      <button
+        class="btn btn-default"
+        @click="downloadLog()"
+      >
         {{ omega.getMessage('about_version') }}
       </button>
-      <button class="btn btn-default" @click="reportIssue()">
+      <button
+        class="btn btn-default"
+        @click="reportIssue()"
+      >
         {{ omega.getMessage('about_help') }}
       </button>
-      <button class="btn btn-danger" @click="resetOptions()">
+      <button
+        class="btn btn-danger"
+        @click="resetOptions()"
+      >
         {{ omega.getMessage('options_reset') }}
       </button>
     </p>
-    <p class="text-muted">{{ omega.getMessage('about_app_description') }}</p>
+    <p class="text-muted">
+      {{ omega.getMessage('about_app_description') }}
+    </p>
 
     <ResetOptionsConfirmModal
       v-if="showResetModal"

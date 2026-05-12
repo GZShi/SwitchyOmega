@@ -2,7 +2,7 @@
 // omegaTarget and OmegaPac are NOT npm imports -- they are loaded as separate
 // script files by the extension host page.
 
-interface OmegaTargetWeb {
+export interface OmegaTargetWeb {
   getMessage(key: string, substitutions?: string | string[]): string;
   lastUrl(url?: string): string | undefined;
   state(name: string): Promise<any>;
@@ -16,12 +16,21 @@ interface OmegaTargetWeb {
   renameProfile(from: string, to: string): Promise<void>;
   replaceRef(from: string, to: string): Promise<void>;
   addProfile(profile: Record<string, any>): Promise<void>;
-  setDefaultProfile(profileName: string, defaultProfileName: string): Promise<void>;
+  setDefaultProfile(
+    profileName: string,
+    defaultProfileName: string,
+  ): Promise<void>;
   addTempRule(domain: string, profileName: string): Promise<void>;
-  addCondition(condition: Record<string, any>, profileName: string): Promise<void>;
+  addCondition(
+    condition: Record<string, any>,
+    profileName: string,
+  ): Promise<void>;
   optionsPatch(patch: any): Promise<void>;
   resetOptions(opt?: string | Record<string, any>): Promise<void>;
-  updateProfile(name: string, bypassCache?: string): Promise<Record<string, any>>;
+  updateProfile(
+    name: string,
+    bypassCache?: string,
+  ): Promise<Record<string, any>>;
   setOptionsSync(enabled: boolean, args?: Record<string, any>): Promise<void>;
   resetOptionsSync(): Promise<void>;
   openOptions(hash?: string): Promise<void>;
@@ -37,18 +46,33 @@ interface OmegaTargetWeb {
   setRequestInfoCallback(cb: (info: any) => void): void;
 }
 
-interface OmegaTargetPopup {
+export interface OmegaTargetPopup {
   applyProfile(profileName: string, cb?: () => void): void;
-  setDefaultProfile(profileName: string, defaultProfileName: string, cb?: () => void): void;
+  setDefaultProfile(
+    profileName: string,
+    defaultProfileName: string,
+    cb?: () => void,
+  ): void;
   addTempRule(domain: string, profileName: string, cb?: () => void): void;
   openOptions(hash?: string, cb?: () => void): void;
   openManage(cb?: () => void): void;
   getMessage(key: string, substitutions?: string | string[]): string;
   getState(keys: string[], cb: (err: any, state: any) => void): void;
-  getActivePageInfo(cb: (err: any, info: { url: string; domain: string; tempRuleProfileName: string; errorCount: number } | null) => void): void;
+  getActivePageInfo(
+    cb: (
+      err: any,
+      info: {
+        url: string;
+        domain: string;
+        tempRuleProfileName: string;
+        errorCount: number;
+      } | null,
+    ) => void,
+  ): void;
 }
 
 // OmegaPac namespace -- mirrors the structure exported by omega-pac's UMD build
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare namespace OmegaPac {
   namespace Profiles {
     const builtinProfiles: Record<string, any>;
@@ -61,13 +85,26 @@ declare namespace OmegaPac {
     function nameAsKey(profile: any): string;
     function isProfileNameHidden(name: string): boolean;
     function isProfileNameReserved(name: string): boolean;
-    function referencedBySet(name: string, options: Record<string, any>): Record<string, string>;
-    function validResultProfilesFor(name: string, options: Record<string, any>): any[];
+    function referencedBySet(
+      name: string,
+      options: Record<string, any>,
+    ): Record<string, string>;
+    function validResultProfilesFor(
+      name: string,
+      options: Record<string, any>,
+    ): any[];
     function isFileUrl(url: string): boolean;
-    function each(options: Record<string, any>, cb: (key: string, profile: any) => void): void;
+    function each(
+      options: Record<string, any>,
+      cb: (key: string, profile: any) => void,
+    ): void;
   }
   namespace PacGenerator {
-    function script(options: Record<string, any>, profileName: string, opts?: any): any;
+    function script(
+      options: Record<string, any>,
+      profileName: string,
+      opts?: any,
+    ): any;
     function ascii(pac: string): string;
   }
   namespace Conditions {
@@ -92,12 +129,6 @@ declare global {
   var OmegaTargetPopup: OmegaTargetPopup | undefined;
   var OmegaPac: typeof OmegaPac | undefined;
   var OmegaDebug: Record<string, any> | undefined;
-  var jsondiffpatch: {
-    create: (opts?: Record<string, any>) => {
-      diff: (oldObj: any, newObj: any) => any;
-      patch: (obj: any, delta: any) => any;
-    };
-  };
   var saveAs: (blob: Blob, name: string, noAutoBom?: boolean) => void;
 }
 

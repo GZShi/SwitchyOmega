@@ -27,7 +27,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "jsondiffpatch": "0.1.43",
+    "jsondiffpatch": "^0.7.3",
     "limiter": "^3.0.0",
     "omega-pac": "workspace:*"
   },

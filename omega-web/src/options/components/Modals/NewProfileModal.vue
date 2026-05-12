@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
-import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 
 const emit = defineEmits<{ close: [] }>();
 const router = useRouter();
 const omega = useOmegaTarget();
-const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
@@ -65,7 +63,7 @@ function submit() {
     profileType: newProfile.value.profileType,
   });
   emit('close');
-  router.push('/profile/' + encodeURIComponent(created.name));
+  router.push(`/profile/${  encodeURIComponent(created.name)}`);
 }
 
 function cancel() {
@@ -75,37 +73,69 @@ function cancel() {
 
 <template>
   <Teleport to="body">
-    <div class="modal-backdrop fade in"></div>
-    <div class="modal fade in" style="display: block;" @keydown.esc="cancel">
+    <div class="modal-backdrop fade in" />
+    <div
+      class="modal fade in"
+      style="display: block;"
+      @keydown.esc="cancel"
+    >
       <div class="modal-dialog">
         <div class="modal-content">
           <form @submit.prevent="submit">
             <div class="modal-header">
-              <button type="button" class="close" @click="cancel">&times;</button>
-              <h4 class="modal-title">{{ omega.getMessage('options_modalHeader_newProfile') }}</h4>
+              <button
+                type="button"
+                class="close"
+                @click="cancel"
+              >
+                &times;
+              </button>
+              <h4 class="modal-title">
+                {{ omega.getMessage('options_modalHeader_newProfile') }}
+              </h4>
             </div>
 
             <div class="modal-body">
               <!-- Name -->
-              <div class="form-group"
-                   :class="{ 'has-error': nameError && nameError.kind !== 'required' }">
+              <div
+                class="form-group"
+                :class="{ 'has-error': nameError && nameError.kind !== 'required' }"
+              >
                 <label for="profile-new-name">
                   {{ omega.getMessage('options_newProfileName') }}
                 </label>
-                <input id="profile-new-name" class="form-control" type="text"
-                       v-model="newProfile.name" required autofocus />
-                <div v-if="nameError?.kind === 'required'" class="help-block">
+                <input
+                  id="profile-new-name"
+                  v-model="newProfile.name"
+                  class="form-control"
+                  type="text"
+                  required
+                  autofocus
+                >
+                <div
+                  v-if="nameError?.kind === 'required'"
+                  class="help-block"
+                >
                   {{ omega.getMessage('options_profileNameEmpty') }}
                 </div>
-                <div v-if="nameError?.kind === 'reserved'" class="help-block">
+                <div
+                  v-if="nameError?.kind === 'reserved'"
+                  class="help-block"
+                >
                   {{ omega.getMessage('options_profileNameReserved') }}
                 </div>
-                <div v-if="nameError?.kind === 'conflict'" class="help-block">
+                <div
+                  v-if="nameError?.kind === 'conflict'"
+                  class="help-block"
+                >
                   {{ omega.getMessage('options_profileNameConflict') }}
                 </div>
-                <div v-if="nameHidden" class="help-block">
+                <div
+                  v-if="nameHidden"
+                  class="help-block"
+                >
                   <div class="text-info">
-                    <span class="glyphicon glyphicon-info-sign"></span>
+                    <span class="glyphicon glyphicon-info-sign" />
                     {{ omega.getMessage('options_profileNameHidden') }}
                   </div>
                 </div>
@@ -114,16 +144,24 @@ function cancel() {
               <!-- Type -->
               <label>{{ omega.getMessage('options_profileType') }}</label>
 
-              <div class="radio" v-for="pt in profileTypes" :key="pt.value">
+              <div
+                v-for="pt in profileTypes"
+                :key="pt.value"
+                class="radio"
+              >
                 <label>
-                  <input type="radio"
-                         name="profile-new-type"
-                         :value="pt.value"
-                         v-model="newProfile.profileType"
-                         :disabled="pt.value === 'PacProfile' && pacProfilesUnsupported" />
+                  <input
+                    v-model="newProfile.profileType"
+                    type="radio"
+                    name="profile-new-type"
+                    :value="pt.value"
+                    :disabled="pt.value === 'PacProfile' && pacProfilesUnsupported"
+                  >
                   <span class="profile-type">
-                    <span class="glyphicon"
-                          :class="[profileIcon(pt.value), { 'virtual-profile-icon': pt.isVirtual }]"></span>
+                    <span
+                      class="glyphicon"
+                      :class="[profileIcon(pt.value), { 'virtual-profile-icon': pt.isVirtual }]"
+                    />
                     <span>
                       {{ omega.getMessage('options_profileType' + pt.value) }}
                     </span>
@@ -131,12 +169,18 @@ function cancel() {
                   <div class="help-block">
                     {{ omega.getMessage('options_profileDesc' + pt.value) }}
                   </div>
-                  <div v-if="pt.value === 'PacProfile' && !pacProfilesUnsupported" class="help-block">
+                  <div
+                    v-if="pt.value === 'PacProfile' && !pacProfilesUnsupported"
+                    class="help-block"
+                  >
                     {{ omega.getMessage('options_profileDescMorePacProfile') }}
                   </div>
-                  <div v-if="pt.value === 'PacProfile' && pacProfilesUnsupported" class="has-error">
+                  <div
+                    v-if="pt.value === 'PacProfile' && pacProfilesUnsupported"
+                    class="has-error"
+                  >
                     <div class="help-block">
-                      <span class="glyphicon glyphicon-warning-sign"></span>
+                      <span class="glyphicon glyphicon-warning-sign" />
                       {{ omega.getMessage('options_pac_profile_unsupported_moz') }}
                     </div>
                   </div>
@@ -145,10 +189,18 @@ function cancel() {
             </div>
 
             <div class="modal-footer">
-              <button type="button" class="btn btn-default" @click="cancel">
+              <button
+                type="button"
+                class="btn btn-default"
+                @click="cancel"
+              >
                 {{ omega.getMessage('dialog_cancel') }}
               </button>
-              <button type="submit" class="btn btn-primary" :disabled="!isValid">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                :disabled="!isValid"
+              >
                 {{ omega.getMessage('options_createProfile') }}
               </button>
             </div>

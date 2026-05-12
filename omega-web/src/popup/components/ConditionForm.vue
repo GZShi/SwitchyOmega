@@ -15,7 +15,7 @@ const conditionTypes = [
 ];
 
 function getProfileName(name: string): string {
-  return target.getMessage('profile_' + name) || name;
+  return target.getMessage(`profile_${  name}`) || name;
 }
 
 const sortedValidProfiles = computed(() => {
@@ -39,21 +39,21 @@ function updateConditionType(type: string) {
 
 function addCondition() {
   const condition = { ...store.rule.condition };
-  const profileName = store.rule.profileName;
+  const _profileName = store.rule.profileName;
   store.returnToMenu();
   // Call omegaTarget to add condition
   // Since OmegaTargetPopup doesn't have a direct addCondition method,
   // we need to open the options page for this.
   target.openOptions(
-    '#/profile/' +
-    encodeURIComponent(store.currentProfileName) +
-    '?addCondition=' + encodeURIComponent(JSON.stringify(condition)),
+    `#/profile/${ 
+    encodeURIComponent(store.currentProfileName) 
+    }?addCondition=${  encodeURIComponent(JSON.stringify(condition))}`,
   ).then(() => store.closeWindow());
 }
 
 function openConditionHelp() {
   const pname = encodeURIComponent(store.currentProfileName);
-  target.openOptions('#/profile/' + pname + '?help=condition').then(() => store.closeWindow());
+  target.openOptions(`#/profile/${  pname  }?help=condition`).then(() => store.closeWindow());
 }
 </script>
 
@@ -61,32 +61,57 @@ function openConditionHelp() {
   <div class="om-dialog">
     <p>{{ target.getMessage('popup_addCondition') }}</p>
     <div>
-      <select v-model="store.rule.condition.conditionType"
-              @change="updateConditionType(($event.target as HTMLSelectElement).value)">
-        <option v-for="ct in conditionTypes" :key="ct.value" :value="ct.value">
+      <select
+        v-model="store.rule.condition.conditionType"
+        @change="updateConditionType(($event.target as HTMLSelectElement).value)"
+      >
+        <option
+          v-for="ct in conditionTypes"
+          :key="ct.value"
+          :value="ct.value"
+        >
           {{ ct.label }}
         </option>
       </select>
     </div>
     <div style="margin-top: 5px;">
-      <input v-model="store.rule.condition.pattern"
-             type="text" style="width: 100%;" />
+      <input
+        v-model="store.rule.condition.pattern"
+        type="text"
+        style="width: 100%;"
+      >
     </div>
     <div style="margin-top: 5px;">
       <select v-model="store.rule.profileName">
-        <option v-for="p in sortedValidProfiles" :key="p.name" :value="p.name">
+        <option
+          v-for="p in sortedValidProfiles"
+          :key="p.name"
+          :value="p.name"
+        >
           {{ getProfileName(p.name) }}
         </option>
       </select>
     </div>
-    <p class="om-dialog-controls" style="margin-top: 10px;">
-      <button class="om-btn om-btn-link" @click="store.returnToMenu()">
+    <p
+      class="om-dialog-controls"
+      style="margin-top: 10px;"
+    >
+      <button
+        class="om-btn om-btn-link"
+        @click="store.returnToMenu()"
+      >
         {{ target.getMessage('popup_cancel') }}
       </button>
-      <button class="om-btn om-btn-link" @click="openConditionHelp()">
+      <button
+        class="om-btn om-btn-link"
+        @click="openConditionHelp()"
+      >
         {{ target.getMessage('popup_help') }}
       </button>
-      <button class="om-btn om-btn-primary" @click="addCondition()">
+      <button
+        class="om-btn om-btn-primary"
+        @click="addCondition()"
+      >
         {{ target.getMessage('popup_add') }}
       </button>
     </p>

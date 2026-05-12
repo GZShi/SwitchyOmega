@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { useOmegaTarget } from "@/composables/useOmegaTarget";
 import { useOmegaPac } from "@/composables/useOmegaPac";
 
-import jsondiffpatch from "jsondiffpatch";
+import * as jsondiffpatch from "jsondiffpatch";
 
 const diffEngine = jsondiffpatch.create({
   objectHash: (obj: any) => JSON.stringify(obj),
@@ -94,7 +94,7 @@ export const useOptionsStore = defineStore("options", () => {
       "#ca0",
     ];
     created.color =
-      created.color || colors[Math.floor(Math.random() * colors.length)];
+      created.color ?? colors[Math.floor(Math.random() * colors.length)];
     OmegaPac.Profiles.updateRevision(created);
     options.value[OmegaPac.Profiles.nameAsKey(created)] = created;
     markDirty();
@@ -105,7 +105,7 @@ export const useOptionsStore = defineStore("options", () => {
     const key = OmegaPac.Profiles.nameAsKey(name);
     delete options.value[key];
     // Clean attached
-    const attachedKey = OmegaPac.Profiles.nameAsKey("__ruleListOf_" + name);
+    const attachedKey = OmegaPac.Profiles.nameAsKey(`__ruleListOf_${name}`);
     delete options.value[attachedKey];
     // Clean startup
     if (options.value["-startupProfileName"] === name) {

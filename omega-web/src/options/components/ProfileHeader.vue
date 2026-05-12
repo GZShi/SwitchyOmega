@@ -29,7 +29,7 @@ const profileColor = computed(() => {
     if (target === p) break;
     p = target;
   }
-  return p?.color || '#aaa';
+  return p?.color ?? '#aaa';
 });
 
 const isVirtualProfile = computed(() => props.profile?.profileType === 'VirtualProfile');
@@ -57,7 +57,7 @@ function exportScript() {
     }
   } catch (e: any) {
     const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('error', e.message || 'Export failed');
+    ui?.showAlert?.('error', e.message ?? 'Export failed');
   }
 }
 
@@ -76,40 +76,61 @@ function onColorChange(color: string) {
 <template>
   <div class="page-header">
     <div class="profile-actions">
-      <button v-if="hasRuleListExport" class="btn"
-              :class="props.exportRuleListOptions?.warning ? 'btn-warning' : 'btn-default'"
-              :title="omega.getMessage('options_profileExportRuleListHelp')"
-              @click="exportRuleList()">
-        <span class="glyphicon glyphicon-list"></span>
+      <button
+        v-if="hasRuleListExport"
+        class="btn"
+        :class="props.exportRuleListOptions?.warning ? 'btn-warning' : 'btn-default'"
+        :title="omega.getMessage('options_profileExportRuleListHelp')"
+        @click="exportRuleList()"
+      >
+        <span class="glyphicon glyphicon-list" />
         {{ omega.getMessage('options_profileExportRuleList') }}
       </button>
       {{ ' ' }}
-      <button v-if="isScriptable" class="btn btn-default"
-              :title="omega.getMessage('options_exportPacFileHelp')"
-              @click="exportScript()">
-        <span class="glyphicon glyphicon-download"></span>
+      <button
+        v-if="isScriptable"
+        class="btn btn-default"
+        :title="omega.getMessage('options_exportPacFileHelp')"
+        @click="exportScript()"
+      >
+        <span class="glyphicon glyphicon-download" />
         {{ omega.getMessage('options_profileExportPac') }}
       </button>
       {{ ' ' }}
-      <button class="btn btn-default" @click="showRenameModal = true">
-        <span class="glyphicon glyphicon-edit"></span>
+      <button
+        class="btn btn-default"
+        @click="showRenameModal = true"
+      >
+        <span class="glyphicon glyphicon-edit" />
         {{ omega.getMessage('options_renameProfile') }}
       </button>
       {{ ' ' }}
-      <button class="btn btn-danger" @click="emit('delete')">
-        <span class="glyphicon glyphicon-trash"></span>
+      <button
+        class="btn btn-danger"
+        @click="emit('delete')"
+      >
+        <span class="glyphicon glyphicon-trash" />
         {{ omega.getMessage('options_deleteProfile') }}
       </button>
     </div>
 
     <span class="profile-color-editor">
-      <div v-if="isVirtualProfile" class="profile-color-editor-fake"
-           :style="{ backgroundColor: profileColor }"></div>
-      <input v-else type="color" :value="profile.color || '#9ce'"
-             @change="onColorChange(($event.target as HTMLInputElement).value)" />
+      <div
+        v-if="isVirtualProfile"
+        class="profile-color-editor-fake"
+        :style="{ backgroundColor: profileColor }"
+      />
+      <input
+        v-else
+        type="color"
+        :value="profile.color || '#9ce'"
+        @change="onColorChange(($event.target as HTMLInputElement).value)"
+      >
     </span>
 
-    <h2 class="profile-name">{{ tabPrefix }}{{ props.profileName }}</h2>
+    <h2 class="profile-name">
+      {{ tabPrefix }}{{ props.profileName }}
+    </h2>
   </div>
 
   <Teleport to="body">

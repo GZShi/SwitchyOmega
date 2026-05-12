@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Copies vendor libraries from node_modules to build/lib/.
 // Phase A: Removed AngularJS/jQuery/ngprogress/ladda/script.js.
-// Keeps Bootstrap CSS, spectrum, shepherd.js, file-saver, jsondiffpatch.
+// Keeps Bootstrap CSS, spectrum, shepherd.js, file-saver.
 
 const fs = require("fs");
 const path = require("path");
@@ -113,19 +113,19 @@ if (fs.existsSync(spectrumSrc)) {
   console.log("  spectrum-colorpicker → spectrum/");
 }
 
-// --- shepherd.js ---
+// --- shepherd.js v15 ---
 const shepherdSrc = path.join(nodeModules, "shepherd.js");
 if (fs.existsSync(shepherdSrc)) {
   const shepherdDest = path.join(destDir, "shepherd.js");
   mkdir(shepherdDest);
-  copyGlob(shepherdSrc, "shepherd.min.js", shepherdDest);
-  const shepherdCssSrc = path.join(shepherdSrc, "css");
-  if (fs.existsSync(shepherdCssSrc)) {
-    copyFile(
-      path.join(shepherdCssSrc, "shepherd-theme-arrows.css"),
-      path.join(shepherdDest, "shepherd-theme-arrows.css"),
-    );
-  }
+  copyFile(
+    path.join(shepherdSrc, "dist", "js", "shepherd.mjs"),
+    path.join(shepherdDest, "shepherd.mjs"),
+  );
+  copyFile(
+    path.join(shepherdSrc, "dist", "css", "shepherd.css"),
+    path.join(shepherdDest, "shepherd.css"),
+  );
   console.log("  shepherd.js → shepherd.js/");
 }
 
@@ -139,21 +139,6 @@ if (fs.existsSync(fileSaverSrc)) {
     path.join(fileSaverDest, "FileSaver.min.js"),
   );
   console.log("  file-saver → FileSaver/");
-}
-
-// --- jsondiffpatch ---
-const jsondiffpatchSrc = path.join(
-  nodeModules,
-  "jsondiffpatch",
-  "public",
-  "build",
-);
-if (fs.existsSync(jsondiffpatchSrc)) {
-  const jdpDest = path.join(destDir, "jsondiffpatch");
-  mkdir(jdpDest);
-  copyGlob(jsondiffpatchSrc, "jsondiffpatch.min.js", jdpDest);
-  copyGlob(jsondiffpatchSrc, "jsondiffpatch-formatters.min.js", jdpDest);
-  console.log("  jsondiffpatch → jsondiffpatch/");
 }
 
 // --- Copy img/ ---

@@ -30,15 +30,15 @@ function getProfileColor(profile: any): string {
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     target = profilesStore.profileByName(profile.defaultProfileName);
   }
-  return target?.color || '#aaa';
+  return target?.color ?? '#aaa';
 }
 
 function dispName(name: string): string {
-  return omega.getMessage('profile_' + name) || name;
+  return omega.getMessage(`profile_${  name}`) || name;
 }
 
 function goProfile(name: string) {
-  router.push('/profile/' + encodeURIComponent(name));
+  router.push(`/profile/${  encodeURIComponent(name)}`);
 }
 
 function applyOptions() {
@@ -54,72 +54,111 @@ function revertOptions() {
   <header class="side-nav">
     <div class="omega-brand">
       <h3>
-        <a href="#!/about" @click.prevent="router.push('/about')">
+        <a
+          href="#!/about"
+          @click.prevent="router.push('/about')"
+        >
           SwitchyOmega
         </a>
-        <small v-if="/* isExperimental */ false" class="badge">EXP</small>
+        <small
+          v-if="/* isExperimental */ false"
+          class="badge"
+        >EXP</small>
       </h3>
     </div>
 
     <!-- Settings nav -->
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation"
-          :class="{ active: router.currentRoute.value.name === 'ui' }">
-        <a href="#!/ui" @click.prevent="router.push('/ui')">
-          <span class="glyphicon glyphicon-cog"></span>
+      <li
+        role="presentation"
+        :class="{ active: router.currentRoute.value.name === 'ui' }"
+      >
+        <a
+          href="#!/ui"
+          @click.prevent="router.push('/ui')"
+        >
+          <span class="glyphicon glyphicon-cog" />
           {{ omega.getMessage('options_tab_ui') }}
         </a>
       </li>
-      <li role="presentation"
-          :class="{ active: router.currentRoute.value.name === 'general' }">
-        <a href="#!/general" @click.prevent="router.push('/general')">
-          <span class="glyphicon glyphicon-th"></span>
+      <li
+        role="presentation"
+        :class="{ active: router.currentRoute.value.name === 'general' }"
+      >
+        <a
+          href="#!/general"
+          @click.prevent="router.push('/general')"
+        >
+          <span class="glyphicon glyphicon-th" />
           {{ omega.getMessage('options_tab_general') }}
         </a>
       </li>
-      <li role="presentation"
-          :class="{ active: router.currentRoute.value.name === 'io' }">
-        <a href="#!/io" @click.prevent="router.push('/io')">
-          <span class="glyphicon glyphicon-floppy-disk"></span>
+      <li
+        role="presentation"
+        :class="{ active: router.currentRoute.value.name === 'io' }"
+      >
+        <a
+          href="#!/io"
+          @click.prevent="router.push('/io')"
+        >
+          <span class="glyphicon glyphicon-floppy-disk" />
           {{ omega.getMessage('options_tab_importExport') }}
         </a>
       </li>
     </ul>
 
-    <hr />
+    <hr>
 
     <!-- Profile list -->
     <ul class="nav nav-pills nav-stacked">
-      <li v-for="p in sortedProfiles" :key="p.name" role="presentation"
-          :data-profile-type="p.profile.profileType"
-          class="nav-profile"
-          :class="{ active: router.currentRoute.value.params?.name === p.name }">
-        <a href="#" @click.prevent="goProfile(p.name)">
-          <span :class="['glyphicon', getIcon(p.profile)]"
-                :style="{ color: getProfileColor(p.profile) }"></span>
+      <li
+        v-for="p in sortedProfiles"
+        :key="p.name"
+        role="presentation"
+        :data-profile-type="p.profile.profileType"
+        class="nav-profile"
+        :class="{ active: router.currentRoute.value.params?.name === p.name }"
+      >
+        <a
+          href="#"
+          @click.prevent="goProfile(p.name)"
+        >
+          <span
+            :class="['glyphicon', getIcon(p.profile)]"
+            :style="{ color: getProfileColor(p.profile) }"
+          />
           {{ dispName(p.name) }}
         </a>
       </li>
     </ul>
 
-    <hr />
+    <hr>
 
     <!-- New profile button -->
     <div class="nav-new-profile">
-      <button class="btn btn-primary btn-block"
-              @click="showNewProfileModal = true">
+      <button
+        class="btn btn-primary btn-block"
+        @click="showNewProfileModal = true"
+      >
         {{ omega.getMessage('options_newProfile') }}
       </button>
     </div>
 
     <!-- Apply / Revert -->
-    <div class="nav-apply" v-if="optionsStore.optionsDirty">
-      <button class="btn btn-success btn-block"
-              @click="applyOptions()">
+    <div
+      v-if="optionsStore.optionsDirty"
+      class="nav-apply"
+    >
+      <button
+        class="btn btn-success btn-block"
+        @click="applyOptions()"
+      >
         {{ omega.getMessage('options_apply') }}
       </button>
-      <button class="btn btn-default btn-block"
-              @click="revertOptions()">
+      <button
+        class="btn btn-default btn-block"
+        @click="revertOptions()"
+      >
         {{ omega.getMessage('options_discard') }}
       </button>
     </div>

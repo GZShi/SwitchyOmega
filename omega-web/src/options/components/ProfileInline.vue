@@ -33,21 +33,23 @@ const icon = computed(() =>
   profilesStore.profileIcons[target.value?.profileType] || 'glyphicon-question-sign',
 );
 
-const color = computed(() => target.value?.color || '#aaa');
+const color = computed(() => target.value?.color ?? '#aaa');
 
 const isVirtual = computed(() => resolved.value?.profileType === 'VirtualProfile');
 
 const displayName = computed(() => {
-  const name = resolved.value?.name || props.name || '';
-  return omega.getMessage('profile_' + name) || name;
+  const name = resolved.value?.name ?? props.name ?? '';
+  return omega.getMessage(`profile_${  name}`) || name;
 });
 </script>
 
 <template>
   <span class="profile-inline">
-    <span class="glyphicon"
-          :class="[icon, { 'virtual-profile-icon': isVirtual }]"
-          :style="{ color }"></span>
+    <span
+      class="glyphicon"
+      :class="[icon, { 'virtual-profile-icon': isVirtual }]"
+      :style="{ color }"
+    />
     {{ displayName }}
   </span>
 </template>

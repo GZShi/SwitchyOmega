@@ -6,7 +6,7 @@ import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ReplaceProfileModal from '@/options/components/Modals/ReplaceProfileModal.vue';
 
-const props = defineProps<{ profile: any; profileName: string }>();
+defineProps<{ profile: any; profileName: string }>();
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
@@ -29,7 +29,7 @@ const validTargets = computed(() => {
 });
 
 function dispName(name: string): string {
-  return omega.getMessage('profile_' + name) || name;
+  return omega.getMessage(`profile_${  name}`) || name;
 }
 
 function openReplaceModal() {
@@ -43,7 +43,7 @@ async function doReplace(fromName: string, toName: string) {
     ui?.showAlert?.('success', omega.getMessage('options_replaceProfileSuccess') || 'Replaced.');
   } catch (e: any) {
     const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('error', e.message || String(e));
+    ui?.showAlert?.('error', e.message ?? String(e));
   }
 }
 </script>
@@ -72,8 +72,11 @@ async function doReplace(fromName: string, toName: string) {
         {{ omega.getMessage('options_virtualProfileReplaceHelp', [dispName(profile.defaultProfileName || '')]) }}
       </p>
       <div class="form-group">
-        <button class="btn btn-default" @click="openReplaceModal()">
-          <span class="glyphicon glyphicon-search"></span>
+        <button
+          class="btn btn-default"
+          @click="openReplaceModal()"
+        >
+          <span class="glyphicon glyphicon-search" />
           {{ omega.getMessage('options_virtualProfileReplace') }}
         </button>
       </div>

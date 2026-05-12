@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
@@ -72,7 +72,7 @@ function handleDelete() {
     for (const key of Object.keys(refSet)) {
       const parent = profilesStore.getParentName(refSet[key]);
       if (parent) {
-        const parentKey = OmegaPac.Profiles?.nameAsKey?.(parent) || ('+' + parent);
+        const parentKey = OmegaPac.Profiles?.nameAsKey?.(parent) ?? (`+${  parent}`);
         refMap[parentKey] = parent;
       } else {
         refMap[key] = refSet[key];
@@ -102,7 +102,10 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
 </script>
 
 <template>
-  <div v-if="profile" class="omega-profile">
+  <div
+    v-if="profile"
+    class="omega-profile"
+  >
     <ProfileHeader
       :profile="profile"
       :profile-name="profileName"
@@ -112,18 +115,41 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
     />
 
     <!-- Dynamic editor by profile type -->
-    <FixedProfileEditor v-if="profileTemplate === 'profile_fixed'"
-      :key="profileName" :profile="profile" :profile-name="profileName" />
-    <PacProfileEditor v-else-if="profileTemplate === 'profile_pac'"
-      :key="profileName" :profile="profile" :profile-name="profileName" />
-    <SwitchProfileEditor v-else-if="profileTemplate === 'profile_switch'"
-      :key="profileName" :profile="profile" :profile-name="profileName"
-      @set-export-handler="setExportHandler" />
-    <RuleListProfileEditor v-else-if="profileTemplate === 'profile_rule_list'"
-      :key="profileName" :profile="profile" :profile-name="profileName" />
-    <VirtualProfileEditor v-else-if="profileTemplate === 'profile_virtual'"
-      :key="profileName" :profile="profile" :profile-name="profileName" />
-    <div v-else-if="profileTemplate === 'profile_unsupported'" class="alert alert-warning">
+    <FixedProfileEditor
+      v-if="profileTemplate === 'profile_fixed'"
+      :key="profileName"
+      :profile="profile"
+      :profile-name="profileName"
+    />
+    <PacProfileEditor
+      v-else-if="profileTemplate === 'profile_pac'"
+      :key="profileName"
+      :profile="profile"
+      :profile-name="profileName"
+    />
+    <SwitchProfileEditor
+      v-else-if="profileTemplate === 'profile_switch'"
+      :key="profileName"
+      :profile="profile"
+      :profile-name="profileName"
+      @set-export-handler="setExportHandler"
+    />
+    <RuleListProfileEditor
+      v-else-if="profileTemplate === 'profile_rule_list'"
+      :key="profileName"
+      :profile="profile"
+      :profile-name="profileName"
+    />
+    <VirtualProfileEditor
+      v-else-if="profileTemplate === 'profile_virtual'"
+      :key="profileName"
+      :profile="profile"
+      :profile-name="profileName"
+    />
+    <div
+      v-else-if="profileTemplate === 'profile_unsupported'"
+      class="alert alert-warning"
+    >
       {{ omega.getMessage('options_profileUnsupported') }}
     </div>
 
@@ -142,7 +168,10 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
       @close="showCannotDelete = false"
     />
   </div>
-  <div v-else class="omega-page">
+  <div
+    v-else
+    class="omega-page"
+  >
     <p>{{ omega.getMessage('options_loading') }}</p>
   </div>
 </template>

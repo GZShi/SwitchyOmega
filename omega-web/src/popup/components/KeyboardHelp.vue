@@ -20,7 +20,7 @@ function showHelp(id: string, key: string) {
     const span = document.createElement('span');
     span.classList.add('om-keyboard-help');
     span.textContent = key;
-    const ref = el.querySelector('.glyphicon') || el.firstElementChild;
+    const ref = el.querySelector('.glyphicon') ?? el.firstElementChild;
     if (ref?.parentNode) {
       ref.parentNode.insertBefore(span, ref.nextSibling);
     }
@@ -32,7 +32,7 @@ onMounted(() => {
     showHelp(id, key);
   }
   for (let i = 1; i <= 9; i++) {
-    showHelp('js-profile-' + i, String(i));
+    showHelp(`js-profile-${  i}`, String(i));
   }
   // Auto-hide help after a delay
   setTimeout(() => emit('close'), 3000);

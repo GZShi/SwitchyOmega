@@ -7,28 +7,35 @@
     "build:standalone": "node scripts/build-standalone.js",
     "build:copy": "node scripts/copy-libs.js",
     "dev": "vite build --watch",
+    "lint": "eslint src/ --no-cache",
     "clean": "rm -rf build/"
   },
   "dependencies": {
     "omega-pac": "workspace:*"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-vue": "^6.0.0",
     "@vueuse/core": "^10.0.0",
     "autoprefixer": "^10.4.0",
     "bootstrap": "~3.3.7",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.4.0",
     "file-saver": "^2.0.5",
-    "jsondiffpatch": "0.1.43",
+    "jsondiffpatch": "^0.7.3",
     "less": "^4.2.0",
-    "pinia": "^2.0.0",
+    "pinia": "^3.0.0",
     "postcss": "^8.4.0",
-    "shepherd.js": "github:HubSpot/shepherd#v0.5.1",
+    "shepherd.js": "^15.2.0",
     "sortablejs": "^1.15.0",
     "spectrum-colorpicker": "^1.8.0",
     "typescript": "^5.0.0",
-    "vite": "^5.0.0",
-    "vue": "^3.4.0",
-    "vue-router": "^4.0.0",
-    "vue-tsc": "^2.0.0"
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.0",
+    "vue": "^3.5.0",
+    "vue-eslint-parser": "^10.2.0",
+    "vue-router": "^5.0.0",
+    "vue-tsc": "^3.0.0"
   }
 }

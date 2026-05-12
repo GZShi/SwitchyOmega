@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
@@ -31,7 +31,7 @@ const allProfiles = computed(() => {
 });
 
 const quickSwitchProfiles = computed({
-  get: () => optionsStore.options['-quickSwitchProfiles'] || [],
+  get: () => optionsStore.options['-quickSwitchProfiles'] ?? [],
   set: (val: string[]) => {
     optionsStore.options['-quickSwitchProfiles'] = val;
     optionsStore.markDirty();
@@ -63,7 +63,10 @@ function openShortcutConfig() {
 
 <template>
   <div>
-    <div class="page-header" style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;">
+    <div
+      class="page-header"
+      style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;"
+    >
       <h2>{{ omega.getMessage('options_tab_ui') }}</h2>
     </div>
 
@@ -72,29 +75,41 @@ function openShortcutConfig() {
       <h3>{{ omega.getMessage('options_group_miscOptions') }}</h3>
       <div class="checkbox">
         <label>
-          <input type="checkbox" v-model="optionsStore.options['-confirmDeletion']"
-                 @change="optionsStore.markDirty()" />
+          <input
+            v-model="optionsStore.options['-confirmDeletion']"
+            type="checkbox"
+            @change="optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_confirmDeletion') }}</span>
         </label>
       </div>
       <div class="checkbox">
         <label>
-          <input type="checkbox" v-model="optionsStore.options['-refreshOnProfileChange']"
-                 @change="optionsStore.markDirty()" />
+          <input
+            v-model="optionsStore.options['-refreshOnProfileChange']"
+            type="checkbox"
+            @change="optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_refreshOnProfileChange') }}</span>
         </label>
       </div>
       <div class="checkbox">
         <label>
-          <input type="checkbox" v-model="optionsStore.options['-showInspectMenu']"
-                 @change="optionsStore.markDirty()" />
+          <input
+            v-model="optionsStore.options['-showInspectMenu']"
+            type="checkbox"
+            @change="optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_showInspectMenu') }}</span>
         </label>
       </div>
       <div class="checkbox">
         <label>
-          <input type="checkbox" v-model="optionsStore.options['-addConditionsToBottom']"
-                 @change="optionsStore.markDirty()" />
+          <input
+            v-model="optionsStore.options['-addConditionsToBottom']"
+            type="checkbox"
+            @change="optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_addConditionsToBottom') }}</span>
         </label>
       </div>
@@ -104,13 +119,19 @@ function openShortcutConfig() {
     <section class="settings-group">
       <h3>{{ omega.getMessage('options_group_keyboardShortcut') }}</h3>
       <p>
-        <button class="btn btn-default" type="button" @click="openShortcutConfig()">
-          <span class="glyphicon glyphicon-share-alt"></span>
+        <button
+          class="btn btn-default"
+          type="button"
+          @click="openShortcutConfig()"
+        >
+          <span class="glyphicon glyphicon-share-alt" />
           {{ omega.getMessage('options_menuShortcutConfigure') }}
         </button>
         {{ omega.getMessage('options_menuShortcutHelp') }}
       </p>
-      <p class="help-block">{{ omega.getMessage('options_menuShortcutMore') }}</p>
+      <p class="help-block">
+        {{ omega.getMessage('options_menuShortcutMore') }}
+      </p>
     </section>
 
     <!-- Switch Options -->
@@ -131,36 +152,60 @@ function openShortcutConfig() {
       <!-- Show advanced condition types -->
       <div class="checkbox">
         <label>
-          <input type="checkbox"
-                 :checked="optionsStore.options['-showConditionTypes'] > 0"
-                 @change="optionsStore.options['-showConditionTypes'] = ($event.target as HTMLInputElement).checked ? 1 : 0; optionsStore.markDirty()" />
+          <input
+            type="checkbox"
+            :checked="optionsStore.options['-showConditionTypes'] > 0"
+            @change="optionsStore.options['-showConditionTypes'] = ($event.target as HTMLInputElement).checked ? 1 : 0; optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_showConditionTypesAdvanced') }}</span>
         </label>
-        <p class="help-block">{{ omega.getMessage('options_showConditionTypesAdvancedHelp') }}</p>
+        <p class="help-block">
+          {{ omega.getMessage('options_showConditionTypesAdvancedHelp') }}
+        </p>
       </div>
 
       <!-- Quick Switch -->
       <div class="checkbox">
         <label>
-          <input type="checkbox" v-model="optionsStore.options['-enableQuickSwitch']"
-                 @change="optionsStore.markDirty()" />
+          <input
+            v-model="optionsStore.options['-enableQuickSwitch']"
+            type="checkbox"
+            @change="optionsStore.markDirty()"
+          >
           <span>{{ omega.getMessage('options_quickSwitch') }}</span>
         </label>
       </div>
 
-      <div v-if="optionsStore.options['-enableQuickSwitch']" id="quick-switch-settings" class="settings-group">
+      <div
+        v-if="optionsStore.options['-enableQuickSwitch']"
+        id="quick-switch-settings"
+        class="settings-group"
+      >
         <h4>{{ omega.getMessage('options_cycledProfiles') }}</h4>
-        <p class="help-block">{{ omega.getMessage('options_cycledProfilesHelp') }}</p>
-        <div v-if="quickSwitchProfiles.length < 2" class="has-error">
-          <p class="help-block">{{ omega.getMessage('options_cycledProfilesTooFew') }}</p>
+        <p class="help-block">
+          {{ omega.getMessage('options_cycledProfilesHelp') }}
+        </p>
+        <div
+          v-if="quickSwitchProfiles.length < 2"
+          class="has-error"
+        >
+          <p class="help-block">
+            {{ omega.getMessage('options_cycledProfilesTooFew') }}
+          </p>
         </div>
 
         <!-- Cycled profiles -->
         <ul class="cycle-profile-container cycle-enabled">
-          <li v-for="(name, idx) in quickSwitchProfiles" :key="name + idx">
+          <li
+            v-for="(name, idx) in quickSwitchProfiles"
+            :key="name + idx"
+          >
             <ProfileInline :name="name" />
-            <button class="btn btn-xs btn-danger pull-right" @click="removeFromCycle(idx)">
-              <span class="glyphicon glyphicon-remove"></span>
+            <button
+              class="btn btn-xs btn-danger pull-right"
+              @click="removeFromCycle(idx)"
+            >
+              <span class="glyphicon glyphicon-remove" />
             </button>
           </li>
         </ul>
@@ -168,10 +213,17 @@ function openShortcutConfig() {
         <!-- Not cycled profiles -->
         <h4>{{ omega.getMessage('options_notCycledProfiles') }}</h4>
         <ul class="cycle-profile-container">
-          <li v-for="name in notCycledProfiles" :key="name" class="bg-success">
+          <li
+            v-for="name in notCycledProfiles"
+            :key="name"
+            class="bg-success"
+          >
             <ProfileInline :name="name" />
-            <button class="btn btn-xs btn-default pull-right" @click="addToCycle(name)">
-              <span class="glyphicon glyphicon-plus"></span>
+            <button
+              class="btn btn-xs btn-default pull-right"
+              @click="addToCycle(name)"
+            >
+              <span class="glyphicon glyphicon-plus" />
             </button>
           </li>
         </ul>
