@@ -3,3 +3,6 @@ packages:
   - 'omega-target'
   - 'omega-web'
   - 'omega-target-chromium-extension'
+allowBuilds:
+  esbuild: set this to true or false
+  vue-demi: set this to true or false

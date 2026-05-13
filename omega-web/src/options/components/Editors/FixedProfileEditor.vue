@@ -4,7 +4,8 @@ import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
-const props = defineProps<{ profile: any; profileName: string }>();
+const profile = defineModel<any>('profile', { required: true });
+defineProps<{ profileName: string }>();
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 
@@ -41,8 +42,8 @@ const defaultProtocols = [
 
 function getProxy(scheme: string): any {
   const prop = schemeProps[scheme];
-  props.profile[prop] ??= { host: '', port: null, scheme: 'http' };
-  return props.profile[prop];
+  profile.value[prop] ??= { host: '', port: null, scheme: 'http' };
+  return profile.value[prop];
 }
 
 function getProtocolOptions(scheme: string) {
@@ -51,7 +52,7 @@ function getProtocolOptions(scheme: string) {
 
 function isProxyAuthActive(scheme: string): boolean {
   const prop = schemeProps[scheme];
-  const proxy = props.profile[prop];
+  const proxy = profile.value[prop];
   return !!(proxy?.username);
 }
 
@@ -62,20 +63,20 @@ function openAuthModal(scheme: string) {
 
 function saveAuth(auth: { username: string; password: string } | null) {
   const prop = schemeProps[authScheme.value];
-  if (!props.profile[prop]) return;
+  if (!profile.value[prop]) return;
   if (!auth) {
-    delete props.profile[prop].username;
-    delete props.profile[prop].password;
+    delete profile.value[prop].username;
+    delete profile.value[prop].password;
   } else {
-    props.profile[prop].username = auth.username;
-    props.profile[prop].password = auth.password;
+    profile.value[prop].username = auth.username;
+    profile.value[prop].password = auth.password;
   }
   optionsStore.markDirty();
 }
 
 const bypassList = computed({
   get: () => {
-    const list = props.profile.bypassList ?? [];
+    const list = profile.value.bypassList ?? [];
     return list.map((item: any) => {
       if (typeof item === 'string') return item;
       return item.pattern ?? '';
@@ -83,12 +84,12 @@ const bypassList = computed({
   },
   set: (val: string) => {
     if (val.trim()) {
-      props.profile.bypassList = val.split('\n')
+      profile.value.bypassList = val.split('\n')
         .map((s: string) => s.trim())
         .filter(Boolean)
         .map((s: string) => ({ conditionType: 'BypassCondition', pattern: s }));
     } else {
-      props.profile.bypassList = [];
+      profile.value.bypassList = [];
     }
     optionsStore.markDirty();
   },

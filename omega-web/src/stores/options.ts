@@ -37,27 +37,23 @@ export const useOptionsStore = defineStore("options", () => {
     changeCallbacks.push(cb);
   }
 
-  function applyOptions(): Promise<void> {
+  async function applyOptions(): Promise<void> {
     if (optionsDirty.value && optionsOld.value) {
       const plainOptions = JSON.parse(JSON.stringify(options.value));
       const patch = diffEngine.diff(optionsOld.value, plainOptions);
-      return omega.optionsPatch(patch).then(() => {
-        showAlert("success", omega.getMessage("options_saveSuccess"));
-      });
+      await omega.optionsPatch(patch);
+      showAlert("success", omega.getMessage("options_saveSuccess"));
     }
-    return Promise.resolve();
   }
 
-  function resetOptions(opt?: any): Promise<void> {
-    return omega
-      .resetOptions(opt)
-      .then(() => {
-        showAlert("success", omega.getMessage("options_resetSuccess"));
-      })
-      .catch((err: any) => {
-        showAlert("error", String(err));
-        return Promise.reject(err);
-      });
+  async function resetOptions(opt?: any): Promise<void> {
+    try {
+      await omega.resetOptions(opt);
+      showAlert("success", omega.getMessage("options_resetSuccess"));
+    } catch (err: any) {
+      showAlert("error", String(err));
+      throw err;
+    }
   }
 
   function revertOptions() {

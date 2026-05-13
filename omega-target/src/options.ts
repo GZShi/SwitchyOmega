@@ -84,33 +84,36 @@ class Options {
     if (options == null) {
       this.init();
     } else {
-      this.ready = this._storage
-        .remove()
-        .then(() => this._storage.set(options))
-        .then(() => this.init());
+      this.ready = (async () => {
+        await this._storage.remove();
+        await this._storage.set(options);
+        return this.init();
+      })();
     }
   }
 
-  loadOptions(opts?: { retry?: number }): any {
+  async loadOptions(opts?: { retry?: number }): Promise<any> {
     const retry = opts?.retry ?? 3;
     if (this._syncWatchStop != null) this._syncWatchStop();
     this._syncWatchStop = null;
     if (this._watchStop != null) this._watchStop();
     this._watchStop = null;
 
-    let loadRaw: any;
-    if (!this.sync?.enabled) {
-      if (this.sync == null) {
-        this._state.set({ syncOptions: "unsupported" });
-      }
-      loadRaw = this._storage.get(null);
-    } else {
-      this._state.set({ syncOptions: "sync" });
-      this._syncWatchStop = this.sync.watchAndPull(this._storage);
-      loadRaw = this.sync
-        .copyTo(this._storage)
-        .catch((e: any) => {
+    this.optionsLoaded = (async () => {
+      let rawOpts: any;
+      if (!this.sync?.enabled) {
+        if (this.sync == null) {
+          this._state.set({ syncOptions: "unsupported" });
+        }
+        rawOpts = await this._storage.get(null);
+      } else {
+        this._state.set({ syncOptions: "sync" });
+        this._syncWatchStop = this.sync.watchAndPull(this._storage);
+        try {
+          await this.sync.copyTo(this._storage);
+        } catch (e: any) {
           if (!(e instanceof Storage.StorageUnavailableError)) throw e;
+          // eslint-disable-next-line no-console -- deliberate warning for sync unavailability
           console.error(
             "Warning: Sync storage is not available in this browser! Disabling options sync.",
           );
@@ -118,17 +121,14 @@ class Options {
           this._syncWatchStop = null;
           this.sync = null;
           this._state.set({ syncOptions: "unsupported" });
-        })
-        .then(() => this._storage.get(null));
-    }
+        }
+        rawOpts = await this._storage.get(null);
+      }
 
-    this.optionsLoaded = loadRaw
-      .then((opts: any) => this.upgrade(opts))
-      .then(([opts, changes]: [any, any]) =>
-        this._storage.apply({ changes }).then(() => opts),
-      )
-      .then((opts: any) => {
-        this._options = opts;
+      try {
+        const [upgradedOpts, changes] = await this.upgrade(rawOpts);
+        await this._storage.apply({ changes });
+        this._options = upgradedOpts;
         this._watchStop = this._watch();
         this._state.get({ syncOptions: "" }).then((st: any) => {
           if (st.syncOptions) return;
@@ -137,97 +137,92 @@ class Options {
             if (!sv.schemaVersion) this._state.set({ syncOptions: "pristine" });
           });
         });
-        return opts;
-      })
-      .catch((e: any) => {
-        if (retry <= 0) return Promise.reject(e);
+        return upgradedOpts;
+      } catch (e: any) {
+        if (retry <= 0) throw e;
 
-        const getFallbackOptions = Promise.resolve().then(() => {
-          if (e instanceof Options.NoOptionsError) {
-            this._state
-              .get({
-                firstRun: "new",
-                "web.switchGuide": "showOnFirstUse",
-              })
-              .then((items: any) => this._state.set(items));
-            if (this.sync == null) return null;
-            return this._state.get({ syncOptions: "" }).then((st: any) => {
-              if (st.syncOptions === "conflict") return;
-              return this.sync.storage
-                .get(null)
-                .then((opts: any) => {
-                  if (!opts["schemaVersion"]) {
-                    this._state.set({ syncOptions: "pristine" });
-                    return null;
-                  } else {
-                    this._state.set({ syncOptions: "sync" });
-                    this.sync.enabled = true;
-                    this.log.log("Options#loadOptions::fromSync", opts);
-                    return opts;
-                  }
-                })
-                .catch(() => null);
-            });
+        let fallbackOpts: any;
+        if (e instanceof Options.NoOptionsError) {
+          this._state
+            .get({
+              firstRun: "new",
+              "web.switchGuide": "showOnFirstUse",
+            })
+            .then((items: any) => this._state.set(items));
+          if (this.sync == null) {
+            fallbackOpts = null;
           } else {
-            this.log.error(e.stack);
-            this._state.remove(["syncOptions"]);
-            return null;
+            const st = await this._state.get({ syncOptions: "" });
+            if (st.syncOptions !== "conflict") {
+              try {
+                const syncOpts = await this.sync.storage.get(null);
+                if (!syncOpts["schemaVersion"]) {
+                  this._state.set({ syncOptions: "pristine" });
+                  fallbackOpts = null;
+                } else {
+                  this._state.set({ syncOptions: "sync" });
+                  this.sync.enabled = true;
+                  this.log.log("Options#loadOptions::fromSync", syncOpts);
+                  fallbackOpts = syncOpts;
+                }
+              } catch {
+                fallbackOpts = null;
+              }
+            }
           }
-        });
+        } else {
+          this.log.error(e.stack);
+          this._state.remove(["syncOptions"]);
+          fallbackOpts = null;
+        }
 
-        return getFallbackOptions.then((fallbackOpts: any) => {
-          fallbackOpts ??= this.parseOptions(this.getDefaultOptions());
-          let prevEnabled: boolean | undefined;
-          if (this.sync != null) {
-            prevEnabled = this.sync.enabled;
-            this.sync.enabled = false;
-          }
-          return this._storage
-            .remove()
-            .then(() => this._storage.set(fallbackOpts))
-            .then(() => {
-              if (this.sync != null) this.sync.enabled = prevEnabled;
-              return this.loadOptions({ retry: retry - 1 });
-            });
-        });
-      });
+        fallbackOpts ??= this.parseOptions(this.getDefaultOptions());
+        let prevEnabled: boolean | undefined;
+        if (this.sync != null) {
+          prevEnabled = this.sync.enabled;
+          this.sync.enabled = false;
+        }
+        await this._storage.remove();
+        await this._storage.set(fallbackOpts);
+        if (this.sync != null) this.sync.enabled = prevEnabled;
+        return this.loadOptions({ retry: retry - 1 });
+      }
+    })();
 
     return this.optionsLoaded;
   }
 
-  init(): any {
-    this.ready = this.loadOptions()
-      .then(() => {
+  async init(): Promise<any> {
+    this.ready = (async () => {
+      try {
+        await this.loadOptions();
         if (this._options["-startupProfileName"]) {
-          return this.applyProfile(this._options["-startupProfileName"]);
+          await this.applyProfile(this._options["-startupProfileName"]);
         } else {
-          return this._state
-            .get({
-              currentProfileName: this.fallbackProfileName,
-              isSystemProfile: false,
-            })
-            .then((st: any) => {
-              if (st["isSystemProfile"]) {
-                return this.applyProfile("system");
-              } else {
-                return this.applyProfile(
-                  (st["currentProfileName"] as string) ??
-                    this.fallbackProfileName,
-                );
-              }
-            });
+          const st = await this._state.get({
+            currentProfileName: this.fallbackProfileName,
+            isSystemProfile: false,
+          });
+          if (st["isSystemProfile"]) {
+            await this.applyProfile("system");
+          } else {
+            await this.applyProfile(
+              (st["currentProfileName"] as string) ?? this.fallbackProfileName,
+            );
+          }
         }
-      })
-      .catch((err: any) => {
+      } catch (err: any) {
         if (!(err instanceof Options.ProfileNotExistError)) {
           this.log.error(err);
         }
-        return this.applyProfile(this.fallbackProfileName);
-      })
-      .catch((err: any) => {
-        this.log.error(err);
-      })
-      .then(() => this.getAll());
+        try {
+          await this.applyProfile(this.fallbackProfileName);
+        } catch (err2: any) {
+          this.log.error(err2);
+        }
+      }
+      return this.getAll();
+    })();
 
     this.ready.then(() => {
       if (this.sync?.enabled) this.sync.requestPush(this._options);
@@ -248,7 +243,7 @@ class Options {
     return null;
   }
 
-  upgrade(options: any, changes?: any): any {
+  async upgrade(options: any, changes?: any): Promise<any> {
     changes ??= {};
     let version = options != null ? options["schemaVersion"] : undefined;
     if (version === 1) {
@@ -273,9 +268,9 @@ class Options {
       changes["schemaVersion"] = 2;
     }
     if (version === 2) {
-      return Promise.resolve([options, changes]);
+      return [options, changes];
     } else {
-      return Promise.reject(new Error(`Invalid schemaVersion ${version}!`));
+      throw new Error(`Invalid schemaVersion ${version}!`);
     }
   }
 
@@ -307,19 +302,15 @@ class Options {
     return options;
   }
 
-  reset(options?: any): any {
+  async reset(options?: any): Promise<any> {
     this.log.method("Options#reset", this, arguments as any);
     options ??= this.getDefaultOptions();
-    return this.upgrade(this.parseOptions(options)).then(
-      ([opt]: [any, any]) => {
-        if (this.sync != null) this.sync.enabled = false;
-        this._state.remove(["syncOptions"]);
-        return this._storage
-          .remove()
-          .then(() => this._storage.set(opt))
-          .then(() => this.init());
-      },
-    );
+    const [opt] = await this.upgrade(this.parseOptions(options));
+    if (this.sync != null) this.sync.enabled = false;
+    this._state.remove(["syncOptions"]);
+    await this._storage.remove();
+    await this._storage.set(opt);
+    return this.init();
   }
 
   onFirstRun(_reason: string): any {
@@ -355,7 +346,10 @@ class Options {
     return this._setOptions(changes);
   }
 
-  _setOptions = (changes: Record<string, any>, args?: any): any => {
+  _setOptions = async (
+    changes: Record<string, any>,
+    args?: any,
+  ): Promise<any> => {
     const removed: string[] = [];
     const checkRev = args?.checkRevision ?? false;
     let profilesChanged = false;
@@ -406,9 +400,9 @@ class Options {
       for (const key of removed) {
         delete changes[key];
       }
-      return this._storage.set(changes).then(() => {
-        return this._storage.remove(removed).then(() => this._options);
-      });
+      await this._storage.set(changes);
+      await this._storage.remove(removed);
+      return this._options;
     }
   };
 
@@ -523,14 +517,14 @@ class Options {
     });
   }
 
-  pacForProfile(profile: any, compress: boolean = false): any {
+  async pacForProfile(profile: any, compress: boolean = false): Promise<any> {
     let ast = PacGenerator.script(this._options, profile, {
       profileNotFound: this._profileNotFound.bind(this),
     });
     if (compress) {
       ast = PacGenerator.compress(ast);
     }
-    return Promise.resolve(PacGenerator.ascii(ast.print_to_string()));
+    return PacGenerator.ascii(ast.print_to_string());
   }
 
   _setAvailableProfiles(): void {
@@ -581,11 +575,11 @@ class Options {
     });
   }
 
-  applyProfile(name: string | null, options?: any): any {
+  async applyProfile(name: string | null, options?: any): Promise<any> {
     this.log.method("Options#applyProfile", this, arguments as any);
     const profile = Profiles.byName(name, this._options);
     if (!profile) {
-      return Promise.reject(new Options.ProfileNotExistError(name as string));
+      throw new Options.ProfileNotExistError(name as string);
     }
 
     this._currentProfileName = profile.name;
@@ -605,7 +599,7 @@ class Options {
 
     this.currentProfileChanged(options?.reason);
     if (options?.proxy === false) {
-      return Promise.resolve();
+      return;
     }
 
     this._tempProfileActive = false;
@@ -716,8 +710,9 @@ class Options {
       if (url) {
         const type_hints = Profiles.updateContentTypeHints(profile);
         const fetchResult = this.fetchUrl(url, bypassCache, type_hints);
-        results[key] = fetchResult
-          .then((data: any) => {
+        results[key] = (async () => {
+          try {
+            const data = await fetchResult;
             if (!data) return profile;
             const p = Profiles.byKey(key, this._options);
             p.lastUpdate = new Date().toISOString();
@@ -725,14 +720,14 @@ class Options {
               Profiles.dropCache(p);
               const ch: Record<string, any> = {};
               ch[key] = p;
-              return Promise.resolve(this._setOptions(ch)).then(() => p);
-            } else {
-              return profile;
+              await this._setOptions(ch);
+              return p;
             }
-          })
-          .catch((reason: any) => {
+            return profile;
+          } catch (reason: any) {
             return reason instanceof Error ? reason : new Error(reason);
-          });
+          }
+        })();
       }
     });
     return promiseProps(results);
@@ -772,11 +767,11 @@ class Options {
     return changes;
   }
 
-  replaceRef(fromName: string, toName: string): any {
+  async replaceRef(fromName: string, toName: string): Promise<any> {
     this.log.method("Options#replaceRef", this, arguments as any);
     const profile = Profiles.byName(fromName, this._options);
     if (!profile) {
-      return Promise.reject(new Options.ProfileNotExistError(fromName));
+      throw new Options.ProfileNotExistError(fromName);
     }
 
     const changes = this._replaceRefChanges(fromName, toName);
@@ -795,14 +790,14 @@ class Options {
     return this._setOptions(changes);
   }
 
-  renameProfile(fromName: string, toName: string): any {
+  async renameProfile(fromName: string, toName: string): Promise<any> {
     this.log.method("Options#renameProfile", this, arguments as any);
     if (Profiles.byName(toName, this._options)) {
-      return Promise.reject(new Error(`Target name ${toName} already taken!`));
+      throw new Error(`Target name ${toName} already taken!`);
     }
     const profile = Profiles.byName(fromName, this._options);
     if (!profile) {
-      return Promise.reject(new Options.ProfileNotExistError(fromName));
+      throw new Options.ProfileNotExistError(fromName);
     }
 
     profile.name = toName;
@@ -828,12 +823,12 @@ class Options {
     return this._setOptions(changes);
   }
 
-  addTempRule(domain: string, profileName: string): any {
+  async addTempRule(domain: string, profileName: string): Promise<any> {
     this.log.method("Options#addTempRule", this, arguments as any);
-    if (!this._currentProfileName) return Promise.resolve();
+    if (!this._currentProfileName) return;
     const profile = Profiles.byName(profileName, this._options);
     if (!profile) {
-      return Promise.reject(new Options.ProfileNotExistError(profileName));
+      throw new Options.ProfileNotExistError(profileName);
     }
     if (this._tempProfile == null) {
       this._tempProfile = Profiles.create("", "SwitchProfile");
@@ -874,8 +869,6 @@ class Options {
     if (changed) {
       Profiles.updateRevision(this._tempProfile);
       return this.applyProfile(this._currentProfileName);
-    } else {
-      return Promise.resolve();
     }
   }
 
@@ -891,20 +884,18 @@ class Options {
     return null;
   }
 
-  addCondition(condition: any, profileName: string): any {
+  async addCondition(condition: any, profileName: string): Promise<any> {
     this.log.method("Options#addCondition", this, arguments as any);
-    if (!this._currentProfileName) return Promise.resolve();
+    if (!this._currentProfileName) return;
     const profile = Profiles.byName(this._currentProfileName, this._options);
     if (!(profile?.rules != null)) {
-      return Promise.reject(
-        new Error(
-          `Cannot add condition to Profile ${profile?.name} (${profile?.type})`,
-        ),
+      throw new Error(
+        `Cannot add condition to Profile ${profile?.name} (${profile?.type})`,
       );
     }
     const target = Profiles.byName(profileName, this._options);
     if (target == null) {
-      return Promise.reject(new Options.ProfileNotExistError(profileName));
+      throw new Options.ProfileNotExistError(profileName);
     }
     if (!Array.isArray(condition)) {
       condition = [condition];
@@ -938,23 +929,22 @@ class Options {
     return this._setOptions(changes);
   }
 
-  setDefaultProfile(profileName: string, defaultProfileName: string): any {
+  async setDefaultProfile(
+    profileName: string,
+    defaultProfileName: string,
+  ): Promise<any> {
     this.log.method("Options#setDefaultProfile", this, arguments as any);
     const profile = Profiles.byName(profileName, this._options);
     if (profile == null) {
-      return Promise.reject(new Options.ProfileNotExistError(profileName));
+      throw new Options.ProfileNotExistError(profileName);
     } else if (profile.defaultProfileName == null) {
-      return Promise.reject(
-        new Error(
-          `Profile ${profile.name} (${profile.type}) does not have defaultProfileName!`,
-        ),
+      throw new Error(
+        `Profile ${profile.name} (${profile.type}) does not have defaultProfileName!`,
       );
     }
     const target = Profiles.byName(defaultProfileName, this._options);
     if (target == null) {
-      return Promise.reject(
-        new Options.ProfileNotExistError(defaultProfileName),
-      );
+      throw new Options.ProfileNotExistError(defaultProfileName);
     }
 
     profile.defaultProfileName = defaultProfileName;
@@ -964,12 +954,10 @@ class Options {
     return this._setOptions(changes);
   }
 
-  addProfile(profile: any): any {
+  async addProfile(profile: any): Promise<any> {
     this.log.method("Options#addProfile", this, arguments as any);
     if (Profiles.byName(profile.name, this._options)) {
-      return Promise.reject(
-        new Error(`Target name ${profile.name} already taken!`),
-      );
+      throw new Error(`Target name ${profile.name} already taken!`);
     } else {
       const changes: Record<string, any> = {};
       changes[Profiles.nameAsKey(profile)] = profile;
@@ -977,9 +965,9 @@ class Options {
     }
   }
 
-  matchProfile(request: any): any {
+  async matchProfile(request: any): Promise<any> {
     if (!this._currentProfileName) {
-      return Promise.resolve({ profile: this._externalProfile, results: [] });
+      return { profile: this._externalProfile, results: [] };
     }
     const results: any[] = [];
     let profile = this._tempProfileActive
@@ -1001,7 +989,7 @@ class Options {
       }
       profile = Profiles.byKey(next, this._options);
     }
-    return Promise.resolve({ profile: lastProfile, results });
+    return { profile: lastProfile, results };
   }
 
   setExternalProfile(profile: any, args?: any): any {
@@ -1045,63 +1033,57 @@ class Options {
     }
   }
 
-  setOptionsSync(enabled: boolean, args?: any): any {
+  async setOptionsSync(enabled: boolean, args?: any): Promise<any> {
     this.log.method("Options#setOptionsSync", this, arguments as any);
     if (this.sync == null) {
-      return Promise.reject(new Error("Options syncing is unsupported."));
+      throw new Error("Options syncing is unsupported.");
     }
-    return this._state.get({ syncOptions: "" }).then((st: any) => {
-      if (!enabled) {
-        if (st.syncOptions === "sync") {
-          this._state.set({ syncOptions: "conflict" });
-        }
-        this.sync.enabled = false;
-        if (this._syncWatchStop != null) this._syncWatchStop();
-        this._syncWatchStop = null;
-        return;
+    const st = await this._state.get({ syncOptions: "" });
+    if (!enabled) {
+      if (st.syncOptions === "sync") {
+        this._state.set({ syncOptions: "conflict" });
       }
+      this.sync.enabled = false;
+      if (this._syncWatchStop != null) this._syncWatchStop();
+      this._syncWatchStop = null;
+      return;
+    }
 
-      if (st.syncOptions === "conflict") {
-        if (!args?.force) {
-          return Promise.reject(
-            new Error(
-              "Syncing not enabled due to conflict. Retry with force to overwrite local options and enable syncing.",
-            ),
-          );
-        }
+    if (st.syncOptions === "conflict") {
+      if (!args?.force) {
+        throw new Error(
+          "Syncing not enabled due to conflict. Retry with force to overwrite local options and enable syncing.",
+        );
       }
-      if (st.syncOptions === "sync") return;
-      return this._state.set({ syncOptions: "sync" }).then(() => {
-        if (st.syncOptions === "conflict") {
-          this.sync.enabled = false;
-          return this._storage.remove().then(() => {
-            this.sync.enabled = true;
-            return this.init();
-          });
-        } else {
-          this.sync.enabled = true;
-          if (this._syncWatchStop != null) this._syncWatchStop();
-          this.sync.requestPush(this._options);
-          this._syncWatchStop = this.sync.watchAndPull(this._storage);
-          return;
-        }
-      });
-    });
+    }
+    if (st.syncOptions === "sync") return;
+
+    await this._state.set({ syncOptions: "sync" });
+    if (st.syncOptions === "conflict") {
+      this.sync.enabled = false;
+      await this._storage.remove();
+      this.sync.enabled = true;
+      return this.init();
+    } else {
+      this.sync.enabled = true;
+      if (this._syncWatchStop != null) this._syncWatchStop();
+      this.sync.requestPush(this._options);
+      this._syncWatchStop = this.sync.watchAndPull(this._storage);
+    }
   }
 
-  resetOptionsSync(): any {
+  async resetOptionsSync(): Promise<any> {
     this.log.method("Options#resetOptionsSync", this, arguments as any);
     if (this.sync == null) {
-      return Promise.reject(new Error("Options syncing is unsupported."));
+      throw new Error("Options syncing is unsupported.");
     }
     this.sync.enabled = false;
     if (this._syncWatchStop != null) this._syncWatchStop();
     this._syncWatchStop = null;
     this._state.set({ syncOptions: "conflict" });
 
-    return this.sync.storage.remove().then(() => {
-      this._state.set({ syncOptions: "pristine" });
-    });
+    await this.sync.storage.remove();
+    this._state.set({ syncOptions: "pristine" });
   }
 }
 

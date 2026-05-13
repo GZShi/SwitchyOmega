@@ -12,15 +12,12 @@ class SettingsProxyImpl extends ProxyImpl {
 
   features: string[] = ["fullUrlHttp", "pacScript", "watchProxyChange"];
 
-  applyProfile(profile: any, meta: any, options: any): any {
+  async applyProfile(profile: any, meta: any, options: any): Promise<any> {
     meta ??= profile;
     if (profile.profileType === "SystemProfile") {
-      return chromeApiPromisify(
-        chrome.proxy.settings,
-        "clear",
-      )({}).then(() => {
-        chrome.proxy.settings.get({}, this._proxyChangeListener);
-      });
+      await chromeApiPromisify(chrome.proxy.settings, "clear")({});
+      chrome.proxy.settings.get({}, this._proxyChangeListener);
+      return;
     }
     let config: any = {};
     if (profile.profileType === "DirectProfile") {
@@ -43,18 +40,9 @@ class SettingsProxyImpl extends ProxyImpl {
         data: this.getProfilePacScript(profile, meta, options),
       };
     }
-    return this.setProxyAuth(profile, options)
-      .then(() => {
-        return chromeApiPromisify(
-          chrome.proxy.settings,
-          "set",
-        )({
-          value: config,
-        });
-      })
-      .then(() => {
-        chrome.proxy.settings.get({}, this._proxyChangeListener);
-      });
+    await this.setProxyAuth(profile, options);
+    await chromeApiPromisify(chrome.proxy.settings, "set")({ value: config });
+    chrome.proxy.settings.get({}, this._proxyChangeListener);
   }
 
   _fixedProfileConfig(profile: any): any {

@@ -31,13 +31,14 @@ export default ts.config(
       ],
       "@typescript-eslint/no-unsafe-function-type": "off",
       "@typescript-eslint/no-explicit-any": "off",
-      // Source still uses CJS `require()` extensively — allow during
-      // gradual modernization to ES module syntax.
-      "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-expressions": "off",
-      "no-useless-assignment": "off",
+      // Allow during gradual modernization; re-enable once the few remaining
+      // false positives (chai assertions, intentional discards) are suppressed inline.
+      "no-useless-assignment": "warn",
       "no-case-declarations": "off",
+      // Allow during gradual modernization
       "no-extra-boolean-cast": "off",
+      "no-console": "warn",
       "prefer-const": "warn",
     },
   },
@@ -79,22 +80,6 @@ export default ts.config(
       "@typescript-eslint/prefer-string-starts-ends-with": "warn",
       "@typescript-eslint/no-unnecessary-type-assertion": "warn",
       "@typescript-eslint/prefer-for-of": "warn",
-
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-    },
-  },
-
-  // ---- Standalone scripts (background/popup, compiled with --module none) ----
-  {
-    files: ["src/background/**/*.ts", "src/popup/**/*.ts"],
-    rules: {
-      "no-var": "off",
-      "prefer-const": "off",
-      "@typescript-eslint/no-unused-vars": "off",
     },
   },
 

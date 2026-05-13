@@ -5,7 +5,8 @@ import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
-const props = defineProps<{ profile: any; profileName: string }>();
+const profile = defineModel<any>('profile', { required: true });
+const props = defineProps<{ profileName: string }>();
 const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
@@ -18,12 +19,12 @@ function openAuthModal() {
 
 function saveAuth(auth: { username: string; password: string } | null) {
   if (!auth) {
-    if (props.profile.auth) {
-      delete props.profile.auth.all;
+    if (profile.value.auth) {
+      delete profile.value.auth.all;
     }
   } else {
-    props.profile.auth ??= {};
-    props.profile.auth.all = auth;
+    profile.value.auth ??= {};
+    profile.value.auth.all = auth;
   }
   optionsStore.markDirty();
 }
@@ -32,7 +33,7 @@ const urlRegex = /^(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\
 const urlWithFile = /^(ftp|http|https|file):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?$/;
 
 const isFileUrl = (url: string) => OmegaPac.Profiles?.isFileUrl?.(url) ?? false;
-const pacUrlIsFile = ref(isFileUrl(props.profile.pacUrl ?? ''));
+const pacUrlIsFile = ref(isFileUrl(profile.value.pacUrl ?? ''));
 const updating = ref(false);
 
 const referenced = computed(() => {
@@ -42,15 +43,15 @@ const referenced = computed(() => {
 });
 
 const pacUrlValid = computed(() => {
-  const url = props.profile.pacUrl ?? '';
+  const url = profile.value.pacUrl ?? '';
   if (!url) return true;
   return referenced.value ? urlRegex.test(url) : urlWithFile.test(url);
 });
 
-const hasAuth = computed(() => !!(props.profile.auth?.all));
+const hasAuth = computed(() => !!(profile.value.auth?.all));
 
 function updatePacUrl() {
-  pacUrlIsFile.value = isFileUrl(props.profile.pacUrl ?? '');
+  pacUrlIsFile.value = isFileUrl(profile.value.pacUrl ?? '');
   optionsStore.markDirty();
 }
 

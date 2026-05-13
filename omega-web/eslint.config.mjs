@@ -82,12 +82,7 @@ export default ts.config(
       "@typescript-eslint/no-unnecessary-type-assertion": "warn",
       "@typescript-eslint/prefer-for-of": "warn",
 
-      // --- Broad unsafe-* rules off during gradual modernization ---
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
+      "no-console": "warn",
 
       // --- Vue overrides ---
       // Allow single-word component names (existing convention)

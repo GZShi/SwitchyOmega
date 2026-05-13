@@ -1,6 +1,6 @@
 import { logState } from "./log_state.js";
 
-declare var chrome: any;
+declare let chrome: any;
 
 export const OmegaDebug = {
   getProjectVersion(): string {
@@ -35,11 +35,10 @@ export const OmegaDebug = {
   },
 
   reportIssue(): void {
-    let url =
+    const url =
       "https://github.com/FelisCatus/SwitchyOmega/issues/new?title=&body=";
     let finalUrl = url;
     try {
-      const projectVersion = OmegaDebug.getProjectVersion();
       const extensionVersion = OmegaDebug.getExtensionVersion();
       const env = {
         extensionVersion,

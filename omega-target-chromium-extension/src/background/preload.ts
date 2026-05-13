@@ -1,6 +1,6 @@
 import { OmegaDebug } from "./debug.js";
 
-declare var chrome: any;
+declare let chrome: any;
 
 (self as any).UglifyJS_NoUnsafeEval = true;
 

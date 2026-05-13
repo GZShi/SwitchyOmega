@@ -115,9 +115,8 @@ class ChromeStorage extends OmegaTarget.Storage {
       id = Date.now().toString();
     }
 
-    let keyMap: Record<string, boolean> | null = null;
     if (Array.isArray(keys)) {
-      keyMap = {};
+      const keyMap: Record<string, boolean> = {};
       for (const key of keys) {
         keyMap[key] = true;
       }

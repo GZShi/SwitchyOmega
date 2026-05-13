@@ -6,7 +6,8 @@ import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 
-const props = defineProps<{ profile: any; profileName: string }>();
+const profile = defineModel<any>('profile', { required: true });
+const props = defineProps<{ profileName: string }>();
 const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();

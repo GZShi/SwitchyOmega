@@ -7,7 +7,8 @@ import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 
-const props = defineProps<{ profile: any; profileName: string }>();
+const profile = defineModel<any>('profile', { required: true });
+const props = defineProps<{ profileName: string }>();
 const emit = defineEmits<{ setExportHandler: [handler: Function, opts?: any] }>();
 const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
@@ -43,7 +44,7 @@ const conditionTypes = computed(() =>
 );
 
 const hasUrlConditions = computed(() =>
-  (props.profile.rules ?? []).some((r: any) => isUrlConditionType[r.condition.conditionType]),
+  (profile.value.rules ?? []).some((r: any) => isUrlConditionType[r.condition.conditionType]),
 );
 
 // Attached profile
@@ -52,8 +53,8 @@ const attachedKey = computed(() => `+${  attachedName.value}`);
 const attached = computed(() => optionsStore.options[attachedKey.value]);
 
 const attachedOptions = ref({
-  enabled: props.profile.defaultProfileName === profilesStore.getAttachedName(props.profileName),
-  defaultProfileName: props.profile.defaultProfileName ?? 'direct',
+  enabled: profile.value.defaultProfileName === profilesStore.getAttachedName(props.profileName),
+  defaultProfileName: profile.value.defaultProfileName ?? 'direct',
 });
 
 // Init attached default profile name
@@ -84,7 +85,7 @@ function getConditionGroupLabel(group: string): string {
 
 // -- Rule ops --
 function addRule() {
-  const rules = props.profile.rules ?? (props.profile.rules = []);
+  const rules = profile.value.rules ?? (profile.value.rules = []);
   if (rules.length > 0) {
     const last = rules[rules.length - 1];
     const clone = JSON.parse(JSON.stringify(last));
@@ -100,13 +101,13 @@ function addRule() {
 }
 
 function removeRule(index: number) {
-  props.profile.rules.splice(index, 1);
+  profile.value.rules.splice(index, 1);
   optionsStore.markDirty();
 }
 
 function cloneRule(index: number) {
-  const cloned = JSON.parse(JSON.stringify(props.profile.rules[index]));
-  props.profile.rules.splice(index + 1, 0, cloned);
+  const cloned = JSON.parse(JSON.stringify(profile.value.rules[index]));
+  profile.value.rules.splice(index + 1, 0, cloned);
   optionsStore.markDirty();
 }
 
@@ -115,7 +116,7 @@ function addNote(_index: number) {
 }
 
 function resetRules() {
-  for (const rule of props.profile.rules) {
+  for (const rule of profile.value.rules) {
     rule.profileName = attachedOptions.value.defaultProfileName;
   }
   optionsStore.markDirty();
@@ -148,20 +149,20 @@ function updateDay(condition: any, i: number, selected: boolean) {
 function attachNew() {
   const newAttached = OmegaPac.Profiles?.create({
     name: attachedName.value,
-    defaultProfileName: props.profile.defaultProfileName ?? attachedOptions.value.defaultProfileName,
+    defaultProfileName: profile.value.defaultProfileName ?? attachedOptions.value.defaultProfileName,
     profileType: 'RuleListProfile',
-    color: props.profile.color,
+    color: profile.value.color,
   });
   OmegaPac.Profiles?.updateRevision(newAttached);
   optionsStore.options[attachedKey.value] = newAttached;
   attachedOptions.value.enabled = true;
-  props.profile.defaultProfileName = attachedName.value;
+  profile.value.defaultProfileName = attachedName.value;
   optionsStore.markDirty();
 }
 
 function removeAttached() {
   if (!attached.value) return;
-  props.profile.defaultProfileName = attached.value.defaultProfileName;
+  profile.value.defaultProfileName = attached.value.defaultProfileName;
   delete optionsStore.options[attachedKey.value];
   attachedOptions.value.enabled = false;
   optionsStore.markDirty();
@@ -171,7 +172,7 @@ function removeAttached() {
 function toggleSource() {
   if (!editSource.value) {
     sourceCode.value = OmegaPac.RuleList?.Switchy?.compose({
-      rules: props.profile.rules,
+      rules: profile.value.rules,
       defaultProfileName: attachedOptions.value.defaultProfileName,
     }, { withResult: true }) ?? '';
     sourceError.value = null;
@@ -191,7 +192,7 @@ function parseSource(): boolean {
     const newRules: any[] = parsed;
     const defaultRule = newRules.pop();
     attachedOptions.value.defaultProfileName = defaultRule.profileName;
-    props.profile.rules = newRules.map((r: any) => ({
+    profile.value.rules = newRules.map((r: any) => ({
       condition: r.condition,
       profileName: r.profileName,
       note: r.note,
@@ -225,7 +226,7 @@ onMounted(() => {
       animation: 150,
       onEnd(evt) {
         if (evt.oldIndex == null || evt.newIndex == null) return;
-        const rules = props.profile.rules;
+        const rules = profile.value.rules;
         if (!rules) return;
         const [moved] = rules.splice(evt.oldIndex, 1);
         rules.splice(evt.newIndex, 0, moved);
@@ -242,7 +243,7 @@ onBeforeUnmount(() => {
 // -- Export handler --
 function exportRuleList() {
   const text = OmegaPac.RuleList?.Switchy?.compose({
-    rules: props.profile.rules,
+    rules: profile.value.rules,
     defaultProfileName: attachedOptions.value.defaultProfileName,
   });
   const blob = new Blob([text ?? ''], { type: 'text/plain;charset=utf-8' });
@@ -258,16 +259,16 @@ watch(
   (enabled, oldValue) => {
     if (enabled === oldValue) return;
     if (enabled) {
-      if (props.profile.defaultProfileName !== attachedName.value) {
-        props.profile.defaultProfileName = attachedName.value;
+      if (profile.value.defaultProfileName !== attachedName.value) {
+        profile.value.defaultProfileName = attachedName.value;
       }
     } else {
-      if (props.profile.defaultProfileName === attachedName.value) {
+      if (profile.value.defaultProfileName === attachedName.value) {
         if (attached.value) {
-          props.profile.defaultProfileName = attached.value.defaultProfileName;
+          profile.value.defaultProfileName = attached.value.defaultProfileName;
           attachedOptions.value.defaultProfileName = attached.value.defaultProfileName;
         } else {
-          props.profile.defaultProfileName = 'direct';
+          profile.value.defaultProfileName = 'direct';
           attachedOptions.value.defaultProfileName = 'direct';
         }
       }
@@ -282,17 +283,17 @@ watch(
     if (attached.value && attachedOptions.value.enabled) {
       attached.value.defaultProfileName = name;
     } else {
-      props.profile.defaultProfileName = name;
+      profile.value.defaultProfileName = name;
     }
   },
 );
 
 // Show notes if any rule has a note
-showNotes.value = (props.profile.rules ?? []).some((r: any) => !!r.note);
+showNotes.value = (profile.value.rules ?? []).some((r: any) => !!r.note);
 
 // Detect advanced condition types
 const basicSet = new Set(basicConditionTypes[0].types);
-if ((props.profile.rules ?? []).some((r: any) => !basicSet.has(r.condition.conditionType))) {
+if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.conditionType))) {
   showConditionTypes.value = 1;
 }
 

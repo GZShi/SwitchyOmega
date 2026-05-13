@@ -37,7 +37,8 @@ export class AttachedCache {
   get(obj: any, otherwise: any): any {
     const tag = this.tag(obj);
     const cache = this._getCache(obj);
-    if (cache?.tag === tag) {
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- ?. would match tag=undefined against missing cache
+    if (cache != null && cache.tag === tag) {
       return cache.value;
     }
     const value = typeof otherwise === "function" ? otherwise() : otherwise;
@@ -79,7 +80,7 @@ export function getBaseDomain(domain: string): string {
 
 export function wildcardForDomain(domain: string): string {
   if (isIp(domain)) return domain;
-  return `*.${  getBaseDomain(domain)}`;
+  return `*.${getBaseDomain(domain)}`;
 }
 
 export function wildcardForUrl(url: string): string {

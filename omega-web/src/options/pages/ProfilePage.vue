@@ -107,7 +107,7 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
     class="omega-profile"
   >
     <ProfileHeader
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
       :export-rule-list-handler="exportHandler"
       :export-rule-list-options="exportOptions"
@@ -118,32 +118,32 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
     <FixedProfileEditor
       v-if="profileTemplate === 'profile_fixed'"
       :key="profileName"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
     />
     <PacProfileEditor
       v-else-if="profileTemplate === 'profile_pac'"
       :key="profileName"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
     />
     <SwitchProfileEditor
       v-else-if="profileTemplate === 'profile_switch'"
       :key="profileName"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
       @set-export-handler="setExportHandler"
     />
     <RuleListProfileEditor
       v-else-if="profileTemplate === 'profile_rule_list'"
       :key="profileName"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
     />
     <VirtualProfileEditor
       v-else-if="profileTemplate === 'profile_virtual'"
       :key="profileName"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
     />
     <div
@@ -156,7 +156,7 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
     <!-- Modals -->
     <DeleteProfileModal
       v-if="showDeleteModal"
-      :profile="profile"
+      v-model:profile="profile"
       :profile-name="profileName"
       @close="showDeleteModal = false"
       @confirm="confirmDelete()"

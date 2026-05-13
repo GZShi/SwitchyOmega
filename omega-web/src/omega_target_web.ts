@@ -3,7 +3,7 @@
 
 import type { OmegaTargetWeb } from "./types/globals";
 
-declare var chrome: any;
+declare let chrome: any;
 
 const prefix = "omega.local.";
 const urlParser = document.createElement("a");
@@ -45,9 +45,9 @@ let requestInfoCallback: ((info: any) => void) | null = null;
 
 function _isChromeUrl(url: string): boolean {
   return (
-    url.substring(0, 6) === "chrome" ||
-    url.substring(0, 6) === "about:" ||
-    url.substring(0, 4) === "moz-"
+    url.startsWith("chrome") ||
+    url.startsWith("about:") ||
+    url.startsWith("moz-")
   );
 }
 
@@ -106,44 +106,40 @@ export const omegaTarget: OmegaTargetWeb = {
     optionsChangeCallbacks.push(callback);
   },
 
-  refresh(): Promise<any> {
-    return callBackground("getAll").then((opt: Record<string, any>) => {
-      omegaTarget.options = opt;
-      for (const cb of optionsChangeCallbacks) {
-        cb(omegaTarget.options);
-      }
-    });
+  async refresh(): Promise<any> {
+    const opt = await callBackground("getAll");
+    omegaTarget.options = opt;
+    for (const cb of optionsChangeCallbacks) {
+      cb(omegaTarget.options);
+    }
   },
 
-  renameProfile(fromName: string, toName: string): Promise<any> {
-    return callBackground("renameProfile", fromName, toName).then(() =>
-      omegaTarget.refresh(),
-    );
+  async renameProfile(fromName: string, toName: string): Promise<any> {
+    await callBackground("renameProfile", fromName, toName);
+    return omegaTarget.refresh();
   },
 
-  replaceRef(fromName: string, toName: string): Promise<any> {
-    return callBackground("replaceRef", fromName, toName).then(() =>
-      omegaTarget.refresh(),
-    );
+  async replaceRef(fromName: string, toName: string): Promise<any> {
+    await callBackground("replaceRef", fromName, toName);
+    return omegaTarget.refresh();
   },
 
-  optionsPatch(patch: any): Promise<any> {
-    return callBackground("patch", patch).then(() => omegaTarget.refresh());
+  async optionsPatch(patch: any): Promise<any> {
+    await callBackground("patch", patch);
+    return omegaTarget.refresh();
   },
 
-  resetOptions(opt?: any): Promise<any> {
-    return callBackground("reset", opt).then(() => omegaTarget.refresh());
+  async resetOptions(opt?: any): Promise<any> {
+    await callBackground("reset", opt);
+    return omegaTarget.refresh();
   },
 
-  updateProfile(name: string, bypassCache?: string): Promise<any> {
-    return callBackground("updateProfile", name, bypassCache)
-      .then((results: any) => {
-        for (const key of Object.keys(results)) {
-          results[key] = _decodeError(results[key]);
-        }
-        return results;
-      })
-      .then(() => omegaTarget.refresh());
+  async updateProfile(name: string, bypassCache?: string): Promise<any> {
+    const results = await callBackground("updateProfile", name, bypassCache);
+    for (const key of Object.keys(results)) {
+      results[key] = _decodeError(results[key]);
+    }
+    return omegaTarget.refresh();
   },
 
   getMessage: chrome.i18n.getMessage.bind(chrome.i18n),
@@ -154,7 +150,7 @@ export const omegaTarget: OmegaTargetWeb = {
       chrome.tabs.query({ url: optionsUrl }, (tabs: any[]) => {
         let url: string;
         if (hash) {
-          urlParser.href = tabs[0]?.url || optionsUrl;
+          urlParser.href = tabs[0]?.url ?? optionsUrl;
           urlParser.hash = hash;
           url = urlParser.href;
         } else {
@@ -192,10 +188,9 @@ export const omegaTarget: OmegaTargetWeb = {
     return callBackground("addCondition", condition, profileName);
   },
 
-  addProfile(profile: any): Promise<any> {
-    return callBackground("addProfile", profile).then(() =>
-      omegaTarget.refresh(),
-    );
+  async addProfile(profile: any): Promise<any> {
+    await callBackground("addProfile", profile);
+    return omegaTarget.refresh();
   },
 
   setDefaultProfile(
@@ -244,7 +239,7 @@ export const omegaTarget: OmegaTargetWeb = {
 
   openManage(): void {
     chrome.tabs.create({
-      url: "chrome://extensions/?id=" + chrome.runtime.id,
+      url: `chrome://extensions/?id=${chrome.runtime.id}`,
     });
   },
 

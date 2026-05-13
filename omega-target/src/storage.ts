@@ -96,13 +96,13 @@ class Storage implements StorageLike {
     return () => null;
   }
 
-  apply(operations: any): Promise<any> {
+  async apply(operations: any): Promise<any> {
     if ("changes" in operations) {
       operations = Storage.operationsForChanges(operations.changes, operations);
     }
-    return this.set(operations.set)
-      .then(() => this.remove(operations.remove))
-      .then(() => operations);
+    await this.set(operations.set);
+    await this.remove(operations.remove);
+    return operations;
   }
 }
 

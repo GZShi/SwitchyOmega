@@ -171,6 +171,7 @@ export const usePopupStore = defineStore("popup", () => {
       validResultProfiles.value = valid;
       rule.value.profileName = preselectedProfileName;
     } catch (e) {
+      // eslint-disable-next-line no-console -- error log for popup state load failure
       console.error("Failed to load popup state:", e);
     }
   }
@@ -187,6 +188,7 @@ export const usePopupStore = defineStore("popup", () => {
         rule.value.profileName = info.tempRuleProfileName;
       }
     } catch (e) {
+      // eslint-disable-next-line no-console -- error log for page info load failure
       console.error("Failed to load page info:", e);
     }
   }

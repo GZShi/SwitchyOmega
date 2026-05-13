@@ -83,6 +83,7 @@ export default ts.config(
       "@typescript-eslint/prefer-string-starts-ends-with": "warn",
       "@typescript-eslint/no-unnecessary-type-assertion": "warn",
       "@typescript-eslint/prefer-for-of": "warn",
+      "no-console": "warn",
     },
   },
 

@@ -35,6 +35,7 @@ class WebRequestMonitor {
     this._callbacks.push(callback);
     if (this.watching) return;
     if (!chrome.webRequest) {
+      // eslint-disable-next-line no-console -- diagnostic message for missing permission
       console.log("Request monitor disabled! No webRequest permission.");
       return;
     }

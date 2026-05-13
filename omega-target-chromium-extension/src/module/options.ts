@@ -213,22 +213,22 @@ class ChromeOptions extends OmegaTarget.Options {
     return Promise.resolve();
   }
 
-  updateProfile(...args: any[]): any {
-    return OmegaTarget.Options.prototype.updateProfile
-      .apply(this, args)
-      .then((results: any) => {
-        let error = false;
-        for (const profileName of Object.keys(results)) {
-          if (results[profileName] instanceof Error) {
-            error = true;
-            break;
-          }
-        }
-        if (error) {
-          // Error handling - currently no-op
-        }
-        return results;
-      });
+  async updateProfile(...args: any[]): Promise<any> {
+    const results = await OmegaTarget.Options.prototype.updateProfile.apply(
+      this,
+      args,
+    );
+    let error = false;
+    for (const profileName of Object.keys(results)) {
+      if (results[profileName] instanceof Error) {
+        error = true;
+        break;
+      }
+    }
+    if (error) {
+      // Error handling - currently no-op
+    }
+    return results;
   }
 
   printFixedProfile(profile: any): string | undefined {
@@ -267,17 +267,22 @@ class ChromeOptions extends OmegaTarget.Options {
     }
   }
 
-  upgrade(options: any, changes?: any): any {
-    return OmegaTarget.Options.prototype.upgrade
-      .call(this, options, changes)
-      .catch((err: any) => {
-        if (options?.["schemaVersion"]) {
-          return Promise.reject(err);
-        }
+  async upgrade(options: any, changes?: any): Promise<any> {
+    try {
+      return await OmegaTarget.Options.prototype.upgrade.call(
+        this,
+        options,
+        changes,
+      );
+    } catch (err: any) {
+      if (options?.["schemaVersion"]) {
+        throw err;
+      }
 
-        let getOldOptions: any;
+      let oldOptions: any;
+      try {
         if (this.switchySharp) {
-          getOldOptions = Promise.race([
+          oldOptions = await Promise.race([
             this.switchySharp.getOptions(),
             new Promise((_, reject) =>
               setTimeout(
@@ -287,51 +292,54 @@ class ChromeOptions extends OmegaTarget.Options {
             ),
           ]);
         } else {
-          getOldOptions = Promise.reject();
+          // eslint-disable-next-line preserve-caught-error -- unrelated fallback path, not wrapping the outer err
+          throw new Error("no switchysharp");
         }
+      } catch {
+        if (options?.["config"]) {
+          oldOptions = options;
+        } else {
+          throw new OmegaTarget.Options.NoOptionsError();
+        }
+      }
 
-        getOldOptions = getOldOptions.catch(() => {
-          if (options?.["config"]) {
-            return Promise.resolve(options);
-          }
-          return Promise.reject(new OmegaTarget.Options.NoOptionsError());
-        });
-
-        return getOldOptions.then((oldOptions: any) => {
-          const i18n: any = {
-            upgrade_profile_auto: chrome.i18n.getMessage(
-              "upgrade_profile_auto",
-            ),
-          };
-          let upgraded: any;
-          try {
-            upgraded = upgrade(oldOptions, i18n);
-          } catch (ex) {
-            this.log.error(ex);
-            return Promise.reject(ex);
-          }
-          this._state.set({ firstRun: "upgrade" });
-          return OmegaTarget.Options.prototype.upgrade.call(
-            this,
-            upgraded,
-            upgraded,
-          );
-        });
-      });
+      const i18n: any = {
+        upgrade_profile_auto: chrome.i18n.getMessage("upgrade_profile_auto"),
+      };
+      let upgraded: any;
+      try {
+        upgraded = upgrade(oldOptions, i18n);
+      } catch (ex) {
+        this.log.error(ex);
+        throw ex;
+      }
+      this._state.set({ firstRun: "upgrade" });
+      return OmegaTarget.Options.prototype.upgrade.call(
+        this,
+        upgraded,
+        upgraded,
+      );
+    }
   }
 
   onFirstRun(_reason: string): void {
     chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
   }
 
-  getPageInfo({ tabId, url }: { tabId: number; url: string }): Promise<any> {
+  async getPageInfo({
+    tabId,
+    url,
+  }: {
+    tabId: number;
+    url: string;
+  }): Promise<any> {
     const errorCount =
       this._requestMonitor?.tabInfo[tabId] != null
         ? this._requestMonitor.tabInfo[tabId].errorCount
         : undefined;
     const result = errorCount ? { errorCount } : null;
 
-    const getBadge = new Promise((resolve, _reject) => {
+    const getBadge = new Promise<string>((resolve) => {
       if (!(chrome.action.getBadgeText != null)) {
         resolve("");
         return;
@@ -343,38 +351,36 @@ class ChromeOptions extends OmegaTarget.Options {
 
     const getInspectUrl = this._state.get({ inspectUrl: "" });
 
-    return Promise.all([getBadge, getInspectUrl]).then(
-      ([badge, st]: [string, any]) => {
-        let resolvedUrl = url;
-        if (badge === "#" && st.inspectUrl) {
-          resolvedUrl = st.inspectUrl;
-        } else {
-          this.clearBadge();
-        }
-        if (!resolvedUrl) return result;
-        if (resolvedUrl.startsWith("chrome")) {
-          const errorPagePrefix = "chrome://errorpage/";
-          if (resolvedUrl.startsWith(errorPagePrefix)) {
-            resolvedUrl = querystring.parse(
-              resolvedUrl.slice(resolvedUrl.indexOf("?") + 1),
-            ).lasturl;
-            if (!resolvedUrl) return result;
-          } else {
-            return result;
-          }
-        }
-        if (resolvedUrl.startsWith("about:")) return result;
-        if (resolvedUrl.startsWith("moz-")) return result;
+    const [badge, st] = await Promise.all([getBadge, getInspectUrl]);
 
-        const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
-        return {
-          url: resolvedUrl,
-          domain,
-          tempRuleProfileName: this.queryTempRule(domain),
-          errorCount,
-        };
-      },
-    );
+    let resolvedUrl = url;
+    if (badge === "#" && st.inspectUrl) {
+      resolvedUrl = st.inspectUrl;
+    } else {
+      this.clearBadge();
+    }
+    if (!resolvedUrl) return result;
+    if (resolvedUrl.startsWith("chrome")) {
+      const errorPagePrefix = "chrome://errorpage/";
+      if (resolvedUrl.startsWith(errorPagePrefix)) {
+        resolvedUrl = querystring.parse(
+          resolvedUrl.slice(resolvedUrl.indexOf("?") + 1),
+        ).lasturl;
+        if (!resolvedUrl) return result;
+      } else {
+        return result;
+      }
+    }
+    if (resolvedUrl.startsWith("about:")) return result;
+    if (resolvedUrl.startsWith("moz-")) return result;
+
+    const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
+    return {
+      url: resolvedUrl,
+      domain,
+      tempRuleProfileName: this.queryTempRule(domain),
+      errorCount,
+    };
   }
 }
 

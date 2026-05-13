@@ -29,7 +29,9 @@ export function str(obj: unknown): string {
   return JSON.stringify(obj, replacer, 4);
 }
 
+// eslint-disable-next-line no-console -- intentional log export
 export const log: (...args: unknown[]) => void = console.log.bind(console);
+// eslint-disable-next-line no-console -- intentional error export
 export const error: (...args: unknown[]) => void = console.error.bind(console);
 
 export function func(name: string, args: ArrayLike<unknown>): void {

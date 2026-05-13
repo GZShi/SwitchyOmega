@@ -6,8 +6,8 @@ import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import RenameProfileModal from './Modals/RenameProfileModal.vue';
 
+const profile = defineModel<any>('profile', { required: true });
 const props = defineProps<{
-  profile: any;
   profileName: string;
   exportRuleListHandler?: ((...args: any[]) => void) | null;
   exportRuleListOptions?: any;
@@ -23,7 +23,7 @@ const showRenameModal = ref(false);
 const tabPrefix = computed(() => omega.getMessage('options_profileTabPrefix') || '');
 
 const profileColor = computed(() => {
-  let p = props.profile;
+  let p = profile.value;
   while (p?.profileType === 'VirtualProfile' && p.defaultProfileName) {
     const target = profilesStore.getVirtualTarget(p, optionsStore.options);
     if (target === p) break;
@@ -32,9 +32,9 @@ const profileColor = computed(() => {
   return p?.color ?? '#aaa';
 });
 
-const isVirtualProfile = computed(() => props.profile?.profileType === 'VirtualProfile');
+const isVirtualProfile = computed(() => profile.value?.profileType === 'VirtualProfile');
 const isScriptable = computed(() => {
-  const type = props.profile?.profileType;
+  const type = profile.value?.profileType;
   return type !== 'DirectProfile' && type !== 'SystemProfile';
 });
 const hasRuleListExport = computed(() => !!props.exportRuleListHandler);
@@ -68,7 +68,7 @@ function exportRuleList() {
 }
 
 function onColorChange(color: string) {
-  props.profile.color = color;
+  profile.value.color = color;
   optionsStore.markDirty();
 }
 </script>

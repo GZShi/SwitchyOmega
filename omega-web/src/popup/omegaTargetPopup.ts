@@ -10,9 +10,9 @@ function callBackgroundNoReply(method: string, args: any[], cb?: Function): void
 
 function callBackground(method: string, args: any[], cb?: Function): void {
   chrome.runtime.sendMessage({ method, args }, (response: any) => {
-    if (chrome.runtime.lastError != null) return cb && cb(chrome.runtime.lastError);
-    if (response.error) return cb && cb(response.error);
-    return cb && cb(null, response.result);
+    if (chrome.runtime.lastError != null) return cb?.(chrome.runtime.lastError);
+    if (response.error) return cb?.(response.error);
+    return cb?.(null, response.result);
   });
 }
 
@@ -59,7 +59,7 @@ export const OmegaTargetPopup = {
   },
 
   openManage(): void {
-    chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id });
+    chrome.tabs.create({ url: `chrome://extensions/?id=${  chrome.runtime.id}` });
   },
 
   getMessage: chrome.i18n.getMessage.bind(chrome.i18n),

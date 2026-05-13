@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 
@@ -9,8 +9,8 @@ const target = usePopupTarget();
 const domainsForCondition = ref<Record<string, boolean>>({});
 const profileForDomains = ref<string | null>(null);
 
-// Initialize domain checkboxes
-computed(() => {
+// Initialize domain checkboxes when requestInfo changes
+watchEffect(() => {
   if (store.requestInfo?.domains) {
     for (const d of store.requestInfo.domains) {
       if (!(d.domain in domainsForCondition.value)) {
@@ -18,7 +18,6 @@ computed(() => {
       }
     }
   }
-  return null;
 });
 
 function getProfileName(name: string): string {

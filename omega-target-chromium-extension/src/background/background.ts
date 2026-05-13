@@ -6,7 +6,7 @@ import OmegaTargetChromium from "./modules.mjs";
 // @ts-expect-error – no .d.ts for these ESM bundles
 import { drawOmega } from "../img/icons/draw_omega.js";
 
-declare var chrome: any;
+declare let chrome: any;
 
 const OmegaTargetCurrent = Object.create(OmegaTargetChromium);
 // OmegaPac is merged into mod by index.ts — extract for the global-style
@@ -16,7 +16,7 @@ const OmegaPac = OmegaTargetChromium.OmegaPac;
 OmegaTargetCurrent.Log = Object.create(OmegaTargetCurrent.Log);
 const Log = OmegaTargetCurrent.Log;
 
-var omegaLogFlushTimer: any = null;
+let omegaLogFlushTimer: any = null;
 
 function _persistLogToStorage(): void {
   try {
@@ -47,12 +47,14 @@ function _writeLogToBuffer(content: string): void {
 }
 
 Log.log = function (...args: any[]): void {
+  // eslint-disable-next-line no-console -- intentional log export
   console.log(...args);
   const content = `${args.map(Log.str.bind(Log)).join(" ")}\n`;
   _writeLogToBuffer(content);
 };
 
 Log.error = function (...args: any[]): void {
+  // eslint-disable-next-line no-console -- intentional error export
   console.error(...args);
   const content = args.map(Log.str.bind(Log)).join(" ");
   logState.lastError = content;
@@ -145,115 +147,115 @@ function dispName(name: string): string {
   return chrome.i18n.getMessage(`profile_${name}`) || name;
 }
 
-function actionForUrl(url: string): Promise<any> {
-  return options.ready
-    .then(() => {
-      const request = OmegaPac.Conditions.requestFromUrl(url);
-      return options.matchProfile(request);
-    })
-    .then(({ profile, results }: { profile: any; results: any[] }) => {
-      let current = options.currentProfile();
-      let currentName = dispName(current.name);
-      if (current.profileType === "VirtualProfile") {
-        const realCurrentName = current.defaultProfileName;
-        currentName += ` [${dispName(realCurrentName)}]`;
-        current = options.profile(realCurrentName);
-      }
-      let details = "";
-      let direct = false;
-      let attached = false;
+async function actionForUrl(url: string): Promise<any> {
+  try {
+    await options.ready;
+    const request = OmegaPac.Conditions.requestFromUrl(url);
+    const { profile, results } = await options.matchProfile(request);
 
-      const condition2Str = (condition: any) => {
-        return condition.pattern ?? OmegaPac.Conditions.str(condition);
-      };
+    let current = options.currentProfile();
+    let currentName = dispName(current.name);
+    if (current.profileType === "VirtualProfile") {
+      const realCurrentName = current.defaultProfileName;
+      currentName += ` [${dispName(realCurrentName)}]`;
+      current = options.profile(realCurrentName);
+    }
+    let details = "";
+    let direct = false;
+    let attached = false;
 
-      for (const result of results) {
-        if (Array.isArray(result)) {
-          if (result[1] == null) {
-            attached = false;
-            let name = result[0];
-            if (name[0] === "+") name = name.slice(1);
-            if (isHidden(name)) {
-              attached = true;
-            } else if (name !== current.defaultProfileName) {
-              details += chrome.i18n.getMessage(
-                "browserAction_defaultRuleDetails",
-              );
-              details += ` => ${dispName(name)}\n`;
-            }
-          } else if (result[1].length === 0) {
-            if (result[0] === "DIRECT") {
-              details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
-              direct = true;
-            } else {
-              details += `${result[0]}\n`;
-            }
-          } else if (typeof result[1] === "string") {
-            details += `${result[1]} => ${result[0]}\n`;
+    const condition2Str = (condition: any) => {
+      return condition.pattern ?? OmegaPac.Conditions.str(condition);
+    };
+
+    for (const result of results) {
+      if (Array.isArray(result)) {
+        if (result[1] == null) {
+          attached = false;
+          let name = result[0];
+          if (name[0] === "+") name = name.slice(1);
+          if (isHidden(name)) {
+            attached = true;
+          } else if (name !== current.defaultProfileName) {
+            details += chrome.i18n.getMessage(
+              "browserAction_defaultRuleDetails",
+            );
+            details += ` => ${dispName(name)}\n`;
+          }
+        } else if (result[1].length === 0) {
+          if (result[0] === "DIRECT") {
+            details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
+            direct = true;
           } else {
-            const condition = condition2Str(result[1].condition ?? result[1]);
-            details += `${condition} => `;
-            if (result[0] === "DIRECT") {
-              details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
-              direct = true;
-            } else {
-              details += `${result[0]}\n`;
-            }
+            details += `${result[0]}\n`;
           }
-        } else if (result.profileName) {
-          if (result.isTempRule) {
-            details += chrome.i18n.getMessage("browserAction_tempRulePrefix");
-          } else if (attached) {
-            details += chrome.i18n.getMessage("browserAction_attachedPrefix");
-            attached = false;
+        } else if (typeof result[1] === "string") {
+          details += `${result[1]} => ${result[0]}\n`;
+        } else {
+          const condition = condition2Str(result[1].condition ?? result[1]);
+          details += `${condition} => `;
+          if (result[0] === "DIRECT") {
+            details += `${chrome.i18n.getMessage("browserAction_directResult")}\n`;
+            direct = true;
+          } else {
+            details += `${result[0]}\n`;
           }
-          const condition = result.source ?? condition2Str(result.condition);
-          details += `${condition} => ${dispName(result.profileName)}\n`;
         }
+      } else if (result.profileName) {
+        if (result.isTempRule) {
+          details += chrome.i18n.getMessage("browserAction_tempRulePrefix");
+        } else if (attached) {
+          details += chrome.i18n.getMessage("browserAction_attachedPrefix");
+          attached = false;
+        }
+        const condition = result.source ?? condition2Str(result.condition);
+        details += `${condition} => ${dispName(result.profileName)}\n`;
       }
+    }
 
-      if (!details) {
-        details = options.printProfile(current) ?? "";
-      }
+    if (!details) {
+      details = options.printProfile(current) ?? "";
+    }
 
-      let resultColor = profile.color;
-      let profileColor = current.color;
-      let icon: any = null;
+    let resultColor = profile.color;
+    let profileColor = current.color;
+    let icon: any = null;
 
-      if (direct) {
-        resultColor = options.profile("direct").color;
-        profileColor = profile.color;
-      } else if (
-        profile.name === current.name &&
-        options.isCurrentProfileStatic()
-      ) {
-        resultColor = profileColor = profile.color;
-        icon = drawIcon(profile.color);
-      } else {
-        resultColor = profile.color;
-        profileColor = current.color;
-      }
+    if (direct) {
+      resultColor = options.profile("direct").color;
+      profileColor = profile.color;
+    } else if (
+      profile.name === current.name &&
+      options.isCurrentProfileStatic()
+    ) {
+      resultColor = profileColor = profile.color;
+      icon = drawIcon(profile.color);
+    } else {
+      resultColor = profile.color;
+      profileColor = current.color;
+    }
 
-      icon ??= drawIcon(resultColor, profileColor);
+    icon ??= drawIcon(resultColor, profileColor);
 
-      let shortTitle = `Omega: ${currentName}`;
-      if (profile.name !== currentName) {
-        shortTitle += ` => ${profile.name}`;
-      }
+    let shortTitle = `Omega: ${currentName}`;
+    if (profile.name !== currentName) {
+      shortTitle += ` => ${profile.name}`;
+    }
 
-      return {
-        title: chrome.i18n.getMessage("browserAction_titleWithResult", [
-          currentName,
-          dispName(profile.name),
-          details,
-        ]),
-        shortTitle,
-        icon,
-        resultColor,
-        profileColor,
-      };
-    })
-    .catch(() => null);
+    return {
+      title: chrome.i18n.getMessage("browserAction_titleWithResult", [
+        currentName,
+        dispName(profile.name),
+        details,
+      ]),
+      shortTitle,
+      icon,
+      resultColor,
+      profileColor,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ---- Initialization ----
@@ -464,7 +466,7 @@ chrome.runtime.onMessage.addListener(
     respond: (response: any) => void,
   ): boolean | undefined => {
     if (!request?.method) return;
-    options.ready.then((): void => {
+    options.ready.then(async (): Promise<void> => {
       let target: any;
       let method: any;
       if (request.method === "getState") {
@@ -480,27 +482,24 @@ chrome.runtime.onMessage.addListener(
         return;
       }
 
-      const promise = Promise.resolve().then(() =>
-        method.apply(target, request.args),
-      );
+      const promise = method.apply(target, request.args);
       if (request.refreshActivePage) {
         promise.then(refreshActivePageIfEnabled);
       }
       if (request.noReply) return;
 
-      promise.then((result: any): void => {
+      try {
+        const result = await promise;
         if (request.method === "updateProfile") {
           for (const key of Object.keys(result)) {
             result[key] = encodeError(result[key]);
           }
         }
         respond({ result });
-      });
-
-      promise.catch((error: any): void => {
+      } catch (error: any) {
         Log.error(`${request.method} ==>`, error);
         respond({ error: encodeError(error) });
-      });
+      }
     });
 
     if (request.noReply) return;
