@@ -1,6 +1,6 @@
-// Type declarations for external globals injected via <script> tags.
-// omegaTarget and OmegaPac are NOT npm imports -- they are loaded as separate
-// script files by the extension host page.
+// Type declarations for omega-web.
+// omegaTarget is an ES module imported directly (no longer a window global).
+// OmegaPac is a workspace dependency imported by useOmegaPac composable.
 
 export interface OmegaTargetWeb {
   getMessage(key: string, substitutions?: string | string[]): string;
@@ -45,91 +45,3 @@ export interface OmegaTargetWeb {
   refreshActivePage(): Promise<void>;
   setRequestInfoCallback(cb: (info: any) => void): void;
 }
-
-export interface OmegaTargetPopup {
-  applyProfile(profileName: string, cb?: () => void): void;
-  setDefaultProfile(
-    profileName: string,
-    defaultProfileName: string,
-    cb?: () => void,
-  ): void;
-  addTempRule(domain: string, profileName: string, cb?: () => void): void;
-  openOptions(hash?: string, cb?: () => void): void;
-  openManage(cb?: () => void): void;
-  getMessage(key: string, substitutions?: string | string[]): string;
-  getState(keys: string[], cb: (err: any, state: any) => void): void;
-  getActivePageInfo(
-    cb: (
-      err: any,
-      info: {
-        url: string;
-        domain: string;
-        tempRuleProfileName: string;
-        errorCount: number;
-      } | null,
-    ) => void,
-  ): void;
-}
-
-// OmegaPac namespace -- mirrors the structure exported by omega-pac's UMD build
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare namespace OmegaPac {
-  namespace Profiles {
-    const builtinProfiles: Record<string, any>;
-    const formatByType: Record<string, string>;
-    const ruleListFormats: string[];
-    function byName(name: string, options: Record<string, any>): any;
-    function byKey(key: string, options: Record<string, any>): any;
-    function create(profile: any): any;
-    function updateRevision(profile: any): void;
-    function nameAsKey(profile: any): string;
-    function isProfileNameHidden(name: string): boolean;
-    function isProfileNameReserved(name: string): boolean;
-    function referencedBySet(
-      name: string,
-      options: Record<string, any>,
-    ): Record<string, string>;
-    function validResultProfilesFor(
-      name: string,
-      options: Record<string, any>,
-    ): any[];
-    function isFileUrl(url: string): boolean;
-    function each(
-      options: Record<string, any>,
-      cb: (key: string, profile: any) => void,
-    ): void;
-  }
-  namespace PacGenerator {
-    function script(
-      options: Record<string, any>,
-      profileName: string,
-      opts?: any,
-    ): any;
-    function ascii(pac: string): string;
-  }
-  namespace Conditions {
-    function parseIp(input: string): any;
-    function getWeekdayList(condition: any): boolean[];
-    function fromStr(str: string): any;
-    function str(value: any): string;
-    const conditionTypes: Record<string, any>;
-  }
-  namespace RuleList {
-    namespace Switchy {
-      function compose(args: any, opts?: any): string;
-      function parseOmega(code: string, profiles?: Record<string, any>): any;
-      function detect(code: string): boolean;
-      function directReferenceSet(args: any): any;
-    }
-  }
-}
-
-declare global {
-  var omegaTarget: OmegaTargetWeb | undefined;
-  var OmegaTargetPopup: OmegaTargetPopup | undefined;
-  var OmegaPac: typeof OmegaPac | undefined;
-  var OmegaDebug: Record<string, any> | undefined;
-  var saveAs: (blob: Blob, name: string, noAutoBom?: boolean) => void;
-}
-
-export {};

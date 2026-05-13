@@ -3,8 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "vite build && node scripts/move-output.js && npm run build:standalone && npm run build:copy",
-    "build:standalone": "node scripts/build-standalone.js",
+    "build": "vite build && node scripts/move-output.js && npm run build:copy",
     "build:copy": "node scripts/copy-libs.js",
     "dev": "vite build --watch",
     "lint": "eslint src/ --no-cache",
@@ -22,7 +21,6 @@
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.4.0",
-    "file-saver": "^2.0.5",
     "jsondiffpatch": "^0.7.3",
     "less": "^4.2.0",
     "pinia": "^3.0.0",

@@ -4,17 +4,16 @@
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./umd": "./omega_pac.min.js"
+    }
   },
   "files": [
     "dist",
-    "omega_pac.min.js",
     "src"
   ],
   "scripts": {
@@ -22,7 +21,7 @@
     "dev": "tsdown --config tsdown.config.ts --watch",
     "test": "TZ=Europe/London mocha --require tsx/cjs --reporter spec test/*.test.ts",
     "lint": "eslint src/ test/ --no-cache",
-    "clean": "rm -rf dist omega_pac.min.js"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "astring": "^1.9.0",

@@ -113,7 +113,6 @@ export default ts.config(
       "node_modules/",
       "lib/",
       "scripts/",
-      "src/omega_target_web.ts",
       "src/guides/",
     ],
   },

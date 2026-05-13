@@ -10,9 +10,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 //    workspace packages. Keeps omega-pac, omega-target, omega-web and heap-js
 //    as external dependencies.
 //
-// 2. Browser IIFE bundle (`build/js/omega_target_chromium_extension.min.js`)
-//    used by the Chromium extension via a <script> tag. Bundles all dependencies
-//    so the output has zero `require()` calls and runs standalone.
+// 2. Browser ESM bundle (`build/js/modules.mjs`) loaded by the module service
+//    worker via `import "./modules.mjs"`. Bundles omega-pac, omega-target
+//    and heap-js inline so the output is a single self-contained ES module.
 export default defineConfig([
   // ---- Library (ESM + CJS) ----
   {
@@ -30,11 +30,10 @@ export default defineConfig([
     onSuccess: "eslint src/ --no-cache",
   },
 
-  // ---- Browser IIFE bundle ----
+  // ---- Browser ESM bundle ----
   {
     entry: "./index.ts",
-    format: "iife",
-    globalName: "OmegaTargetChromium",
+    format: "esm",
     outDir: "build/js",
     target: "es2022",
     platform: "browser",
@@ -50,7 +49,8 @@ export default defineConfig([
       buffer: path.resolve(__dirname, "src/shim/buffer.ts"),
     },
     outputOptions: {
-      entryFileNames: "omega_target_chromium_extension.min.js",
+      entryFileNames: "modules.mjs",
+      exports: "named",
     },
     dts: false,
     // Don't clean — build/js is populated by build-extension.js

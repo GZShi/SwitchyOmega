@@ -1,9 +1,8 @@
-declare var chrome: any;
-declare var OmegaDebug: any;
-declare var omegaLogBuffer: string;
-declare var omegaLogLastError: string;
+import { logState } from "./log_state.js";
 
-(self as any).OmegaDebug = {
+declare var chrome: any;
+
+export const OmegaDebug = {
   getProjectVersion(): string {
     return chrome.runtime.getManifest().version;
   },
@@ -13,7 +12,7 @@ declare var omegaLogLastError: string;
   },
 
   downloadLog(): void {
-    const blob = new Blob([omegaLogBuffer], {
+    const blob = new Blob([logState.buffer], {
       type: "text/plain;charset=utf-8",
     });
     const filename = `OmegaLog_${Date.now()}.txt`;
@@ -28,8 +27,8 @@ declare var omegaLogLastError: string;
   },
 
   resetOptions(): void {
-    omegaLogBuffer = "";
-    omegaLogLastError = "";
+    logState.buffer = "";
+    logState.lastError = "";
     chrome.storage.local.clear();
     chrome.storage.sync.clear();
     chrome.runtime.reload();
@@ -56,7 +55,7 @@ declare var omegaLogLastError: string;
         `<!-- Please write your comment ABOVE this line. -->\n` +
         `SwitchyOmega ${env.projectVersion}\n${env.userAgent}\n`;
       finalUrl = url + encodeURIComponent(body);
-      const err = omegaLogLastError;
+      const err = logState.lastError;
       if (err) {
         body += `\n\`\`\`\n${err}\n\`\`\``;
         finalUrl = (url + encodeURIComponent(body)).slice(0, 2000);

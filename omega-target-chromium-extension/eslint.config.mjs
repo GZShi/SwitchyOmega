@@ -111,7 +111,6 @@ export default ts.config(
     ignores: [
       "dist/",
       "build/",
-      "tmp/",
       "node_modules/",
       "*.js",
       "src/popup/**/*.js",

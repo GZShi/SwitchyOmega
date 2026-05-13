@@ -1,23 +1,11 @@
 // Service worker entry point for SwitchyOmega (Manifest V3).
-// Uses importScripts to load all dependencies in the correct order,
-// replicating what background.html did in Manifest V2.
-
-declare function importScripts(...urls: string[]): void;
-
-var omegaLogBuffer = "";
-var omegaLogLastError = "";
-
-try {
-  importScripts(
-    "js/log_error.js",
-    "js/debug.js",
-    "js/preload.js",
-    "js/omega_pac.min.js",
-    "js/omega_target.min.js",
-    "js/omega_target_chromium_extension.min.js",
-    "img/icons/draw_omega.js",
-    "js/background.js",
-  );
-} catch (e) {
-  console.error("SwitchyOmega service worker failed to load:", e);
-}
+// Module-service-worker (type: "module") — uses static import
+// instead of the legacy importScripts() chain.
+//
+// sw.js lives in build/ while background scripts are under build/js/,
+// hence the "./js/" prefix on every import.
+import "./js/log_error.js";
+import "./js/debug.js";
+import "./js/preload.js";
+import "./js/modules.mjs";
+import "./js/background.js";

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Copies vendor libraries from node_modules to build/lib/.
-// Phase A: Removed AngularJS/jQuery/ngprogress/ladda/script.js.
-// Keeps Bootstrap CSS, spectrum, shepherd.js, file-saver.
+// Keeps Bootstrap CSS, spectrum-colorpicker, shepherd.js.
 
 const fs = require("fs");
 const path = require("path");
@@ -10,8 +9,6 @@ const nodeModules = path.join(__dirname, "..", "node_modules");
 const destDir = path.join(__dirname, "..", "build", "lib");
 const imgDir = path.join(__dirname, "..", "img");
 const imgDest = path.join(__dirname, "..", "build", "img");
-const pacBundle = path.join(nodeModules, "omega-pac", "omega_pac.min.js");
-const pacDest = path.join(__dirname, "..", "build", "js", "omega_pac.min.js");
 
 function mkdir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -41,31 +38,6 @@ function copyFile(src, dest) {
   mkdir(path.dirname(dest));
   fs.copyFileSync(src, dest);
 }
-
-function copyGlob(srcDir, globPattern, destDir) {
-  if (!fs.existsSync(srcDir)) return;
-  const globName = path.basename(globPattern);
-  if (globName === "*") {
-    const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        copyFile(path.join(srcDir, entry.name), path.join(destDir, entry.name));
-      }
-    }
-  } else if (globName.includes("*")) {
-    const prefix = globName.replace(/\*.*$/, "");
-    const suffix = globName.replace(/^.*\*/, "");
-    const entries = fs.readdirSync(srcDir);
-    for (const entry of entries) {
-      if (entry.startsWith(prefix) && entry.endsWith(suffix)) {
-        copyFile(path.join(srcDir, entry), path.join(destDir, entry));
-      }
-    }
-  } else {
-    copyFile(path.join(srcDir, globName), path.join(destDir, globName));
-  }
-}
-
 console.log("Copying vendor libraries...");
 
 // Clean and recreate
@@ -129,29 +101,11 @@ if (fs.existsSync(shepherdSrc)) {
   console.log("  shepherd.js → shepherd.js/");
 }
 
-// --- file-saver ---
-const fileSaverSrc = path.join(nodeModules, "file-saver");
-if (fs.existsSync(fileSaverSrc)) {
-  const fileSaverDest = path.join(destDir, "FileSaver");
-  mkdir(fileSaverDest);
-  copyFile(
-    path.join(fileSaverSrc, "dist", "FileSaver.min.js"),
-    path.join(fileSaverDest, "FileSaver.min.js"),
-  );
-  console.log("  file-saver → FileSaver/");
-}
-
 // --- Copy img/ ---
 if (fs.existsSync(imgDir)) {
   if (fs.existsSync(imgDest)) fs.rmSync(imgDest, { recursive: true });
   copyDir(imgDir, imgDest);
   console.log("Copied img/ directory.");
-}
-
-// --- Copy omega_pac.min.js from workspace ---
-if (fs.existsSync(pacBundle)) {
-  copyFile(pacBundle, pacDest);
-  console.log("Copied omega_pac.min.js");
 }
 
 console.log("Done copying vendor libraries.");

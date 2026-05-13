@@ -26,7 +26,6 @@ export default defineConfig({
       input: {
         options: resolve(__dirname, "src/options.html"),
         "popup/index": resolve(__dirname, "src/popup/index.html"),
-        log_error: resolve(__dirname, "src/log_error.ts"),
         options_guide: resolve(__dirname, "src/guides/options_guide.ts"),
         switch_profile_guide: resolve(
           __dirname,

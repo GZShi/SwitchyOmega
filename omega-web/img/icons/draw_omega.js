@@ -1,4 +1,4 @@
-var drawOmega = function (ctx, outerCircleColor, innerCircleColor) {
+export function drawOmega(ctx, outerCircleColor, innerCircleColor) {
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = outerCircleColor;
   ctx.beginPath();
@@ -16,4 +16,4 @@ var drawOmega = function (ctx, outerCircleColor, innerCircleColor) {
   ctx.arc(0.5, 0.5, 0.25, 0, Math.PI * 2, true);
   ctx.closePath();
   ctx.fill();
-};
+}

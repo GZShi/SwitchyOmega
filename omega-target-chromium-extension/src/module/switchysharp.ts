@@ -46,6 +46,10 @@ class SwitchySharp {
   }
 
   _onDisconnect(_msg: any): void {
+    // Accessing lastError suppresses the "Unchecked runtime.lastError:
+    // Could not establish connection" warning when the legacy SwitchySharp
+    // extension is not installed.
+    void chrome.runtime.lastError;
     this.port = null;
     this._getOptions = null;
     this._getOptionsResolver = null;
@@ -54,7 +58,8 @@ class SwitchySharp {
 
   _connect(): boolean | null {
     if (!this.port) {
-      this.port = new ChromePort(chrome.runtime.connect(SwitchySharp.extId));
+      const rawPort = chrome.runtime.connect(SwitchySharp.extId);
+      this.port = new ChromePort(rawPort);
       this.port.onDisconnect.addListener(this._onDisconnect.bind(this));
       if (this.port != null) {
         this.port.onMessage.addListener(this._onMessage.bind(this));

@@ -277,7 +277,15 @@ class ChromeOptions extends OmegaTarget.Options {
 
         let getOldOptions: any;
         if (this.switchySharp) {
-          getOldOptions = this.switchySharp.getOptions().timeout(1000);
+          getOldOptions = Promise.race([
+            this.switchySharp.getOptions(),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error("SwitchySharp getOptions timed out")),
+                1000,
+              ),
+            ),
+          ]);
         } else {
           getOldOptions = Promise.reject();
         }

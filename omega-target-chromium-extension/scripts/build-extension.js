@@ -58,7 +58,7 @@ for (const file of backgroundFiles) {
   const outDir = file === "sw.ts" ? buildDir : path.join(buildDir, "js");
   try {
     execSync(
-      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${outDir}" "${src}"`,
+      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module esnext --skipLibCheck --outDir "${outDir}" "${src}"`,
       { cwd: root, stdio: "pipe" },
     );
   } catch (_e) {
@@ -69,30 +69,14 @@ for (const file of backgroundFiles) {
 console.log("=== Step 2: Copy omega-web build ===");
 copyDir(webBuildDir, buildDir);
 
-console.log("=== Step 3: Copy omega_target.min.js ===");
-const omegaTargetMin = path.join(
-  root,
-  "node_modules",
-  "omega-target",
-  "dist",
-  "omega_target.min.js",
-);
-copyFile(omegaTargetMin, path.join(buildDir, "js", "omega_target.min.js"));
-
-console.log("=== Step 4: Copy target popup JS ===");
-copyFile(
-  path.join(root, "src", "popup", "omega_target_popup.js"),
-  path.join(buildDir, "js", "omega_target_popup.js"),
-);
-
-console.log("=== Step 5: Copy overlay files (manifest, etc.) ===");
+console.log("=== Step 3: Copy overlay files (manifest, etc.) ===");
 copyDir(path.join(root, "overlay"), buildDir);
 
-console.log("=== Step 6: Copy docs (COPYING, AUTHORS) ===");
+console.log("=== Step 4: Copy docs (COPYING, AUTHORS) ===");
 copyFile(path.join(root, "..", "COPYING"), path.join(buildDir, "COPYING"));
 copyFile(path.join(root, "..", "AUTHORS"), path.join(buildDir, "AUTHORS"));
 
-console.log("=== Step 7: Build locale files (.po → Chrome messages.json) ===");
+console.log("=== Step 5: Build locale files (.po → Chrome messages.json) ===");
 require("./build-locales");
 
 console.log("=== Extension build complete! ===");

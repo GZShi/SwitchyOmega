@@ -24,7 +24,8 @@
     "default_popup": "popup/index.html"
   },
   "background": {
-    "service_worker": "sw.js"
+    "service_worker": "sw.js",
+    "type": "module"
   },
   "minimum_chrome_version": "88.0.0",
   "options_ui": {

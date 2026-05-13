@@ -111,6 +111,6 @@ export default ts.config(
 
   // ---- Global ignores ----
   {
-    ignores: ["dist/", "node_modules/", "*.js", "omega_target.min.js"],
+    ignores: ["dist/", "node_modules/", "*.js"],
   },
 );
