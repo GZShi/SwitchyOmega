@@ -4,30 +4,31 @@
 // Uses native Promises instead of Angular's $q.
 
 (function () {
-  const prefix = 'omega.local.';
-  const urlParser = document.createElement('a');
+  const prefix = "omega.local.";
+  const urlParser = document.createElement("a");
+  const storageArea =
+    typeof chrome !== "undefined" && chrome?.storage?.local
+      ? chrome.storage.local
+      : null;
 
   function callBackground(method: string, ...args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        { method, args },
-        (response: any) => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-            return;
-          }
-          if (response.error) {
-            reject(_decodeError(response.error));
-          } else {
-            resolve(response.result);
-          }
-        },
-      );
+      chrome.runtime.sendMessage({ method, args }, (response: any) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        if (response.error) {
+          reject(_decodeError(response.error));
+        } else {
+          resolve(response.result);
+        }
+      });
     });
   }
 
   function _decodeError(obj: any): Error {
-    if (obj._error === 'error') {
+    if (obj._error === "error") {
       const err: any = new Error(obj.message);
       err.name = obj.name;
       err.stack = obj.stack;
@@ -37,18 +38,23 @@
     return obj;
   }
 
-  const optionsChangeCallbacks: Array<(options: Record<string, any>) => void> = [];
+  const optionsChangeCallbacks: Array<(options: Record<string, any>) => void> =
+    [];
   let requestInfoCallback: ((info: any) => void) | null = null;
 
   function _isChromeUrl(url: string): boolean {
     return (
-      url.substring(0, 6) === 'chrome' ||
-      url.substring(0, 6) === 'about:' ||
-      url.substring(0, 4) === 'moz-'
+      url.substring(0, 6) === "chrome" ||
+      url.substring(0, 6) === "about:" ||
+      url.substring(0, 4) === "moz-"
     );
   }
 
-  function _connectBackground(name: string, message: any, callback: (info: any) => void): void {
+  function _connectBackground(
+    name: string,
+    message: any,
+    callback: (info: any) => void,
+  ): void {
     const port = chrome.runtime.connect({ name });
     port.onDisconnect.addListener(() => {
       port.onMessage.removeListener(callback);
@@ -61,43 +67,46 @@
     options: null as Record<string, any> | null,
 
     state(name: string | string[], value?: any): Promise<any> {
+      if (!storageArea) return Promise.resolve(undefined);
       if (arguments.length === 1) {
-        const getValue = (key: string): any => {
-          try {
-            return JSON.parse(localStorage[prefix + key]);
-          } catch (_e) {
-            return undefined;
-          }
-        };
         if (Array.isArray(name)) {
-          return Promise.resolve(name.map(getValue));
+          const keys = name.map((k) => prefix + k);
+          return new Promise((resolve) => {
+            storageArea.get(keys, (result: Record<string, any>) => {
+              resolve(name.map((k) => result[prefix + k] ?? undefined));
+            });
+          });
         }
-        return Promise.resolve(getValue(name));
-      } else {
-        localStorage[prefix + (name as string)] = JSON.stringify(value);
-        return Promise.resolve(value);
+        return new Promise((resolve) => {
+          storageArea.get(prefix + name, (result: Record<string, any>) => {
+            resolve(result[prefix + name] ?? undefined);
+          });
+        });
       }
+      const items: Record<string, any> = {};
+      items[prefix + (name as string)] = value;
+      return new Promise((resolve) => {
+        storageArea.set(items, () => resolve(value));
+      });
     },
 
-    lastUrl(url?: string): string | undefined {
-      const name = 'web.last_url';
+    lastUrl(url?: string): Promise<string | undefined> {
+      const name = "web.last_url";
       if (url) {
         omegaTarget.state(name, url);
-        return url;
+        return Promise.resolve(url);
       }
-      try {
-        return JSON.parse(localStorage[prefix + name]);
-      } catch (_e) {
-        return undefined;
-      }
+      return omegaTarget.state(name) as Promise<string | undefined>;
     },
 
-    addOptionsChangeCallback(callback: (options: Record<string, any>) => void): void {
+    addOptionsChangeCallback(
+      callback: (options: Record<string, any>) => void,
+    ): void {
       optionsChangeCallbacks.push(callback);
     },
 
     refresh(): Promise<any> {
-      return callBackground('getAll').then((opt: Record<string, any>) => {
+      return callBackground("getAll").then((opt: Record<string, any>) => {
         omegaTarget.options = opt;
         for (const cb of optionsChangeCallbacks) {
           cb(omegaTarget.options);
@@ -106,23 +115,27 @@
     },
 
     renameProfile(fromName: string, toName: string): Promise<any> {
-      return callBackground('renameProfile', fromName, toName).then(() => omegaTarget.refresh());
+      return callBackground("renameProfile", fromName, toName).then(() =>
+        omegaTarget.refresh(),
+      );
     },
 
     replaceRef(fromName: string, toName: string): Promise<any> {
-      return callBackground('replaceRef', fromName, toName).then(() => omegaTarget.refresh());
+      return callBackground("replaceRef", fromName, toName).then(() =>
+        omegaTarget.refresh(),
+      );
     },
 
     optionsPatch(patch: any): Promise<any> {
-      return callBackground('patch', patch).then(() => omegaTarget.refresh());
+      return callBackground("patch", patch).then(() => omegaTarget.refresh());
     },
 
     resetOptions(opt?: any): Promise<any> {
-      return callBackground('reset', opt).then(() => omegaTarget.refresh());
+      return callBackground("reset", opt).then(() => omegaTarget.refresh());
     },
 
     updateProfile(name: string, bypassCache?: string): Promise<any> {
-      return callBackground('updateProfile', name, bypassCache)
+      return callBackground("updateProfile", name, bypassCache)
         .then((results: any) => {
           for (const key of Object.keys(results)) {
             results[key] = _decodeError(results[key]);
@@ -136,7 +149,7 @@
 
     openOptions(hash?: string): Promise<void> {
       return new Promise((resolve) => {
-        const optionsUrl = chrome.extension.getURL('options.html');
+        const optionsUrl = chrome.runtime.getURL("options.html");
         chrome.tabs.query({ url: optionsUrl }, (tabs: any[]) => {
           let url: string;
           if (hash) {
@@ -159,32 +172,37 @@
     },
 
     applyProfile(name: string): Promise<any> {
-      return callBackground('applyProfile', name);
+      return callBackground("applyProfile", name);
     },
 
     applyProfileNoReply(name: string): void {
       chrome.runtime.sendMessage({
-        method: 'applyProfile',
+        method: "applyProfile",
         args: [name],
         noReply: true,
       });
     },
 
     addTempRule(domain: string, profileName: string): Promise<any> {
-      return callBackground('addTempRule', domain, profileName);
+      return callBackground("addTempRule", domain, profileName);
     },
 
     addCondition(condition: any, profileName: string): Promise<any> {
-      return callBackground('addCondition', condition, profileName);
+      return callBackground("addCondition", condition, profileName);
     },
 
     addProfile(profile: any): Promise<any> {
-      return callBackground('addProfile', profile).then(() => omegaTarget.refresh());
+      return callBackground("addProfile", profile).then(() =>
+        omegaTarget.refresh(),
+      );
     },
 
-    setDefaultProfile(profileName: string, defaultProfileName: string): Promise<any> {
+    setDefaultProfile(
+      profileName: string,
+      defaultProfileName: string,
+    ): Promise<any> {
       return callBackground(
-        'setDefaultProfile',
+        "setDefaultProfile",
         profileName,
         defaultProfileName,
       );
@@ -201,10 +219,10 @@
             }
             const args = { tabId: tabs[0].id, url: tabs[0].url };
             if (tabs[0].id && requestInfoCallback) {
-              _connectBackground('tabRequestInfo', args, requestInfoCallback);
+              _connectBackground("tabRequestInfo", args, requestInfoCallback);
             }
             resolve(
-              callBackground('getPageInfo', args).then((info: any) =>
+              callBackground("getPageInfo", args).then((info: any) =>
                 info?.url ? info : null,
               ),
             );
@@ -229,20 +247,20 @@
 
     openManage(): void {
       chrome.tabs.create({
-        url: 'chrome://extensions/?id=' + chrome.runtime.id,
+        url: "chrome://extensions/?id=" + chrome.runtime.id,
       });
     },
 
     openShortcutConfig(): void {
-      chrome.tabs.create({ url: 'chrome://extensions/configureCommands' });
+      chrome.tabs.create({ url: "chrome://extensions/configureCommands" });
     },
 
     setOptionsSync(enabled: boolean, args?: any): Promise<any> {
-      return callBackground('setOptionsSync', enabled, args);
+      return callBackground("setOptionsSync", enabled, args);
     },
 
     resetOptionsSync(): Promise<any> {
-      return callBackground('resetOptionsSync');
+      return callBackground("resetOptionsSync");
     },
 
     setRequestInfoCallback(callback: (info: any) => void): void {

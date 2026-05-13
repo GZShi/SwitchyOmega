@@ -5,6 +5,7 @@ import { SwitchySharp } from "./switchysharp";
 import { ExternalApi } from "./external_api";
 import { WebRequestMonitor } from "./web_request_monitor";
 import { Inspect } from "./inspect";
+import { ChromeBrowserStorage } from "./chrome_browser_storage";
 import Url from "url";
 import * as proxy from "./proxy";
 import omegaTarget from "omega-target";
@@ -17,6 +18,7 @@ const mod: any = {
   ExternalApi,
   WebRequestMonitor,
   Inspect,
+  ChromeBrowserStorage,
   Url,
   proxy,
 };

@@ -23,11 +23,9 @@ class ProxyAuth {
       this.log.error("Proxy auth disabled! onAuthRequired not available.");
       return;
     }
-    chrome.webRequest.onAuthRequired.addListener(
-      this.authHandler.bind(this),
-      { urls: ["<all_urls>"] },
-      ["blocking"],
-    );
+    chrome.webRequest.onAuthRequired.addListener(this.authHandler.bind(this), {
+      urls: ["<all_urls>"],
+    });
     chrome.webRequest.onCompleted.addListener(this._requestDone.bind(this), {
       urls: ["<all_urls>"],
     });

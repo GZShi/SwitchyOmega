@@ -1,5 +1,6 @@
 class Inspect {
   _enabled: boolean = false;
+  _listenerRegistered: boolean = false;
   onInspect: (url: string, tab: any) => void;
 
   propForMenuItem: Record<string, string> = {
@@ -13,10 +14,23 @@ class Inspect {
     this.onInspect = onInspect;
   }
 
+  _ensureListener(): void {
+    if (this._listenerRegistered) return;
+    if (!chrome.contextMenus) return;
+    chrome.contextMenus.onClicked.addListener((info: any, tab: any) => {
+      if (info.menuItemId in this.propForMenuItem) {
+        this.inspect(info, tab);
+      }
+    });
+    this._listenerRegistered = true;
+  }
+
   enable(): void {
     if (!chrome.contextMenus) return;
     if (!chrome.i18n.getUILanguage) return;
     if (this._enabled) return;
+
+    this._ensureListener();
 
     const webResource = ["http://*/*", "https://*/*", "ftp://*/*"];
 
@@ -24,7 +38,6 @@ class Inspect {
       id: "inspectFrame",
       title: chrome.i18n.getMessage("contextMenu_inspectFrame"),
       contexts: ["frame"],
-      onclick: this.inspect.bind(this),
       documentUrlPatterns: webResource,
     });
 
@@ -32,7 +45,6 @@ class Inspect {
       id: "inspectLink",
       title: chrome.i18n.getMessage("contextMenu_inspectLink"),
       contexts: ["link"],
-      onclick: this.inspect.bind(this),
       targetUrlPatterns: webResource,
     });
 
@@ -40,7 +52,6 @@ class Inspect {
       id: "inspectElement",
       title: chrome.i18n.getMessage("contextMenu_inspectElement"),
       contexts: ["image", "video", "audio"],
-      onclick: this.inspect.bind(this),
       targetUrlPatterns: webResource,
     });
 

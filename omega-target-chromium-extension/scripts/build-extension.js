@@ -55,26 +55,10 @@ const backgroundFiles = fs
   .filter((f) => f.endsWith(".ts"));
 for (const file of backgroundFiles) {
   const src = path.join(backgroundDir, file);
-  // tsc may show type errors for standalone scripts using browser globals
-  // but it still produces the output JS file.
+  const outDir = file === "sw.ts" ? buildDir : path.join(buildDir, "js");
   try {
     execSync(
-      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${path.join(buildDir, "js")}" "${src}"`,
-      { cwd: root, stdio: "pipe" },
-    );
-  } catch (_e) {
-    // Ignore type errors; the JS file was written regardless.
-  }
-}
-
-// Compile popup TypeScript scripts (e.g. omega_target_web.ts)
-const popupDir = path.join(root, "src", "popup");
-const popupTsFiles = fs.readdirSync(popupDir).filter((f) => f.endsWith(".ts"));
-for (const file of popupTsFiles) {
-  const src = path.join(popupDir, file);
-  try {
-    execSync(
-      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${path.join(buildDir, "js")}" "${src}"`,
+      `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module none --skipLibCheck --outDir "${outDir}" "${src}"`,
       { cwd: root, stdio: "pipe" },
     );
   } catch (_e) {
@@ -101,9 +85,7 @@ copyFile(
   path.join(buildDir, "js", "omega_target_popup.js"),
 );
 
-console.log(
-  "=== Step 5: Copy overlay files (manifest, background.html, etc.) ===",
-);
+console.log("=== Step 5: Copy overlay files (manifest, etc.) ===");
 copyDir(path.join(root, "overlay"), buildDir);
 
 console.log("=== Step 6: Copy docs (COPYING, AUTHORS) ===");
@@ -112,17 +94,6 @@ copyFile(path.join(root, "..", "AUTHORS"), path.join(buildDir, "AUTHORS"));
 
 console.log("=== Step 7: Build locale files (.po → Chrome messages.json) ===");
 require("./build-locales");
-
-console.log("=== Step 8: Generate Firefox manifest ===");
-const manifest = require(path.join(root, "overlay", "manifest.json"));
-manifest.permissions = manifest.permissions.filter((p) => p !== "downloads");
-const tmpDir = path.join(root, "tmp");
-mkdir(tmpDir);
-fs.writeFileSync(
-  path.join(tmpDir, "manifest.json"),
-  JSON.stringify(manifest, null, 2),
-);
-console.log("Firefox manifest written to tmp/manifest.json");
 
 console.log("=== Extension build complete! ===");
 console.log(`Build directory: ${buildDir}`);

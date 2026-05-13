@@ -1,33 +1,58 @@
 declare var OmegaTargetChromium: any;
 declare var drawOmega: any;
-declare var localStorage: any;
 declare var chrome: any;
-declare var browser: any;
+declare var omegaLogBuffer: string;
+declare var omegaLogLastError: string;
 
 const OmegaTargetCurrent = Object.create(OmegaTargetChromium);
 
 OmegaTargetCurrent.Log = Object.create(OmegaTargetCurrent.Log);
 const Log = OmegaTargetCurrent.Log;
 
-function _writeLogToLocalStorage(content: string): void {
+var omegaLogFlushTimer: any = null;
+
+function _persistLogToStorage(): void {
   try {
-    localStorage["log"] += content;
+    chrome.storage.local.set({
+      "omega.log": omegaLogBuffer,
+      "omega.logLastError": omegaLogLastError,
+    });
   } catch (_e) {
-    localStorage["log"] = content;
+    // Ignore storage errors for log persistence
   }
+}
+
+function _scheduleLogPersist(): void {
+  if (omegaLogFlushTimer != null) clearTimeout(omegaLogFlushTimer);
+  omegaLogFlushTimer = setTimeout(() => {
+    omegaLogFlushTimer = null;
+    _persistLogToStorage();
+  }, 3000);
+}
+
+function _writeLogToBuffer(content: string): void {
+  try {
+    omegaLogBuffer += content;
+  } catch (_e) {
+    omegaLogBuffer = content;
+  }
+  _scheduleLogPersist();
 }
 
 Log.log = function (...args: any[]): void {
   console.log(...args);
   const content = `${args.map(Log.str.bind(Log)).join(" ")}\n`;
-  _writeLogToLocalStorage(content);
+  _writeLogToBuffer(content);
 };
 
 Log.error = function (...args: any[]): void {
   console.error(...args);
   const content = args.map(Log.str.bind(Log)).join(" ");
-  localStorage["logLastError"] = content;
-  _writeLogToLocalStorage(`ERROR: ${content}\n`);
+  omegaLogLastError = content;
+  _writeLogToBuffer(`ERROR: ${content}\n`);
+  if (omegaLogFlushTimer != null) clearTimeout(omegaLogFlushTimer);
+  omegaLogFlushTimer = null;
+  _persistLogToStorage();
 };
 
 const unhandledPromises: PromiseRejectionEvent[] = [];
@@ -70,9 +95,7 @@ function drawIcon(resultColor?: string, profileColor?: string): any {
   let icon = iconCache[cacheKey];
   if (icon) return icon;
   try {
-    drawContext ??= (
-      document.getElementById("canvas-icon") as HTMLCanvasElement
-    ).getContext("2d");
+    drawContext ??= new OffscreenCanvas(38, 38).getContext("2d")!;
     icon = {};
     for (const size of [16, 19, 24, 32, 38]) {
       drawContext.scale(size, size);
@@ -228,22 +251,22 @@ function actionForUrl(url: string): Promise<any> {
 
 // ---- Initialization ----
 const storage = new OmegaTargetCurrent.Storage("local");
-const state = new OmegaTargetCurrent.BrowserStorage(
-  localStorage,
-  "omega.local.",
-);
+const state = new OmegaTargetCurrent.ChromeBrowserStorage("omega.local.");
 
 let sync: any = null;
-if (
-  (typeof chrome !== "undefined" && chrome.storage?.sync) ||
-  (typeof browser !== "undefined" && browser.storage?.sync)
-) {
+if (chrome.storage?.sync) {
   const syncStorage = new OmegaTargetCurrent.Storage("sync");
   sync = new OmegaTargetCurrent.OptionsSync(syncStorage);
-  if (localStorage["omega.local.syncOptions"] !== '"sync"') {
-    sync.enabled = false;
-  }
   sync.transformValue = OmegaTargetCurrent.Options.transformValueForSync;
+  // Start disabled; enable only after confirming stored state says "sync".
+  // Must be synchronous (before Options.init()) to prevent copyTo() from
+  // wiping local data by syncing against an empty sync storage.
+  sync.enabled = false;
+  state.get({ syncOptions: "" }).then((st: any) => {
+    if (st.syncOptions === "sync") {
+      sync.enabled = true;
+    }
+  });
 }
 
 const proxyImpl = OmegaTargetCurrent.proxy.getProxyImpl(Log);
@@ -291,7 +314,7 @@ options._inspect = new OmegaTargetCurrent.Inspect(
         "browserAction_titleInspect",
         urlDisp,
       )}\n${action.title}`;
-      chrome.browserAction.setTitle({ title, tabId: tab.id });
+      chrome.action.setTitle({ title, tabId: tab.id });
       tabs.setTabBadge(tab, {
         text: "#",
         color: action.resultColor,
@@ -414,19 +437,17 @@ function encodeError(obj: any): any {
   }
 }
 
-function refreshActivePageIfEnabled(): void {
-  if (localStorage["omega.local.refreshOnProfileChange"] === "false") return;
-  chrome.tabs.query(
-    { active: true, lastFocusedWindow: true },
-    (tabs: any[]): void => {
-      const url = tabs[0].url;
-      if (!url) return;
-      if (url.startsWith("chrome")) return;
-      if (url.startsWith("about:")) return;
-      if (url.startsWith("moz-")) return;
-      chrome.tabs.reload(tabs[0].id, { bypassCache: true });
-    },
-  );
+async function refreshActivePageIfEnabled(): Promise<void> {
+  const st = await state.get({ refreshOnProfileChange: false });
+  if (!st.refreshOnProfileChange) return;
+  const tabs = await new Promise<any[]>((resolve) => {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, resolve);
+  });
+  const url = tabs[0]?.url;
+  if (!url) return;
+  if (url.startsWith("chrome")) return;
+  if (url.startsWith("about:")) return;
+  chrome.tabs.reload(tabs[0].id, { bypassCache: true });
 }
 
 chrome.runtime.onMessage.addListener(

@@ -34,10 +34,10 @@ class ChromeTabs {
         if (tab.active) this.onUpdated(tab.id, {}, tab);
       });
     });
-    if (chrome.browserAction.setPopup != null) {
-      chrome.browserAction.setTitle({ title: action.title });
+    if (chrome.action.setPopup != null) {
+      chrome.action.setTitle({ title: action.title });
     } else {
-      chrome.browserAction.setTitle({ title: action.shortTitle });
+      chrome.action.setTitle({ title: action.shortTitle });
     }
     this.setIcon(action.icon);
   }
@@ -57,8 +57,8 @@ class ChromeTabs {
     if (this._badgeTab) {
       for (const id of Object.keys(this._badgeTab)) {
         try {
-          if (chrome.browserAction.setBadgeText != null) {
-            chrome.browserAction.setBadgeText({
+          if (chrome.action.setBadgeText != null) {
+            chrome.action.setBadgeText({
               text: "",
               tabId: parseInt(id),
             });
@@ -72,7 +72,7 @@ class ChromeTabs {
 
     if (tab.url == null || tab.url.indexOf("chrome") === 0) {
       if (this._defaultAction) {
-        chrome.browserAction.setTitle({
+        chrome.action.setTitle({
           title: this._defaultAction.title,
           tabId: tab.id,
         });
@@ -87,10 +87,10 @@ class ChromeTabs {
         return;
       }
       this.setIcon(action.icon, tab.id);
-      if (chrome.browserAction.setPopup != null) {
-        chrome.browserAction.setTitle({ title: action.title, tabId: tab.id });
+      if (chrome.action.setPopup != null) {
+        chrome.action.setTitle({ title: action.title, tabId: tab.id });
       } else {
-        chrome.browserAction.setTitle({
+        chrome.action.setTitle({
           title: action.shortTitle,
           tabId: tab.id,
         });
@@ -101,11 +101,11 @@ class ChromeTabs {
   setTabBadge(tab: any, badge: any): void {
     this._badgeTab ??= {};
     this._badgeTab[tab.id] = true;
-    if (chrome.browserAction.setBadgeText != null) {
-      chrome.browserAction.setBadgeText({ text: badge.text, tabId: tab.id });
+    if (chrome.action.setBadgeText != null) {
+      chrome.action.setBadgeText({ text: badge.text, tabId: tab.id });
     }
-    if (chrome.browserAction.setBadgeBackgroundColor != null) {
-      chrome.browserAction.setBadgeBackgroundColor({
+    if (chrome.action.setBadgeBackgroundColor != null) {
+      chrome.action.setBadgeBackgroundColor({
         color: badge.color,
         tabId: tab.id,
       });
@@ -125,16 +125,16 @@ class ChromeTabs {
 
   _chromeSetIcon(params: any): void {
     try {
-      if (chrome.browserAction.setIcon != null) {
-        chrome.browserAction.setIcon(params, this.ignoreError);
+      if (chrome.action.setIcon != null) {
+        chrome.action.setIcon(params, this.ignoreError);
       }
     } catch (_e) {
       params.imageData = {
         19: params.imageData[19],
         38: params.imageData[38],
       };
-      if (chrome.browserAction.setIcon != null) {
-        chrome.browserAction.setIcon(params, this.ignoreError);
+      if (chrome.action.setIcon != null) {
+        chrome.action.setIcon(params, this.ignoreError);
       }
     }
   }

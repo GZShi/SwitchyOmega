@@ -94,7 +94,7 @@ function handleWelcomeResult(result: string) {
 // Routing logic
 async function redirectToLastUrl() {
   if (route.path === '/' || route.path === '') {
-    const lastUrl = omega.lastUrl();
+    const lastUrl = await omega.lastUrl();
     if (lastUrl) {
       router.replace(lastUrl);
     } else {

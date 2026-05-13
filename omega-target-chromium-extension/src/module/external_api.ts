@@ -24,8 +24,8 @@ class ExternalApi {
   reenable(): void {
     if (!this.disabled) return;
     this.options.setProxyNotControllable(null);
-    if (chrome.browserAction.setPopup != null) {
-      chrome.browserAction.setPopup({ popup: "popup/index.html" });
+    if (chrome.action.setPopup != null) {
+      chrome.action.setPopup({ popup: "popup/index.html" });
     }
     this.options.reloadQuickSwitch();
     this.disabled = false;
@@ -63,8 +63,8 @@ class ExternalApi {
             color: "#5ab432",
           });
         });
-        if (chrome.browserAction.setPopup != null) {
-          chrome.browserAction.setPopup({ popup: "popup/index.html" });
+        if (chrome.action.setPopup != null) {
+          chrome.action.setPopup({ popup: "popup/index.html" });
         }
         port.postMessage({ action: "state", state: "disabled" });
         break;

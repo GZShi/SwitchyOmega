@@ -1,11 +1,17 @@
-// Standalone error logger. Loaded by background.html to capture unhandled
-// errors into localStorage for later debugging.
-window.onerror = (message, url, line, col, err) => {
-  let log = localStorage["log"] ?? "";
+// Standalone error logger. Loaded by the background page / service worker
+// to capture unhandled errors for later debugging.
+declare var omegaLogBuffer: string;
+
+(self as any).onerror = (
+  message: any,
+  url: any,
+  line: any,
+  col: any,
+  err: any,
+) => {
   if (err?.stack) {
-    log += `${err.stack}\n\n`;
+    omegaLogBuffer += `${err.stack}\n\n`;
   } else {
-    log += `${url}:${line}:${col}:\t${message}\n\n`;
+    omegaLogBuffer += `${url}:${line}:${col}:\t${message}\n\n`;
   }
-  localStorage["log"] = log;
 };

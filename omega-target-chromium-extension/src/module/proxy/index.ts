@@ -1,14 +1,8 @@
-import { ListenerProxyImpl } from "./proxy_impl_listener";
 import { SettingsProxyImpl } from "./proxy_impl_settings";
-import { ScriptProxyImpl } from "./proxy_impl_script";
 
-export const proxyImpls = [ListenerProxyImpl, ScriptProxyImpl, SettingsProxyImpl];
-
-export function getProxyImpl(log: any): any {
-  for (const Impl of proxyImpls) {
-    if (Impl.isSupported()) {
-      return new Impl(log);
-    }
+export function getProxyImpl(log: any): SettingsProxyImpl {
+  if (!SettingsProxyImpl.isSupported()) {
+    throw new Error("Your browser does not support proxy settings!");
   }
-  throw new Error("Your browser does not support proxy settings!");
+  return new SettingsProxyImpl(log);
 }

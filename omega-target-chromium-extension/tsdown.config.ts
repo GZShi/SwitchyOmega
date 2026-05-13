@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Three-entry configuration:
+// Two-entry configuration:
 //
 // 1. Library output (ESM + CJS) consumed by the Node-based test runner and
 //    workspace packages. Keeps omega-pac, omega-target, omega-web and heap-js
@@ -13,9 +13,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 2. Browser IIFE bundle (`build/js/omega_target_chromium_extension.min.js`)
 //    used by the Chromium extension via a <script> tag. Bundles all dependencies
 //    so the output has zero `require()` calls and runs standalone.
-//
-// 3. Firefox proxy script IIFE (`build/js/omega_webext_proxy_script.min.js`),
-//    a standalone PAC-like script that bundles omega-pac inline.
 export default defineConfig([
   // ---- Library (ESM + CJS) ----
   {
@@ -41,8 +38,8 @@ export default defineConfig([
     outDir: "build/js",
     target: "es2022",
     platform: "browser",
-    minify: true,
-    // Force-bundle workspace deps so the IIFE has zero require() calls
+    minify: false,
+    sourcemap: true,
     deps: {
       alwaysBundle: ["omega-pac", "omega-target", "heap-js"],
     },
@@ -55,27 +52,6 @@ export default defineConfig([
     outputOptions: {
       entryFileNames: "omega_target_chromium_extension.min.js",
     },
-    sourcemap: false,
-    dts: false,
-    // Don't clean — build/js is populated by build-extension.js
-    clean: false,
-  },
-
-  // ---- Firefox proxy script IIFE ----
-  {
-    entry: "./src/proxy/webext_proxy_script.js",
-    format: "iife",
-    outDir: "build/js",
-    target: "es2022",
-    platform: "browser",
-    minify: true,
-    deps: {
-      alwaysBundle: ["omega-pac"],
-    },
-    outputOptions: {
-      entryFileNames: "omega_webext_proxy_script.min.js",
-    },
-    sourcemap: false,
     dts: false,
     // Don't clean — build/js is populated by build-extension.js
     clean: false,

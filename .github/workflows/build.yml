@@ -37,7 +37,7 @@ jobs:
       - name: Build all modules
         run: pnpm build
 
-      - name: Build release package (Firefox)
+      - name: Build release package (Chrome)
         run: cd omega-target-chromium-extension && BUILD=release pnpm build
         env:
           BUILD: release

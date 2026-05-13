@@ -4,7 +4,7 @@
 
 export interface OmegaTargetWeb {
   getMessage(key: string, substitutions?: string | string[]): string;
-  lastUrl(url?: string): string | undefined;
+  lastUrl(url?: string): Promise<string | undefined>;
   state(name: string): Promise<any>;
   state(name: string[]): Promise<any[]>;
   state(name: string, value: any): Promise<void>;

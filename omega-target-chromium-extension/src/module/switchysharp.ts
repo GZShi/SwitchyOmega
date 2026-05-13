@@ -8,7 +8,6 @@ class SwitchySharp {
   _monitorTimerId: any = null;
 
   monitor(action?: string): void {
-    if (location.href.startsWith("moz-")) return;
     if (this.port == null && this._monitorTimerId == null) {
       this._monitorTimerId = setInterval(this._connect.bind(this), 5000);
       if (action !== "reconnect") {

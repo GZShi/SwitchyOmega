@@ -1,10 +1,9 @@
 declare var chrome: any;
-declare var browser: any;
-declare var localStorage: any;
-declare var saveAs: any;
 declare var OmegaDebug: any;
+declare var omegaLogBuffer: string;
+declare var omegaLogLastError: string;
 
-(window as any).OmegaDebug = {
+(self as any).OmegaDebug = {
   getProjectVersion(): string {
     return chrome.runtime.getManifest().version;
   },
@@ -14,26 +13,25 @@ declare var OmegaDebug: any;
   },
 
   downloadLog(): void {
-    const blob = new Blob([localStorage["log"]], {
+    const blob = new Blob([omegaLogBuffer], {
       type: "text/plain;charset=utf-8",
     });
     const filename = `OmegaLog_${Date.now()}.txt`;
-
-    if (
-      typeof browser !== "undefined" &&
-      browser?.downloads?.download != null
-    ) {
-      const url = URL.createObjectURL(blob);
-      browser.downloads.download({ url, filename });
-    } else {
-      saveAs(blob, filename);
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      chrome.downloads.download({
+        url: reader.result as string,
+        filename,
+      });
+    };
+    reader.readAsDataURL(blob);
   },
 
   resetOptions(): void {
-    localStorage.clear();
-    localStorage["omega.local.syncOptions"] = '"conflict"';
+    omegaLogBuffer = "";
+    omegaLogLastError = "";
     chrome.storage.local.clear();
+    chrome.storage.sync.clear();
     chrome.runtime.reload();
   },
 
@@ -58,7 +56,7 @@ declare var OmegaDebug: any;
         `<!-- Please write your comment ABOVE this line. -->\n` +
         `SwitchyOmega ${env.projectVersion}\n${env.userAgent}\n`;
       finalUrl = url + encodeURIComponent(body);
-      const err = localStorage["logLastError"];
+      const err = omegaLogLastError;
       if (err) {
         body += `\n\`\`\`\n${err}\n\`\`\``;
         finalUrl = (url + encodeURIComponent(body)).slice(0, 2000);
