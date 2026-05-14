@@ -6,3 +6,4 @@ tmp/
 *.xpi
 
 .DS_Store
+.vscode

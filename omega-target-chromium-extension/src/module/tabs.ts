@@ -53,7 +53,7 @@ class ChromeTabs {
     this.processTab(tab, changeInfo);
   }
 
-  processTab(tab: any): void {
+  async processTab(tab: any): Promise<void> {
     if (this._badgeTab) {
       for (const id of Object.keys(this._badgeTab)) {
         try {
@@ -81,21 +81,20 @@ class ChromeTabs {
       return;
     }
 
-    this.actionForUrl(tab.url).then((action: any) => {
-      if (!action) {
-        this.clearIcon(tab.id);
-        return;
-      }
-      this.setIcon(action.icon, tab.id);
-      if (chrome.action.setPopup != null) {
-        chrome.action.setTitle({ title: action.title, tabId: tab.id });
-      } else {
-        chrome.action.setTitle({
-          title: action.shortTitle,
-          tabId: tab.id,
-        });
-      }
-    });
+    const action = await this.actionForUrl(tab.url);
+    if (!action) {
+      this.clearIcon(tab.id);
+      return;
+    }
+    this.setIcon(action.icon, tab.id);
+    if (chrome.action.setPopup != null) {
+      chrome.action.setTitle({ title: action.title, tabId: tab.id });
+    } else {
+      chrome.action.setTitle({
+        title: action.shortTitle,
+        tabId: tab.id,
+      });
+    }
   }
 
   setTabBadge(tab: any, badge: any): void {

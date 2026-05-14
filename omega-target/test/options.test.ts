@@ -29,13 +29,13 @@ describe("Options", () => {
       };
       const out = Options.transformValueForSync(value, "+rl");
       out.should.not.equal(value);
-      Object.prototype.hasOwnProperty.call(out, "lastUpdate").should.equal(
-        false,
-      );
+      Object.prototype.hasOwnProperty
+        .call(out, "lastUpdate")
+        .should.equal(false);
       Object.prototype.hasOwnProperty.call(out, "ruleList").should.equal(false);
-      Object.prototype.hasOwnProperty.call(out, "pacScript").should.equal(
-        false,
-      );
+      Object.prototype.hasOwnProperty
+        .call(out, "pacScript")
+        .should.equal(false);
       out.name.should.equal("rl");
       out.sourceUrl.should.equal("https://example.com/rules.txt");
       out.color.should.equal("#123456");
@@ -103,9 +103,9 @@ describe("Options", () => {
       const [result, changes] = await upgrade(opts);
       result.schemaVersion.should.equal(2);
       changes.schemaVersion.should.equal(2);
-      Object.prototype.hasOwnProperty.call(result, "+auto_detect").should.equal(
-        false,
-      );
+      Object.prototype.hasOwnProperty
+        .call(result, "+auto_detect")
+        .should.equal(false);
     });
 
     it("injects +auto_detect when any profile references it", async () => {
@@ -127,13 +127,14 @@ describe("Options", () => {
       result["+auto_detect"].pacUrl.should.equal("http://wpad/wpad.dat");
     });
 
-    it("rejects unknown schemaVersion", () => {
-      return upgrade({ schemaVersion: 99 })
-        .then(() => Promise.reject(new Error("should have rejected")))
-        .catch((e: any) => {
-          e.should.be.instanceOf(Error);
-          e.message.should.contain("schemaVersion");
-        });
+    it("rejects unknown schemaVersion", async () => {
+      try {
+        await upgrade({ schemaVersion: 99 });
+        throw new Error("should have rejected");
+      } catch (e: any) {
+        e.should.be.instanceOf(Error);
+        e.message.should.contain("schemaVersion");
+      }
     });
   });
 

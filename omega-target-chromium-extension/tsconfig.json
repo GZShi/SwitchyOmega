@@ -15,7 +15,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node", "chrome"]
   },
   "include": ["src/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist", "build", "tmp"]

@@ -270,11 +270,12 @@ if (chrome.storage?.sync) {
   // Must be synchronous (before Options.init()) to prevent copyTo() from
   // wiping local data by syncing against an empty sync storage.
   sync.enabled = false;
-  state.get({ syncOptions: "" }).then((st: any) => {
+  void (async () => {
+    const st = await state.get({ syncOptions: "" });
     if (st.syncOptions === "sync") {
       sync.enabled = true;
     }
-  });
+  })();
 }
 
 const proxyImpl = OmegaTargetCurrent.proxy.getProxyImpl(Log);
@@ -299,7 +300,7 @@ const tabs = new OmegaTargetCurrent.ChromeTabs(actionForUrl);
 tabs.watch();
 
 options._inspect = new OmegaTargetCurrent.Inspect(
-  (url: string, tab: any): void => {
+  async (url: string, tab: any): Promise<void> => {
     if (url === tab.url) {
       options.clearBadge();
       tabs.processTab(tab);
@@ -307,26 +308,23 @@ options._inspect = new OmegaTargetCurrent.Inspect(
       return;
     }
     state.set({ inspectUrl: url });
-    actionForUrl(url).then((action: any) => {
-      if (!action) return;
-      const parsedUrl = OmegaTargetCurrent.Url.parse(url);
-      let urlDisp: string;
-      if (
-        parsedUrl.hostname === OmegaTargetCurrent.Url.parse(tab.url).hostname
-      ) {
-        urlDisp = parsedUrl.path;
-      } else {
-        urlDisp = parsedUrl.hostname;
-      }
-      const title = `${chrome.i18n.getMessage(
-        "browserAction_titleInspect",
-        urlDisp,
-      )}\n${action.title}`;
-      chrome.action.setTitle({ title, tabId: tab.id });
-      tabs.setTabBadge(tab, {
-        text: "#",
-        color: action.resultColor,
-      });
+    const action = await actionForUrl(url);
+    if (!action) return;
+    const parsedUrl = OmegaTargetCurrent.Url.parse(url);
+    let urlDisp: string;
+    if (parsedUrl.hostname === OmegaTargetCurrent.Url.parse(tab.url).hostname) {
+      urlDisp = parsedUrl.path;
+    } else {
+      urlDisp = parsedUrl.hostname;
+    }
+    const title = `${chrome.i18n.getMessage(
+      "browserAction_titleInspect",
+      urlDisp,
+    )}\n${action.title}`;
+    chrome.action.setTitle({ title, tabId: tab.id });
+    tabs.setTabBadge(tab, {
+      text: "#",
+      color: action.resultColor,
     });
   },
 );
@@ -459,47 +457,50 @@ async function refreshActivePageIfEnabled(): Promise<void> {
 }
 
 chrome.runtime.onMessage.addListener(
-  (
+  async (
     request: any,
     _sender: any,
     respond: (response: any) => void,
-  ): boolean | undefined => {
+  ): Promise<boolean | undefined> => {
     if (!request?.method) return;
-    options.ready.then(async (): Promise<void> => {
-      let target: any;
-      let method: any;
-      if (request.method === "getState") {
-        target = state;
-        method = state.get;
-      } else {
-        target = options;
-        method = target[request.method];
-      }
-      if (typeof method !== "function") {
-        Log.error(`No such method ${request.method}!`);
-        respond({ error: { reason: "noSuchMethod" } });
-        return;
-      }
+    await options.ready;
 
-      const promise = method.apply(target, request.args);
-      if (request.refreshActivePage) {
-        promise.then(refreshActivePageIfEnabled);
-      }
-      if (request.noReply) return;
+    let target: any;
+    let method: any;
+    if (request.method === "getState") {
+      target = state;
+      method = state.get;
+    } else {
+      target = options;
+      method = target[request.method];
+    }
+    if (typeof method !== "function") {
+      Log.error(`No such method ${request.method}!`);
+      respond({ error: { reason: "noSuchMethod" } });
+      return;
+    }
 
-      try {
-        const result = await promise;
-        if (request.method === "updateProfile") {
-          for (const key of Object.keys(result)) {
-            result[key] = encodeError(result[key]);
-          }
+    const promise = method.apply(target, request.args);
+    if (request.refreshActivePage) {
+      void (async () => {
+        await promise;
+        refreshActivePageIfEnabled();
+      })();
+    }
+    if (request.noReply) return;
+
+    try {
+      const result = await promise;
+      if (request.method === "updateProfile") {
+        for (const key of Object.keys(result)) {
+          result[key] = encodeError(result[key]);
         }
-        respond({ result });
-      } catch (error: any) {
-        Log.error(`${request.method} ==>`, error);
-        respond({ error: encodeError(error) });
       }
-    });
+      respond({ result });
+    } catch (error: any) {
+      Log.error(`${request.method} ==>`, error);
+      respond({ error: encodeError(error) });
+    }
 
     if (request.noReply) return;
     return true;

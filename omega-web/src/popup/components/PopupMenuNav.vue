@@ -75,8 +75,9 @@ function getStatusClass(profileName: string): string {
   return '';
 }
 
-function openOptions(hash?: string) {
-  target.openOptions(hash).then(() => store.closeWindow());
+async function openOptions(hash?: string) {
+  await target.openOptions(hash);
+  store.closeWindow();
 }
 
 // Temp rule dropdown state

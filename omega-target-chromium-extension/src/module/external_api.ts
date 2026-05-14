@@ -53,7 +53,8 @@ class ExternalApi {
           (this.options.currentProfile() != null
             ? this.options.currentProfile().name
             : null) ?? "system";
-        this.options.applyProfile("system").then(() => {
+        void (async () => {
+          await this.options.applyProfile("system");
           let reason = "disabled";
           if (this.knownExts[port.sender.id] >= 32) {
             reason = "upgrade";
@@ -62,7 +63,7 @@ class ExternalApi {
             text: "X",
             color: "#5ab432",
           });
-        });
+        })();
         if (chrome.action.setPopup != null) {
           chrome.action.setPopup({ popup: "popup/index.html" });
         }

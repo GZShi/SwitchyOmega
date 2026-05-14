@@ -37,23 +37,22 @@ function updateConditionType(type: string) {
   store.rule.condition.conditionType = type;
 }
 
-function addCondition() {
+async function addCondition() {
   const condition = { ...store.rule.condition };
   const _profileName = store.rule.profileName;
   store.returnToMenu();
-  // Call omegaTarget to add condition
-  // Since OmegaTargetPopup doesn't have a direct addCondition method,
-  // we need to open the options page for this.
-  target.openOptions(
-    `#/profile/${ 
-    encodeURIComponent(store.currentProfileName) 
+  await target.openOptions(
+    `#/profile/${
+    encodeURIComponent(store.currentProfileName)
     }?addCondition=${  encodeURIComponent(JSON.stringify(condition))}`,
-  ).then(() => store.closeWindow());
+  );
+  store.closeWindow();
 }
 
-function openConditionHelp() {
+async function openConditionHelp() {
   const pname = encodeURIComponent(store.currentProfileName);
-  target.openOptions(`#/profile/${  pname  }?help=condition`).then(() => store.closeWindow());
+  await target.openOptions(`#/profile/${  pname  }?help=condition`);
+  store.closeWindow();
 }
 </script>
 

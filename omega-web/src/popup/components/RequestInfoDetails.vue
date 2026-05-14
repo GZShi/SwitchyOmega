@@ -24,7 +24,7 @@ function getProfileName(name: string): string {
   return target.getMessage(`profile_${  name}`) || name;
 }
 
-function addConditionsForDomains() {
+async function addConditionsForDomains() {
   const domains: Record<string, boolean> = {};
   for (const [domain, enabled] of Object.entries(domainsForCondition.value)) {
     if (enabled) domains[domain] = true;
@@ -36,15 +36,17 @@ function addConditionsForDomains() {
     conditionType: 'HostWildcardCondition',
     pattern: domain,
   }));
-  target.openOptions(
-    `#/profile/${ 
-    encodeURIComponent(store.currentProfileName) 
+  await target.openOptions(
+    `#/profile/${
+    encodeURIComponent(store.currentProfileName)
     }?addCondition=${  encodeURIComponent(JSON.stringify(conditions))}`,
-  ).then(() => store.closeWindow());
+  );
+  store.closeWindow();
 }
 
-function openManage() {
-  target.openManage().then(() => store.closeWindow());
+async function openManage() {
+  await target.openManage()
+  store.closeWindow()
 }
 </script>
 

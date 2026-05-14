@@ -130,25 +130,28 @@ class Options {
         await this._storage.apply({ changes });
         this._options = upgradedOpts;
         this._watchStop = this._watch();
-        this._state.get({ syncOptions: "" }).then((st: any) => {
+        void (async () => {
+          const st = await this._state.get({ syncOptions: "" });
           if (st.syncOptions) return;
-          this._state.set({ syncOptions: "conflict" });
-          this.sync.storage.get("schemaVersion").then((sv: any) => {
-            if (!sv.schemaVersion) this._state.set({ syncOptions: "pristine" });
-          });
-        });
+          await this._state.set({ syncOptions: "conflict" });
+          const sv = await this.sync.storage.get("schemaVersion");
+          if (!sv.schemaVersion) {
+            await this._state.set({ syncOptions: "pristine" });
+          }
+        })();
         return upgradedOpts;
       } catch (e: any) {
         if (retry <= 0) throw e;
 
         let fallbackOpts: any;
         if (e instanceof Options.NoOptionsError) {
-          this._state
-            .get({
+          void (async () => {
+            const items = await this._state.get({
               firstRun: "new",
               "web.switchGuide": "showOnFirstUse",
-            })
-            .then((items: any) => this._state.set(items));
+            });
+            await this._state.set(items);
+          })();
           if (this.sync == null) {
             fallbackOpts = null;
           } else {
@@ -224,13 +227,13 @@ class Options {
       return this.getAll();
     })();
 
-    this.ready.then(() => {
+    void (async () => {
+      await this.ready;
       if (this.sync?.enabled) this.sync.requestPush(this._options);
-      this._state.get({ firstRun: "" }).then((st: any) => {
-        if (st.firstRun) this.onFirstRun(st.firstRun);
-      });
+      const st = await this._state.get({ firstRun: "" });
+      if (st.firstRun) this.onFirstRun(st.firstRun);
       if (this._options["-downloadInterval"] > 0) this.updateProfile();
-    });
+    })();
 
     return this.ready;
   }
@@ -649,17 +652,15 @@ class Options {
 
     if (options?.update === false) return applyProxy;
 
-    applyProxy.then(() => {
+    void (async () => {
+      await applyProxy;
       if (this._options["-downloadInterval"] <= 0) return;
       if (this._currentProfileName !== profile.name) return;
-      const updateProfiles: string[] = [];
-      for (const name of Object.values(this._watchingProfiles) as string[]) {
-        updateProfiles.push(name);
-      }
+      const updateProfiles = Object.values(this._watchingProfiles) as string[];
       if (updateProfiles.length > 0) {
         this.updateProfile(updateProfiles);
       }
-    });
+    })();
     return applyProxy;
   }
 

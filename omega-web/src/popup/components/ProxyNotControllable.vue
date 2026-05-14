@@ -5,8 +5,9 @@ import { usePopupStore } from '@/stores/popup';
 const target = usePopupTarget();
 const store = usePopupStore();
 
-function openManage() {
-  target.openManage().then(() => store.closeWindow());
+async function openManage() {
+  await target.openManage();
+  store.closeWindow();
 }
 </script>
 

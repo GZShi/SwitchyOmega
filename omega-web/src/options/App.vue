@@ -48,27 +48,26 @@ function hideAlert() {
 };
 
 // First-run / upgrade wizard
-function showFirstRun() {
+async function showFirstRun() {
   if (!showFirstRunOnce) return;
   showFirstRunOnce = false;
 
-  omega.state('firstRun').then((firstRun: string) => {
-    if (!firstRun) return;
-    omega.state('firstRun', '');
+  const firstRun = await omega.state('firstRun');
+  if (!firstRun) return;
+  omega.state('firstRun', '');
 
-    // Find first FixedProfile to show
-    let profileName: string | null = null;
-    const opts = optionsStore.options;
-    OmegaPac.Profiles.each(opts, (_key: string, profile: any) => {
-      if (!profileName && profile.profileType === 'FixedProfile') {
-        profileName = profile.name;
-      }
-    });
-    if (!profileName) return;
-
-    welcomeIsUpgrade.value = firstRun === 'upgrade';
-    showWelcome.value = true;
+  // Find first FixedProfile to show
+  let profileName: string | null = null;
+  const opts = optionsStore.options;
+  OmegaPac.Profiles.each(opts, (_key: string, profile: any) => {
+    if (!profileName && profile.profileType === 'FixedProfile') {
+      profileName = profile.name;
+    }
   });
+  if (!profileName) return;
+
+  welcomeIsUpgrade.value = firstRun === 'upgrade';
+  showWelcome.value = true;
 }
 
 function handleWelcomeResult(result: string) {

@@ -1,31 +1,27 @@
-// omegaTarget service for the options page.
-// ES module — imported by options/main.ts and built by Vite.
-
+import {
+  sendMessage,
+  sendMessageNoReply,
+  connect,
+  getURL,
+  RUNTIME_ID,
+} from "@/services/chrome/runtime";
+import { query, update, create, reload } from "@/services/chrome/tabs";
+import { localGet, localSet, localAvailable } from "@/services/chrome/storage";
+import { getMessage } from "@/services/chrome/i18n";
 import type { OmegaTargetWeb } from "@/types/globals";
-
-declare let chrome: any;
 
 const prefix = "omega.local.";
 const urlParser = document.createElement("a");
-const storageArea =
-  typeof chrome !== "undefined" && chrome?.storage?.local
-    ? chrome.storage.local
-    : null;
 
-function callBackground(method: string, ...args: any[]): Promise<any> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ method, args }, (response: any) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
-      }
-      if (response.error) {
-        reject(_decodeError(response.error));
-      } else {
-        resolve(response.result);
-      }
-    });
+async function callBackground(method: string, ...args: any[]): Promise<any> {
+  const response = await sendMessage<{ error?: any; result?: any }>({
+    method,
+    args,
   });
+  if (response.error) {
+    throw _decodeError(response.error);
+  }
+  return response.result;
 }
 
 function _decodeError(obj: any): Error {
@@ -56,7 +52,7 @@ function _connectBackground(
   message: any,
   callback: (info: any) => void,
 ): void {
-  const port = chrome.runtime.connect({ name });
+  const port = connect(name);
   port.onDisconnect.addListener(() => {
     port.onMessage.removeListener(callback);
   });
@@ -67,28 +63,21 @@ function _connectBackground(
 export const omegaTarget: OmegaTargetWeb = {
   options: null as Record<string, any> | null,
 
-  state(name: string | string[], value?: any): Promise<any> {
-    if (!storageArea) return Promise.resolve(undefined);
+  async state(name: string | string[], value?: any): Promise<any> {
+    if (!localAvailable) return undefined;
     if (arguments.length === 1) {
       if (Array.isArray(name)) {
         const keys = name.map((k) => prefix + k);
-        return new Promise((resolve) => {
-          storageArea.get(keys, (result: Record<string, any>) => {
-            resolve(name.map((k) => result[prefix + k] ?? undefined));
-          });
-        });
+        const result = await localGet(keys);
+        return name.map((k) => result[prefix + k] ?? undefined);
       }
-      return new Promise((resolve) => {
-        storageArea.get(prefix + name, (result: Record<string, any>) => {
-          resolve(result[prefix + name] ?? undefined);
-        });
-      });
+      const result = await localGet(prefix + name);
+      return result[prefix + name] ?? undefined;
     }
     const items: Record<string, any> = {};
     items[prefix + (name as string)] = value;
-    return new Promise((resolve) => {
-      storageArea.set(items, () => resolve(value));
-    });
+    await localSet(items);
+    return value;
   },
 
   lastUrl(url?: string): Promise<string | undefined> {
@@ -144,30 +133,26 @@ export const omegaTarget: OmegaTargetWeb = {
     return omegaTarget.refresh();
   },
 
-  getMessage: chrome.i18n.getMessage.bind(chrome.i18n),
+  getMessage,
 
-  openOptions(hash?: string): Promise<void> {
-    return new Promise((resolve) => {
-      const optionsUrl = chrome.runtime.getURL("options/index.html");
-      chrome.tabs.query({ url: optionsUrl }, (tabs: any[]) => {
-        let url: string;
-        if (hash) {
-          urlParser.href = tabs[0]?.url ?? optionsUrl;
-          urlParser.hash = hash;
-          url = urlParser.href;
-        } else {
-          url = optionsUrl;
-        }
-        if (tabs.length > 0) {
-          const props: any = { active: true };
-          if (hash) props.url = url;
-          chrome.tabs.update(tabs[0].id, props);
-        } else {
-          chrome.tabs.create({ url });
-        }
-        resolve();
-      });
-    });
+  async openOptions(hash?: string): Promise<void> {
+    const optionsUrl = getURL("options/index.html");
+    const tabs = await query({ url: optionsUrl });
+    let url: string;
+    if (hash) {
+      urlParser.href = tabs[0]?.url ?? optionsUrl;
+      urlParser.hash = hash;
+      url = urlParser.href;
+    } else {
+      url = optionsUrl;
+    }
+    if (tabs.length > 0) {
+      const props: any = { active: true };
+      if (hash) props.url = url;
+      await update(tabs[0].id, props);
+    } else {
+      await create({ url });
+    }
   },
 
   applyProfile(name: string): Promise<any> {
@@ -175,7 +160,7 @@ export const omegaTarget: OmegaTargetWeb = {
   },
 
   applyProfileNoReply(name: string): void {
-    chrome.runtime.sendMessage({
+    sendMessageNoReply({
       method: "applyProfile",
       args: [name],
       noReply: true,
@@ -202,51 +187,30 @@ export const omegaTarget: OmegaTargetWeb = {
     return callBackground("setDefaultProfile", profileName, defaultProfileName);
   },
 
-  getActivePageInfo(): Promise<any> {
-    return new Promise((resolve) => {
-      chrome.tabs.query(
-        { active: true, lastFocusedWindow: true },
-        (tabs: any[]) => {
-          if (!tabs[0]?.url) {
-            resolve(null);
-            return;
-          }
-          const args = { tabId: tabs[0].id, url: tabs[0].url };
-          if (tabs[0].id && requestInfoCallback) {
-            _connectBackground("tabRequestInfo", args, requestInfoCallback);
-          }
-          resolve(
-            callBackground("getPageInfo", args).then((info: any) =>
-              info?.url ? info : null,
-            ),
-          );
-        },
-      );
-    });
+  async getActivePageInfo(): Promise<any> {
+    const tabs = await query({ active: true, lastFocusedWindow: true });
+    if (!tabs[0]?.url) return null;
+    const args = { tabId: tabs[0].id, url: tabs[0].url };
+    if (tabs[0].id && requestInfoCallback) {
+      _connectBackground("tabRequestInfo", args, requestInfoCallback);
+    }
+    const info = await callBackground("getPageInfo", args);
+    return info?.url ? info : null;
   },
 
-  refreshActivePage(): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.tabs.query(
-        { active: true, lastFocusedWindow: true },
-        (tabs: any[]) => {
-          if (tabs[0]?.url && !_isChromeUrl(tabs[0].url)) {
-            chrome.tabs.reload(tabs[0].id, { bypassCache: true });
-          }
-          resolve();
-        },
-      );
-    });
+  async refreshActivePage(): Promise<void> {
+    const tabs = await query({ active: true, lastFocusedWindow: true });
+    if (tabs[0]?.url && !_isChromeUrl(tabs[0].url)) {
+      await reload(tabs[0].id, { bypassCache: true });
+    }
   },
 
   openManage(): void {
-    chrome.tabs.create({
-      url: `chrome://extensions/?id=${chrome.runtime.id}`,
-    });
+    create({ url: `chrome://extensions/?id=${RUNTIME_ID}` });
   },
 
   openShortcutConfig(): void {
-    chrome.tabs.create({ url: "chrome://extensions/configureCommands" });
+    create({ url: "chrome://extensions/configureCommands" });
   },
 
   setOptionsSync(enabled: boolean, args?: any): Promise<any> {

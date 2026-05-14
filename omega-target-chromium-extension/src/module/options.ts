@@ -69,15 +69,14 @@ class ChromeOptions extends OmegaTarget.Options {
     this._quickSwitchCanEnable = canEnable;
     if (!this._quickSwitchHandlerReady) {
       this._quickSwitchHandlerReady = true;
-      (self as any).OmegaContextMenuQuickSwitchHandler = (info: any) => {
+      (self as any).OmegaContextMenuQuickSwitchHandler = async (info: any) => {
         const changes: any = {};
         changes["-enableQuickSwitch"] = info.checked;
         const setOptions = this._setOptions(changes);
         if (info.checked && !this._quickSwitchCanEnable) {
-          setOptions.then(() => {
-            chrome.tabs.create({
-              url: chrome.runtime.getURL("options/index.html#/ui"),
-            });
+          await setOptions;
+          chrome.tabs.create({
+            url: chrome.runtime.getURL("options/index.html#/ui"),
           });
         }
       };
@@ -89,7 +88,7 @@ class ChromeOptions extends OmegaTarget.Options {
       }
       if (!this._quickSwitchInit) {
         this._quickSwitchInit = true;
-        chrome.action.onClicked.addListener((tab: any) => {
+        chrome.action.onClicked.addListener(async (tab: any) => {
           this.clearBadge();
           if (!this._options["-enableQuickSwitch"]) {
             chrome.tabs.create({ url: "popup/index.html" });
@@ -98,16 +97,15 @@ class ChromeOptions extends OmegaTarget.Options {
           const profiles = this._options["-quickSwitchProfiles"];
           let index = profiles.indexOf(this._currentProfileName);
           index = (index + 1) % profiles.length;
-          this.applyProfile(profiles[index]).then(() => {
-            if (this._options["-refreshOnProfileChange"]) {
-              const url = tab.url;
-              if (!url) return;
-              if (url.startsWith("chrome")) return;
-              if (url.startsWith("about:")) return;
-              if (url.startsWith("moz-")) return;
-              chrome.tabs.reload(tab.id);
-            }
-          });
+          await this.applyProfile(profiles[index]);
+          if (this._options["-refreshOnProfileChange"]) {
+            const url = tab.url;
+            if (!url) return;
+            if (url.startsWith("chrome")) return;
+            if (url.startsWith("about:")) return;
+            if (url.startsWith("moz-")) return;
+            chrome.tabs.reload(tab.id);
+          }
         });
       }
     } else {
