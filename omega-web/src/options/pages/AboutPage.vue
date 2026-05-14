@@ -48,7 +48,7 @@ function handleReset(opt?: any) {
         class="btn btn-default"
         @click="reportIssue()"
       >
-        {{ omega.getMessage('about_help') }}
+        {{ omega.getMessage('popup_reportIssues') }}
       </button>
       <button
         class="btn btn-danger"

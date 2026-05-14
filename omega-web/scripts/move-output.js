@@ -5,8 +5,8 @@
 // Vite preserves source paths relative to root, so src/options/index.html
 // becomes build/src/options/index.html. This script flattens them per
 // the expected extension layout:
-//   build/options.html (from build/src/options/index.html)
-//   build/popup/index.html (from build/src/popup/index.html)
+//   build/options/index.html (from build/src/options/index.html)
+//   build/popup/index.html  (from build/src/popup/index.html)
 
 const fs = require("fs");
 const path = require("path");
@@ -41,7 +41,7 @@ const htmlFiles = collectHtml(srcBuildDir);
 for (const srcPath of htmlFiles) {
   // e.g., build/src/options/index.html → options/index.html
   //       build/src/popup/index.html  → popup/index.html
-  const relPath = path.relative(srcBuildDir, srcPath);
+  let relPath = path.relative(srcBuildDir, srcPath);
   const destPath = path.join(buildDir, relPath);
   mkdir(path.dirname(destPath));
   fs.renameSync(srcPath, destPath);

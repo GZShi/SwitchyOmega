@@ -38,7 +38,7 @@ export default defineConfig([
     target: "es2022",
     platform: "browser",
     minify: false,
-    sourcemap: true,
+    sourcemap: false,
     deps: {
       alwaysBundle: ["omega-pac", "omega-target", "heap-js"],
     },

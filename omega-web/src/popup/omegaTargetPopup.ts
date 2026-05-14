@@ -1,4 +1,8 @@
-function callBackgroundNoReply(method: string, args: any[], cb?: Function): void {
+function callBackgroundNoReply(
+  method: string,
+  args: any[],
+  cb?: Function,
+): void {
   chrome.runtime.sendMessage({
     method,
     args,
@@ -26,7 +30,7 @@ export const OmegaTargetPopup = {
   },
 
   openOptions(hash?: string, cb?: Function): void {
-    const options_url = chrome.runtime.getURL("options.html");
+    const options_url = chrome.runtime.getURL("options/index.html");
 
     chrome.tabs.query({ url: options_url }, (tabs: any[]) => {
       if (!chrome.runtime.lastError && tabs && tabs.length > 0) {
@@ -43,15 +47,26 @@ export const OmegaTargetPopup = {
   },
 
   getActivePageInfo(cb?: Function): void {
-    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs: any[]) => {
-      if (tabs.length === 0 || !tabs[0].url) return cb?.();
-      const args = { tabId: tabs[0].id, url: tabs[0].url };
-      callBackground("getPageInfo", [args], cb);
-    });
+    chrome.tabs.query(
+      { active: true, lastFocusedWindow: true },
+      (tabs: any[]) => {
+        if (tabs.length === 0 || !tabs[0].url) return cb?.();
+        const args = { tabId: tabs[0].id, url: tabs[0].url };
+        callBackground("getPageInfo", [args], cb);
+      },
+    );
   },
 
-  setDefaultProfile(profileName: string, defaultProfileName: string, cb?: Function): void {
-    callBackgroundNoReply("setDefaultProfile", [profileName, defaultProfileName], cb);
+  setDefaultProfile(
+    profileName: string,
+    defaultProfileName: string,
+    cb?: Function,
+  ): void {
+    callBackgroundNoReply(
+      "setDefaultProfile",
+      [profileName, defaultProfileName],
+      cb,
+    );
   },
 
   addTempRule(domain: string, profileName: string, cb?: Function): void {
@@ -59,7 +74,7 @@ export const OmegaTargetPopup = {
   },
 
   openManage(): void {
-    chrome.tabs.create({ url: `chrome://extensions/?id=${  chrome.runtime.id}` });
+    chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
   },
 
   getMessage: chrome.i18n.getMessage.bind(chrome.i18n),

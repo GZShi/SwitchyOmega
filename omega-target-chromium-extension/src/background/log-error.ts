@@ -1,7 +1,7 @@
 // Error logger for the service worker.  Registers a global `onerror`
 // handler at module load time so that unhandled errors end up in the
 // shared log buffer.
-import { logState } from "./log_state.js";
+import { logState } from "./log-state.js";
 
 (self as any).onerror = (
   message: any,

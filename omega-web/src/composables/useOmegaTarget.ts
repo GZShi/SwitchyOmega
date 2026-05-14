@@ -1,4 +1,4 @@
-import { omegaTarget } from "@/omega_target_web";
+import { omegaTarget } from "@/services/omegaTarget";
 
 export function useOmegaTarget() {
   return omegaTarget;

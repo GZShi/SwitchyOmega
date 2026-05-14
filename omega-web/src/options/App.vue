@@ -83,10 +83,6 @@ function handleWelcomeResult(result: string) {
     });
     if (profileName) {
       router.push(`/profile/${  encodeURIComponent(profileName)}`);
-      // Load options guide (shepherd.js)
-      const script = document.createElement('script');
-      script.src = 'js/options_guide.js';
-      document.body.appendChild(script);
     }
   }
 }
@@ -158,8 +154,8 @@ onMounted(async () => {
 </template>
 
 <style lang="less">
-@import '../less/common.less';
-@import '../less/options.less';
+@import '../styles/common.less';
+@import '../styles/options.less';
 
 // Phase A: Flexbox layout replaces Bootstrap's float-based grid + position:fixed
 // This avoids overlap issues at breakpoint transitions.

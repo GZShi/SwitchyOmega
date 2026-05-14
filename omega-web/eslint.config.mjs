@@ -108,7 +108,7 @@ export default ts.config(
       "node_modules/",
       "lib/",
       "scripts/",
-      "src/guides/",
+      "src/options/guides/",
     ],
   },
 );

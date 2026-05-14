@@ -1,7 +1,7 @@
 // omegaTarget service for the options page.
 // ES module — imported by options/main.ts and built by Vite.
 
-import type { OmegaTargetWeb } from "./types/globals";
+import type { OmegaTargetWeb } from "@/types/globals";
 
 declare let chrome: any;
 
@@ -109,8 +109,10 @@ export const omegaTarget: OmegaTargetWeb = {
   async refresh(): Promise<any> {
     const opt = await callBackground("getAll");
     omegaTarget.options = opt;
-    for (const cb of optionsChangeCallbacks) {
-      cb(omegaTarget.options);
+    if (opt) {
+      for (const cb of optionsChangeCallbacks) {
+        cb(opt);
+      }
     }
   },
 
@@ -146,7 +148,7 @@ export const omegaTarget: OmegaTargetWeb = {
 
   openOptions(hash?: string): Promise<void> {
     return new Promise((resolve) => {
-      const optionsUrl = chrome.runtime.getURL("options.html");
+      const optionsUrl = chrome.runtime.getURL("options/index.html");
       chrome.tabs.query({ url: optionsUrl }, (tabs: any[]) => {
         let url: string;
         if (hash) {

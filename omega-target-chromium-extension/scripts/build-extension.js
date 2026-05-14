@@ -21,6 +21,7 @@ function copyDir(src, dest) {
   }
   const entries = fs.readdirSync(src, { withFileTypes: true });
   for (const entry of entries) {
+    if (entry.name === ".DS_Store") continue;
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
@@ -55,7 +56,8 @@ const backgroundFiles = fs
   .filter((f) => f.endsWith(".ts"));
 for (const file of backgroundFiles) {
   const src = path.join(backgroundDir, file);
-  const outDir = file === "sw.ts" ? buildDir : path.join(buildDir, "js");
+  const outDir =
+    file === "sw.ts" ? buildDir : path.join(buildDir, "js", "background");
   try {
     execSync(
       `"${path.join(root, "node_modules", ".bin", "tsc")}" --target ES2022 --module esnext --skipLibCheck --outDir "${outDir}" "${src}"`,
@@ -72,9 +74,8 @@ copyDir(webBuildDir, buildDir);
 console.log("=== Step 3: Copy overlay files (manifest, etc.) ===");
 copyDir(path.join(root, "overlay"), buildDir);
 
-console.log("=== Step 4: Copy docs (COPYING, AUTHORS) ===");
+console.log("=== Step 4: Copy docs (COPYING) ===");
 copyFile(path.join(root, "..", "COPYING"), path.join(buildDir, "COPYING"));
-copyFile(path.join(root, "..", "AUTHORS"), path.join(buildDir, "AUTHORS"));
 
 console.log("=== Step 5: Build locale files (.po → Chrome messages.json) ===");
 require("./build-locales");

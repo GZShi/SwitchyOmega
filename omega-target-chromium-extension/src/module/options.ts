@@ -76,7 +76,7 @@ class ChromeOptions extends OmegaTarget.Options {
         if (info.checked && !this._quickSwitchCanEnable) {
           setOptions.then(() => {
             chrome.tabs.create({
-              url: chrome.runtime.getURL("options.html#/ui"),
+              url: chrome.runtime.getURL("options/index.html#/ui"),
             });
           });
         }
@@ -323,7 +323,7 @@ class ChromeOptions extends OmegaTarget.Options {
   }
 
   onFirstRun(_reason: string): void {
-    chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+    chrome.tabs.create({ url: chrome.runtime.getURL("options/index.html") });
   }
 
   async getPageInfo({

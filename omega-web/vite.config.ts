@@ -24,20 +24,15 @@ export default defineConfig({
         },
       },
       input: {
-        options: resolve(__dirname, "src/options.html"),
-        "popup/index": resolve(__dirname, "src/popup/index.html"),
-        options_guide: resolve(__dirname, "src/guides/options_guide.ts"),
-        switch_profile_guide: resolve(
-          __dirname,
-          "src/guides/switch_profile_guide.ts",
-        ),
+        options: resolve(__dirname, "src/options/index.html"),
+        popup: resolve(__dirname, "src/popup/index.html"),
       },
     },
   },
   css: {
     preprocessorOptions: {
       less: {
-        paths: [resolve(__dirname, "src/less")],
+        paths: [resolve(__dirname, "src/styles")],
       },
     },
   },

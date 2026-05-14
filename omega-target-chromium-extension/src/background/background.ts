@@ -1,10 +1,9 @@
-import { logState } from "./log_state.js";
+import { logState } from "./log-state.js";
 // @ts-expect-error – no .d.ts for these ESM bundles – modules.mjs is a tsdown ESM bundle with no .d.ts
-import OmegaTargetChromium from "./modules.mjs";
+import OmegaTargetChromium from "../modules.mjs";
 // draw_omega.js is a plain JS file in img/icons/ — the relative path
-// from build/js/ is ../img/icons/draw_omega.js
-// @ts-expect-error – no .d.ts for these ESM bundles
-import { drawOmega } from "../img/icons/draw_omega.js";
+// from build/js/background/ is ../../img/icons/draw_omega.js
+import { drawOmega } from "../../img/icons/draw_omega.js";
 
 declare let chrome: any;
 

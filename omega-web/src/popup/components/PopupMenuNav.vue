@@ -18,6 +18,7 @@ const iconForProfileType: Record<string, string> = {
 };
 
 function getIcon(profile: any): string {
+  if (!profile) return 'glyphicon-question-sign';
   let targetProfile = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];
@@ -26,6 +27,7 @@ function getIcon(profile: any): string {
 }
 
 function getIconColor(profile: any): string {
+  if (!profile) return '#aaa';
   let targetProfile = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];
@@ -34,11 +36,13 @@ function getIconColor(profile: any): string {
 }
 
 function isVirtual(profile: any): boolean {
+  if (!profile) return false;
   if (profile.profileType === 'VirtualProfile') return true;
   return false;
 }
 
 function getProfileTitle(profile: any): string {
+  if (!profile) return '';
   let targetProfile = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];

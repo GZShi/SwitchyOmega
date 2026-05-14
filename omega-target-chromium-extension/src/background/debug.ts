@@ -1,4 +1,4 @@
-import { logState } from "./log_state.js";
+import { logState } from "./log-state.js";
 
 declare let chrome: any;
 
