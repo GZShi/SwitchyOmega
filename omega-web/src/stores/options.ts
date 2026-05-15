@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref } from "vue";
 import { useOmegaTarget } from "@/composables/useOmegaTarget";
 import { useOmegaPac } from "@/composables/useOmegaPac";
@@ -39,17 +40,32 @@ export const useOptionsStore = defineStore("options", () => {
 
   async function applyOptions(): Promise<void> {
     if (optionsDirty.value && optionsOld.value) {
+      // Update revision for any profiles modified by the user before
+      // computing the diff, so the background can detect the change.
+      for (const key of Object.keys(options.value)) {
+        if (!key.startsWith("+")) continue;
+        const currentProfile = options.value[key];
+        const oldProfile = optionsOld.value[key];
+        if (!currentProfile || !oldProfile) continue;
+        // Compare ignoring revision to avoid bumping on revision-only changes.
+        const { revision: _cr, ...curr } = currentProfile;
+        const { revision: _or, ...old } = oldProfile;
+        if (JSON.stringify(curr) !== JSON.stringify(old)) {
+          OmegaPac.Profiles.updateRevision(currentProfile);
+        }
+      }
+
       const plainOptions = JSON.parse(JSON.stringify(options.value));
       const patch = diffEngine.diff(optionsOld.value, plainOptions);
       await omega.optionsPatch(patch);
-      showAlert("success", omega.getMessage("options_saveSuccess"));
+      showAlert("success", $t("options_saveSuccess"));
     }
   }
 
   async function resetOptions(opt?: any): Promise<void> {
     try {
       await omega.resetOptions(opt);
-      showAlert("success", omega.getMessage("options_resetSuccess"));
+      showAlert("success", $t("options_resetSuccess"));
     } catch (err: any) {
       showAlert("error", String(err));
       throw err;

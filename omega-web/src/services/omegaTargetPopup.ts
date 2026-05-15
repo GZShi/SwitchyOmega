@@ -73,6 +73,10 @@ export const omegaTargetPopup = {
     return Promise.resolve();
   },
 
+  addProfile(profile: any): Promise<any> {
+    return callBackground("addProfile", [profile]);
+  },
+
   openManage(): Promise<any> {
     return create({ url: `chrome://extensions/?id=${RUNTIME_ID}` });
   },

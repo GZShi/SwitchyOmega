@@ -111,6 +111,17 @@ function handleAddRule() {
   store.prepareConditionForm();
 }
 
+// External profile editing
+const externalName = ref(store.externalProfile?.name ?? '');
+
+async function handleSaveExternal() {
+  const name = externalName.value.trim();
+  if (name) {
+    await store.saveExternal(name);
+  }
+}
+
+
 // Filter for validResultProfiles dropdown - exclude __ profiles and skip self when multiple
 function filterDropdownProfiles(profileName: string, validProfiles: string[]): any[] {
   const currentName = store.currentTempRuleProfile;
@@ -190,6 +201,42 @@ const hasTempRule = computed(() => store.validResultProfiles.length > 0);
         <span class="om-reqinfo-text">
           {{ target.getMessage('popup_requestErrorCount', [String(store.pageInfo.errorCount)]) }}
         </span>
+      </a>
+    </li>
+
+    <!-- External Profile -->
+    <li
+      v-if="!store.requestInfoProvided && !!store.externalProfile"
+      :class="['om-nav-item', 'external-profile', getStatusClass('')]"
+    >
+      <a
+        id="js-external"
+        href="#"
+        role="button"
+        :title="getProfileTitle(store.externalProfile)"
+        @click.prevent="store.saveExternalOpen = !store.saveExternalOpen"
+      >
+        <span
+          :class="['glyphicon', getIcon(store.externalProfile)]"
+          :style="{ color: getIconColor(store.externalProfile) }"
+        />
+        <span
+          v-if="!store.saveExternalOpen"
+          class="om-profile-name"
+        >{{ target.getMessage('popup_externalProfile') }}</span>
+        <form
+          v-if="store.saveExternalOpen"
+          style="display: inline;"
+          @submit.prevent="handleSaveExternal()"
+        >
+          <input
+            v-model="externalName"
+            :placeholder="target.getMessage('popup_externalProfileName')"
+            autofocus
+            style="width: 120px;"
+            @blur="handleSaveExternal()"
+          >
+        </form>
       </a>
     </li>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useOptionsStore } from '@/stores/options';
@@ -101,7 +102,7 @@ async function redirectToLastUrl() {
 // Window close warning
 window.onbeforeunload = () => {
   if (optionsStore.optionsDirty) {
-    return omega.getMessage('options_optionsNotSaved');
+    return $t('options_optionsNotSaved');
   }
   return null;
 };

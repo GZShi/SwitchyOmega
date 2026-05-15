@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
+import { ref, computed, watch } from 'vue';
 import { useOptionsStore } from '@/stores/options';
+import { isFirefox } from '@/services/chrome';
+import { getMessage as $t } from '@/services/chrome/i18n';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
 defineProps<{ profileName: string }>();
-const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 
 const showAdvanced = ref(false);
@@ -15,7 +15,7 @@ const authScheme = ref('');
 
 const urlSchemes = ['', 'http', 'https', 'ftp'];
 const schemeDisp: Record<string, string> = {
-  '': omega.getMessage('options_scheme_default') || 'Default',
+  '': $t('options_scheme_default') || 'Default',
   http: 'HTTP',
   https: 'HTTPS',
   ftp: 'FTP',
@@ -26,14 +26,42 @@ const schemeProps: Record<string, string> = {
   https: 'proxyForHttps',
   ftp: 'proxyForFtp',
 };
+
+const defaultPort: Record<string, number> = {
+  http: 80,
+  https: 443,
+  socks4: 1080,
+  socks5: 1080,
+};
+
+const authSupported: Record<string, boolean> = {
+  http: true,
+  https: true,
+  socks5: !isFirefox,
+};
+
+const prevProxySchemes: Record<string, string | undefined> = {};
+urlSchemes.forEach((s) => { prevProxySchemes[s] = undefined; });
+
+// Initialize prevProxySchemes from existing profile data
+watch(() => profile.value, () => {
+  if (profile.value) {
+    urlSchemes.forEach((s) => {
+      const prop = schemeProps[s];
+      prevProxySchemes[s] = profile.value[prop]?.scheme ?? undefined;
+    });
+  }
+}, { immediate: true });
+
 const protocols = [
-  { value: '', label: `(${  omega.getMessage('options_proxy_scheme_default') || 'same as default'  })` },
+  { value: '', label: `(${  $t('options_proxy_scheme_default') || 'same as default'  })` },
   { value: 'http', label: 'HTTP' },
   { value: 'https', label: 'HTTPS' },
   { value: 'socks4', label: 'SOCKS4' },
   { value: 'socks5', label: 'SOCKS5' },
 ];
 const defaultProtocols = [
+  { value: undefined, label: $t('options_protocol_direct') || 'Direct' },
   { value: 'http', label: 'HTTP' },
   { value: 'https', label: 'HTTPS' },
   { value: 'socks4', label: 'SOCKS4' },
@@ -48,6 +76,48 @@ function getProxy(scheme: string): any {
 
 function getProtocolOptions(scheme: string) {
   return scheme === '' ? defaultProtocols : protocols;
+}
+
+function isProxyActive(scheme: string): boolean {
+  if (scheme === '') {
+    return getProxy(scheme).scheme != null;
+  }
+  return !!getProxy(scheme).scheme;
+}
+
+function handleSchemeChange(scheme: string) {
+  const proxy = getProxy(scheme);
+  const prevScheme = prevProxySchemes[scheme];
+  const newScheme = proxy.scheme;
+
+  // Fix 4: Clear auth when switching to a scheme that doesn't support proxy auth
+  if (newScheme && !authSupported[newScheme]) {
+    delete proxy.username;
+    delete proxy.password;
+  }
+
+  // Fix 1 & 2: First time selecting a specific scheme — auto-fill port and host
+  if (newScheme && !prevScheme) {
+    const fallback = getProxy('');
+
+    if (!proxy.port) {
+      if (newScheme === fallback.scheme && fallback.port != null) {
+        proxy.port = fallback.port;
+      } else {
+        proxy.port = defaultPort[newScheme] ?? null;
+      }
+    }
+
+    proxy.host ??= fallback.host ?? 'example.com';
+  }
+
+  // For non-fallback schemes, clear the profile property when scheme is unset
+  if (!newScheme && scheme !== '') {
+    delete profile.value[schemeProps[scheme]];
+  }
+
+  prevProxySchemes[scheme] = newScheme ?? undefined;
+  optionsStore.markDirty();
 }
 
 function isProxyAuthActive(scheme: string): boolean {
@@ -99,15 +169,15 @@ const bypassList = computed({
 <template>
   <div>
     <section class="settings-group settings-group-fixed-servers">
-      <h3>{{ omega.getMessage('options_group_proxyServers') }}</h3>
+      <h3>{{ $t('options_group_proxyServers') }}</h3>
       <div class="table-responsive">
         <table class="fixed-servers table table-bordered table-striped width-limit-lg">
           <thead>
             <tr>
-              <th>{{ omega.getMessage('options_proxy_scheme') }}</th>
-              <th>{{ omega.getMessage('options_proxy_protocol') }}</th>
-              <th>{{ omega.getMessage('options_proxy_server') }}</th>
-              <th>{{ omega.getMessage('options_proxy_port') }}</th>
+              <th>{{ $t('options_proxy_scheme') }}</th>
+              <th>{{ $t('options_proxy_protocol') }}</th>
+              <th>{{ $t('options_proxy_server') }}</th>
+              <th>{{ $t('options_proxy_port') }}</th>
               <th />
             </tr>
           </thead>
@@ -124,7 +194,7 @@ const bypassList = computed({
                   <select
                     v-model="getProxy(scheme).scheme"
                     class="form-control"
-                    @change="optionsStore.markDirty()"
+                    @change="handleSchemeChange(scheme)"
                   >
                     <option
                       v-for="opt in getProtocolOptions(scheme)"
@@ -138,7 +208,7 @@ const bypassList = computed({
                 <!-- Server -->
                 <td>
                   <input
-                    v-if="getProxy(scheme).scheme || scheme === ''"
+                    v-if="isProxyActive(scheme)"
                     v-model="getProxy(scheme).host"
                     class="form-control"
                     type="text"
@@ -156,7 +226,7 @@ const bypassList = computed({
                 <!-- Port -->
                 <td>
                   <input
-                    v-if="getProxy(scheme).scheme || scheme === ''"
+                    v-if="isProxyActive(scheme)"
                     v-model="getProxy(scheme).port"
                     class="form-control"
                     type="number"
@@ -178,7 +248,7 @@ const bypassList = computed({
                     class="btn btn-xs proxy-auth-toggle"
                     :class="isProxyAuthActive(scheme) ? 'btn-success' : 'btn-default'"
                     type="button"
-                    :title="omega.getMessage('options_proxy_auth')"
+                    :title="$t('options_proxy_auth')"
                     @click="openAuthModal(scheme)"
                   >
                     <span class="glyphicon glyphicon-lock" />
@@ -195,7 +265,7 @@ const bypassList = computed({
                   @click="showAdvanced = true"
                 >
                   <span class="glyphicon glyphicon-chevron-down" />
-                  {{ omega.getMessage('options_proxy_expand') }}
+                  {{ $t('options_proxy_expand') }}
                 </button>
               </td>
             </tr>
@@ -205,20 +275,20 @@ const bypassList = computed({
     </section>
 
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_bypassList') }}</h3>
+      <h3>{{ $t('options_group_bypassList') }}</h3>
       <p class="help-block">
-        {{ omega.getMessage('options_bypassListHelp') }}
+        {{ $t('options_bypassListHelp') }}
       </p>
       <p class="help-block">
         <a
           href="https://developer.chrome.com/extensions/proxy#bypass_list"
           target="_blank"
         >
-          {{ omega.getMessage('options_bypassListHelpLinkText') }}
+          {{ $t('options_bypassListHelpLinkText') }}
         </a>
       </p>
       <textarea
-        v-model="bypassList"
+        v-model.lazy="bypassList"
         class="monospace form-control width-limit"
         rows="10"
       />
@@ -227,6 +297,7 @@ const bypassList = computed({
     <ProxyAuthModal
       v-if="showAuthModal"
       :auth="profile[schemeProps[authScheme]]"
+      :proxy-scheme="getProxy(authScheme).scheme"
       @close="showAuthModal = false"
       @save="saveAuth($event)"
     />

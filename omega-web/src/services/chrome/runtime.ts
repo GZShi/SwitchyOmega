@@ -31,3 +31,12 @@ export function getURL(path: string): string {
 }
 
 export const RUNTIME_ID: string = chrome.runtime.id;
+
+/** Get the extension manifest. Returns null if not in extension context. */
+export function getManifest(): chrome.runtime.Manifest | null {
+  try {
+    return chrome.runtime.getManifest();
+  } catch {
+    return null;
+  }
+}

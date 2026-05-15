@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
@@ -30,7 +31,7 @@ const validTargets = computed(() => {
 });
 
 function dispName(name: string): string {
-  return omega.getMessage(`profile_${  name}`) || name;
+  return $t(`profile_${  name}`) || name;
 }
 
 function openReplaceModal() {
@@ -41,7 +42,7 @@ async function doReplace(fromName: string, toName: string) {
   try {
     await omega.replaceRef(fromName, toName);
     const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('success', omega.getMessage('options_replaceProfileSuccess') || 'Replaced.');
+    ui?.showAlert?.('success', $t('options_replaceProfileSuccess') || 'Replaced.');
   } catch (e: any) {
     const ui = (window as any).__omegaUi;
     ui?.showAlert?.('error', e.message ?? String(e));
@@ -52,12 +53,12 @@ async function doReplace(fromName: string, toName: string) {
 <template>
   <div>
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_virtualProfile') }}</h3>
+      <h3>{{ $t('options_group_virtualProfile') }}</h3>
       <p class="help-block">
-        {{ omega.getMessage('options_virtualProfileTargetHelp') }}
+        {{ $t('options_virtualProfileTargetHelp') }}
       </p>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_virtualProfileTarget') }}</label>
+        <label>{{ $t('options_virtualProfileTarget') }}</label>
         <ProfileSelect
           style="display: inline-block;"
           :profiles="validTargets"
@@ -68,9 +69,9 @@ async function doReplace(fromName: string, toName: string) {
     </section>
 
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_virtualProfileReplace') }}</h3>
+      <h3>{{ $t('options_group_virtualProfileReplace') }}</h3>
       <p class="help-block">
-        {{ omega.getMessage('options_virtualProfileReplaceHelp', [dispName(profile.defaultProfileName || '')]) }}
+        {{ $t('options_virtualProfileReplaceHelp', [dispName(profile.defaultProfileName || '')]) }}
       </p>
       <div class="form-group">
         <button
@@ -78,7 +79,7 @@ async function doReplace(fromName: string, toName: string) {
           @click="openReplaceModal()"
         >
           <span class="glyphicon glyphicon-search" />
-          {{ omega.getMessage('options_virtualProfileReplace') }}
+          {{ $t('options_virtualProfileReplace') }}
         </button>
       </div>
     </section>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
@@ -13,14 +13,13 @@ const props = defineProps<{
   exportRuleListOptions?: any;
 }>();
 const emit = defineEmits<{ delete: [] }>();
-const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
 const showRenameModal = ref(false);
 
-const tabPrefix = computed(() => omega.getMessage('options_profileTabPrefix') || '');
+const tabPrefix = computed(() => $t('options_profileTabPrefix') || '');
 
 const profileColor = computed(() => {
   let p = profile.value;
@@ -53,7 +52,7 @@ function exportScript() {
     (window as any).saveAs?.(blob, `OmegaProfile_${fileName}.pac`);
     if (missingProfile) {
       const ui = (window as any).__omegaUi;
-      ui?.showAlert?.('error', omega.getMessage('options_profileNotFound', [missingProfile]));
+      ui?.showAlert?.('error', $t('options_profileNotFound', [missingProfile]));
     }
   } catch (e: any) {
     const ui = (window as any).__omegaUi;
@@ -80,21 +79,21 @@ function onColorChange(color: string) {
         v-if="hasRuleListExport"
         class="btn"
         :class="props.exportRuleListOptions?.warning ? 'btn-warning' : 'btn-default'"
-        :title="omega.getMessage('options_profileExportRuleListHelp')"
+        :title="$t('options_profileExportRuleListHelp')"
         @click="exportRuleList()"
       >
         <span class="glyphicon glyphicon-list" />
-        {{ omega.getMessage('options_profileExportRuleList') }}
+        {{ $t('options_profileExportRuleList') }}
       </button>
       {{ ' ' }}
       <button
         v-if="isScriptable"
         class="btn btn-default"
-        :title="omega.getMessage('options_exportPacFileHelp')"
+        :title="$t('options_exportPacFileHelp')"
         @click="exportScript()"
       >
         <span class="glyphicon glyphicon-download" />
-        {{ omega.getMessage('options_profileExportPac') }}
+        {{ $t('options_profileExportPac') }}
       </button>
       {{ ' ' }}
       <button
@@ -102,7 +101,7 @@ function onColorChange(color: string) {
         @click="showRenameModal = true"
       >
         <span class="glyphicon glyphicon-edit" />
-        {{ omega.getMessage('options_renameProfile') }}
+        {{ $t('options_renameProfile') }}
       </button>
       {{ ' ' }}
       <button
@@ -110,7 +109,7 @@ function onColorChange(color: string) {
         @click="emit('delete')"
       >
         <span class="glyphicon glyphicon-trash" />
-        {{ omega.getMessage('options_deleteProfile') }}
+        {{ $t('options_deleteProfile') }}
       </button>
     </div>
 

@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 
 const emit = defineEmits<{ close: [] }>();
 const router = useRouter();
-const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
@@ -91,7 +89,7 @@ function cancel() {
                 &times;
               </button>
               <h4 class="modal-title">
-                {{ omega.getMessage('options_modalHeader_newProfile') }}
+                {{ $t('options_modalHeader_newProfile') }}
               </h4>
             </div>
 
@@ -102,7 +100,7 @@ function cancel() {
                 :class="{ 'has-error': nameError && nameError.kind !== 'required' }"
               >
                 <label for="profile-new-name">
-                  {{ omega.getMessage('options_newProfileName') }}
+                  {{ $t('options_newProfileName') }}
                 </label>
                 <input
                   id="profile-new-name"
@@ -116,19 +114,19 @@ function cancel() {
                   v-if="nameError?.kind === 'required'"
                   class="help-block"
                 >
-                  {{ omega.getMessage('options_profileNameEmpty') }}
+                  {{ $t('options_profileNameEmpty') }}
                 </div>
                 <div
                   v-if="nameError?.kind === 'reserved'"
                   class="help-block"
                 >
-                  {{ omega.getMessage('options_profileNameReserved') }}
+                  {{ $t('options_profileNameReserved') }}
                 </div>
                 <div
                   v-if="nameError?.kind === 'conflict'"
                   class="help-block"
                 >
-                  {{ omega.getMessage('options_profileNameConflict') }}
+                  {{ $t('options_profileNameConflict') }}
                 </div>
                 <div
                   v-if="nameHidden"
@@ -136,13 +134,13 @@ function cancel() {
                 >
                   <div class="text-info">
                     <span class="glyphicon glyphicon-info-sign" />
-                    {{ omega.getMessage('options_profileNameHidden') }}
+                    {{ $t('options_profileNameHidden') }}
                   </div>
                 </div>
               </div>
 
               <!-- Type -->
-              <label>{{ omega.getMessage('options_profileType') }}</label>
+              <label>{{ $t('options_profileType') }}</label>
 
               <div
                 v-for="pt in profileTypes"
@@ -163,17 +161,17 @@ function cancel() {
                       :class="[profileIcon(pt.value), { 'virtual-profile-icon': pt.isVirtual }]"
                     />
                     <span>
-                      {{ omega.getMessage('options_profileType' + pt.value) }}
+                      {{ $t('options_profileType' + pt.value) }}
                     </span>
                   </span>
                   <div class="help-block">
-                    {{ omega.getMessage('options_profileDesc' + pt.value) }}
+                    {{ $t('options_profileDesc' + pt.value) }}
                   </div>
                   <div
                     v-if="pt.value === 'PacProfile' && !pacProfilesUnsupported"
                     class="help-block"
                   >
-                    {{ omega.getMessage('options_profileDescMorePacProfile') }}
+                    {{ $t('options_profileDescMorePacProfile') }}
                   </div>
                   <div
                     v-if="pt.value === 'PacProfile' && pacProfilesUnsupported"
@@ -181,7 +179,7 @@ function cancel() {
                   >
                     <div class="help-block">
                       <span class="glyphicon glyphicon-warning-sign" />
-                      {{ omega.getMessage('options_pac_profile_unsupported_moz') }}
+                      {{ $t('options_pac_profile_unsupported_moz') }}
                     </div>
                   </div>
                 </label>
@@ -194,14 +192,14 @@ function cancel() {
                 class="btn btn-default"
                 @click="cancel"
               >
-                {{ omega.getMessage('dialog_cancel') }}
+                {{ $t('dialog_cancel') }}
               </button>
               <button
                 type="submit"
                 class="btn btn-primary"
                 :disabled="!isValid"
               >
-                {{ omega.getMessage('options_createProfile') }}
+                {{ $t('options_createProfile') }}
               </button>
             </div>
           </form>

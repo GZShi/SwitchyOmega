@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
+import ProfileInline from '@/options/components/ProfileInline.vue';
 
 defineProps<{ refs: any[]; profileName: string }>();
 const emit = defineEmits<{ close: [] }>();
-const omega = useOmegaTarget();
 </script>
 
 <template>
@@ -25,26 +24,29 @@ const omega = useOmegaTarget();
               &times;
             </button>
             <h4 class="modal-title">
-              {{ omega.getMessage('options_modalHeader_cannotDeleteProfile') }}
+              {{ $t('options_modalHeader_cannotDeleteProfile') }}
             </h4>
           </div>
           <div class="modal-body">
-            <p>{{ omega.getMessage('options_profileReferredBy') }}</p>
-            <ul>
-              <li
-                v-for="r in refs"
-                :key="r?.name"
-              >
-                {{ r?.name || 'unknown' }}
-              </li>
-            </ul>
+            <p>{{ $t('options_profileReferredBy') }}</p>
+            <div class="well">
+              <ul class="list-style-none">
+                <li
+                  v-for="r in refs"
+                  :key="r?.name"
+                >
+                  <ProfileInline :profile="r" />
+                </li>
+              </ul>
+            </div>
+            <p>{{ $t('options_modifyReferringProfiles') }}</p>
           </div>
           <div class="modal-footer">
             <button
               class="btn btn-primary"
               @click="emit('close')"
             >
-              {{ omega.getMessage('dialog_ok') }}
+              {{ $t('dialog_ok') }}
             </button>
           </div>
         </div>

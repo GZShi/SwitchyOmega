@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
@@ -15,7 +14,6 @@ import RuleListProfileEditor from '@/options/components/Editors/RuleListProfileE
 import VirtualProfileEditor from '@/options/components/Editors/VirtualProfileEditor.vue';
 
 const router = useRouter();
-const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
@@ -150,7 +148,7 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
       v-else-if="profileTemplate === 'profile_unsupported'"
       class="alert alert-warning"
     >
-      {{ omega.getMessage('options_profileUnsupported') }}
+      {{ $t('options_profileUnsupported') }}
     </div>
 
     <!-- Modals -->
@@ -172,6 +170,6 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
     v-else
     class="omega-page"
   >
-    <p>{{ omega.getMessage('options_loading') }}</p>
+    <p>{{ $t('options_loading') }}</p>
   </div>
 </template>

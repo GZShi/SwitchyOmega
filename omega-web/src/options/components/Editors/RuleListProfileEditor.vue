@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
@@ -31,7 +32,7 @@ const validProfiles = computed(() => {
 });
 
 function getFormatLabel(format: string): string {
-  return omega.getMessage(`ruleListFormat_${  format}`) || format;
+  return $t(`ruleListFormat_${  format}`) || format;
 }
 
 async function downloadProfile() {
@@ -54,9 +55,9 @@ function formatDate(ts: any): string {
   <div>
     <!-- Rule List Config -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_ruleListConfig') }}</h3>
+      <h3>{{ $t('options_group_ruleListConfig') }}</h3>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_ruleListMatchProfile') }}</label>
+        <label>{{ $t('options_ruleListMatchProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
           :profiles="validProfiles"
@@ -65,7 +66,7 @@ function formatDate(ts: any): string {
         />
       </div>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_ruleListDefaultProfile') }}</label>
+        <label>{{ $t('options_ruleListDefaultProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
           :profiles="validProfiles"
@@ -74,7 +75,7 @@ function formatDate(ts: any): string {
         />
       </div>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_ruleListFormat') }}</label>
+        <label>{{ $t('options_ruleListFormat') }}</label>
         <div
           v-for="fmt in ruleListFormats"
           :key="fmt"
@@ -96,7 +97,7 @@ function formatDate(ts: any): string {
 
     <!-- Source URL -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_ruleListUrl') }}</h3>
+      <h3>{{ $t('options_group_ruleListUrl') }}</h3>
       <input
         v-model="profile.sourceUrl"
         type="url"
@@ -104,25 +105,25 @@ function formatDate(ts: any): string {
         @change="optionsStore.markDirty()"
       >
       <p class="help-block">
-        {{ omega.getMessage('options_ruleListUrlHelp') }}
+        {{ $t('options_ruleListUrlHelp') }}
       </p>
     </section>
 
     <!-- Rule List Text -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_ruleListText') }}</h3>
+      <h3>{{ $t('options_group_ruleListText') }}</h3>
 
       <p
         v-if="profile.sourceUrl && profile.lastUpdate"
         class="alert alert-success width-limit"
       >
-        {{ omega.getMessage('options_ruleListLastUpdate', [formatDate(profile.lastUpdate)]) }}
+        {{ $t('options_ruleListLastUpdate', [formatDate(profile.lastUpdate)]) }}
       </p>
       <p
         v-if="profile.sourceUrl && !profile.lastUpdate"
         class="alert alert-danger width-limit"
       >
-        {{ omega.getMessage('options_ruleListObsolete') }}
+        {{ $t('options_ruleListObsolete') }}
       </p>
 
       <p>
@@ -133,7 +134,7 @@ function formatDate(ts: any): string {
           @click="downloadProfile()"
         >
           <span class="glyphicon glyphicon-download-alt" />
-          {{ omega.getMessage('options_downloadProfileNow') }}
+          {{ $t('options_downloadProfileNow') }}
         </button>
       </p>
 

@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 
 const props = defineProps<{ isUpgrade: boolean }>();
 const emit = defineEmits<{ close: [result: string] }>();
-const omega = useOmegaTarget();
 </script>
 
 <template>
@@ -18,31 +16,31 @@ const omega = useOmegaTarget();
           <div class="modal-header">
             <h4 class="modal-title">
               {{ props.isUpgrade
-                ? omega.getMessage('options_welcomeUpgrade')
-                : omega.getMessage('options_modalHeader_welcome') }}
+                ? $t('options_welcomeUpgrade')
+                : $t('options_modalHeader_welcome') }}
             </h4>
           </div>
           <div class="modal-body">
             <p v-if="props.isUpgrade">
-              {{ omega.getMessage('options_welcomeUpgradeGuide') }}
+              {{ $t('options_welcomeUpgradeGuide') }}
             </p>
             <p v-else>
-              {{ omega.getMessage('options_welcomeNormal') }}
+              {{ $t('options_welcomeNormal') }}
             </p>
-            <p>{{ omega.getMessage('options_welcomeNormalGuide') }}</p>
+            <p>{{ $t('options_welcomeNormalGuide') }}</p>
           </div>
           <div class="modal-footer">
             <button
               class="btn btn-default"
               @click="emit('close', 'later')"
             >
-              {{ omega.getMessage('dialog_cancel') }}
+              {{ $t('dialog_cancel') }}
             </button>
             <button
               class="btn btn-primary"
               @click="emit('close', 'show')"
             >
-              {{ omega.getMessage('dialog_ok') }}
+              {{ $t('dialog_ok') }}
             </button>
           </div>
         </div>

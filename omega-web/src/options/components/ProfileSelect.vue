@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useProfilesStore } from '@/stores/profiles';
 
 const props = defineProps<{
   profiles: any[];
   modelValue: string;
+  defaultText?: string;
 }>();
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
-const omega = useOmegaTarget();
 const profilesStore = useProfilesStore();
 const isOpen = ref(false);
 const rootRef = ref<HTMLElement | null>(null);
@@ -34,16 +34,22 @@ function getColor(profile: any): string {
 }
 
 function dispName(name: string): string {
-  return omega.getMessage(`profile_${  name}`) || name;
+  return $t(`profile_${  name}`) || name;
 }
 
 const selectedProfile = computed(() =>
   props.profiles.find(x => x?.name === props.modelValue) ?? null,
 );
 
-const selectedLabel = computed(() =>
-  selectedProfile.value ? dispName(selectedProfile.value.name) : (props.modelValue || ''),
-);
+const selectedLabel = computed(() => {
+  if (selectedProfile.value) {
+    return dispName(selectedProfile.value.name);
+  }
+  if (props.defaultText && !props.modelValue) {
+    return props.defaultText;
+  }
+  return props.modelValue || '';
+});
 
 function toggle(e: MouseEvent) {
   e.stopPropagation();
@@ -105,6 +111,14 @@ onBeforeUnmount(() => {
       class="dropdown-menu"
       style="display: block;"
     >
+      <li v-if="defaultText">
+        <a
+          href="#"
+          @click.prevent="select('')"
+        >
+          {{ defaultText }}
+        </a>
+      </li>
       <li
         v-for="p in profiles"
         :key="p.name"

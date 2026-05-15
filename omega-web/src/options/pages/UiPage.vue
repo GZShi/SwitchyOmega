@@ -67,12 +67,12 @@ function openShortcutConfig() {
       class="page-header"
       style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;"
     >
-      <h2>{{ omega.getMessage('options_tab_ui') }}</h2>
+      <h2>{{ $t('options_tab_ui') }}</h2>
     </div>
 
     <!-- Misc Options -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_miscOptions') }}</h3>
+      <h3>{{ $t('options_group_miscOptions') }}</h3>
       <div class="checkbox">
         <label>
           <input
@@ -80,7 +80,7 @@ function openShortcutConfig() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_confirmDeletion') }}</span>
+          <span>{{ $t('options_confirmDeletion') }}</span>
         </label>
       </div>
       <div class="checkbox">
@@ -90,7 +90,7 @@ function openShortcutConfig() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_refreshOnProfileChange') }}</span>
+          <span>{{ $t('options_refreshOnProfileChange') }}</span>
         </label>
       </div>
       <div class="checkbox">
@@ -100,7 +100,7 @@ function openShortcutConfig() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_showInspectMenu') }}</span>
+          <span>{{ $t('options_showInspectMenu') }}</span>
         </label>
       </div>
       <div class="checkbox">
@@ -110,14 +110,14 @@ function openShortcutConfig() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_addConditionsToBottom') }}</span>
+          <span>{{ $t('options_addConditionsToBottom') }}</span>
         </label>
       </div>
     </section>
 
     <!-- Keyboard Shortcut -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_keyboardShortcut') }}</h3>
+      <h3>{{ $t('options_group_keyboardShortcut') }}</h3>
       <p>
         <button
           class="btn btn-default"
@@ -125,22 +125,22 @@ function openShortcutConfig() {
           @click="openShortcutConfig()"
         >
           <span class="glyphicon glyphicon-share-alt" />
-          {{ omega.getMessage('options_menuShortcutConfigure') }}
+          {{ $t('options_menuShortcutConfigure') }}
         </button>
-        {{ omega.getMessage('options_menuShortcutHelp') }}
+        {{ $t('options_menuShortcutHelp') }}
       </p>
       <p class="help-block">
-        {{ omega.getMessage('options_menuShortcutMore') }}
+        {{ $t('options_menuShortcutMore') }}
       </p>
     </section>
 
     <!-- Switch Options -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_switchOptions') }}</h3>
+      <h3>{{ $t('options_group_switchOptions') }}</h3>
 
       <!-- Startup Profile -->
       <div class="form-group">
-        <label>{{ omega.getMessage('options_startupProfile') }}</label>
+        <label>{{ $t('options_startupProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
           :profiles="allProfiles"
@@ -157,10 +157,10 @@ function openShortcutConfig() {
             :checked="optionsStore.options['-showConditionTypes'] > 0"
             @change="optionsStore.options['-showConditionTypes'] = ($event.target as HTMLInputElement).checked ? 1 : 0; optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_showConditionTypesAdvanced') }}</span>
+          <span>{{ $t('options_showConditionTypesAdvanced') }}</span>
         </label>
         <p class="help-block">
-          {{ omega.getMessage('options_showConditionTypesAdvancedHelp') }}
+          {{ $t('options_showConditionTypesAdvancedHelp') }}
         </p>
       </div>
 
@@ -172,7 +172,7 @@ function openShortcutConfig() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_quickSwitch') }}</span>
+          <span>{{ $t('options_quickSwitch') }}</span>
         </label>
       </div>
 
@@ -181,16 +181,16 @@ function openShortcutConfig() {
         id="quick-switch-settings"
         class="settings-group"
       >
-        <h4>{{ omega.getMessage('options_cycledProfiles') }}</h4>
+        <h4>{{ $t('options_cycledProfiles') }}</h4>
         <p class="help-block">
-          {{ omega.getMessage('options_cycledProfilesHelp') }}
+          {{ $t('options_cycledProfilesHelp') }}
         </p>
         <div
           v-if="quickSwitchProfiles.length < 2"
           class="has-error"
         >
           <p class="help-block">
-            {{ omega.getMessage('options_cycledProfilesTooFew') }}
+            {{ $t('options_cycledProfilesTooFew') }}
           </p>
         </div>
 
@@ -211,7 +211,7 @@ function openShortcutConfig() {
         </ul>
 
         <!-- Not cycled profiles -->
-        <h4>{{ omega.getMessage('options_notCycledProfiles') }}</h4>
+        <h4>{{ $t('options_notCycledProfiles') }}</h4>
         <ul class="cycle-profile-container">
           <li
             v-for="name in notCycledProfiles"

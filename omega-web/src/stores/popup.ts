@@ -61,6 +61,7 @@ export const usePopupStore = defineStore("popup", () => {
     condition: { conditionType: "HostWildcardCondition", pattern: "" },
     profileName: "direct",
   });
+  const conditionSuggestion = ref<Record<string, string>>({});
   const domainsForCondition = ref<Record<string, boolean>>({});
   const profileForDomains = ref<string | null>(null);
 
@@ -243,7 +244,7 @@ export const usePopupStore = defineStore("popup", () => {
       domainLooksLikeIp = true;
     }
 
-    let conditionSuggestion: Record<string, string>;
+    let suggestionMap: Record<string, string>;
     const escaped = domain.replace(/\./g, "\\.");
 
     if (domainLooksLikeIp) {
@@ -251,7 +252,7 @@ export const usePopupStore = defineStore("popup", () => {
         .replace(/\./g, "\\.")
         .replace(/\[/g, "\\[")
         .replace(/\]/g, "\\]");
-      conditionSuggestion = {
+      suggestionMap = {
         HostWildcardCondition: domainForPattern,
         HostRegexCondition: `^${ipEscaped}$`,
         UrlWildcardCondition: `*://${domainForPattern}/*`,
@@ -259,7 +260,7 @@ export const usePopupStore = defineStore("popup", () => {
         KeywordCondition: domainForPattern,
       };
     } else {
-      conditionSuggestion = {
+      suggestionMap = {
         HostWildcardCondition: `*.${domain}`,
         HostRegexCondition: `(^|\\.)${escaped}$`,
         UrlWildcardCondition: `*://*.${domain}/*`,
@@ -268,15 +269,30 @@ export const usePopupStore = defineStore("popup", () => {
       };
     }
 
+    conditionSuggestion.value = suggestionMap;
+
     rule.value = {
       condition: {
         conditionType: "HostWildcardCondition",
-        pattern: conditionSuggestion["HostWildcardCondition"],
+        pattern: suggestionMap["HostWildcardCondition"],
       },
       profileName: rule.value.profileName || "direct",
     };
 
     showConditionForm.value = true;
+  }
+
+  async function saveExternal(name: string) {
+    saveExternalOpen.value = false;
+    if (!name || !externalProfile.value) return;
+    // Validate name: no conflict with existing profiles, not hidden
+    if (availableProfiles.value[`+${name}`]) return;
+    if (name.startsWith("_")) return;
+
+    const profile = { ...externalProfile.value, name };
+    await target.addProfile(profile);
+    await target.applyProfile(name);
+    closeWindow();
   }
 
   function returnToMenu() {
@@ -305,6 +321,7 @@ export const usePopupStore = defineStore("popup", () => {
     currentDomain,
     currentProfileCanAddRule,
     rule,
+    conditionSuggestion,
     domainsForCondition,
     profileForDomains,
     requestInfo,
@@ -321,6 +338,7 @@ export const usePopupStore = defineStore("popup", () => {
     addTempRule,
     setDefaultProfile,
     prepareConditionForm,
+    saveExternal,
     returnToMenu,
   };
 });

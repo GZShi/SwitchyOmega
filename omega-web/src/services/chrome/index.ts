@@ -3,8 +3,10 @@ export {
   sendMessageNoReply,
   connect,
   getURL,
+  getManifest,
   RUNTIME_ID,
 } from "./runtime";
 export { query, update, create, reload } from "./tabs";
 export { localGet, localSet, localAvailable } from "./storage";
 export { getMessage } from "./i18n";
+export { isFirefox } from "./platform";

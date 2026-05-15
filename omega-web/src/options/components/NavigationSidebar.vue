@@ -3,19 +3,21 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
+import { isFirefox } from '@/services/chrome';
+import { getMessage as $t } from '@/services/chrome/i18n';
 import NewProfileModal from './Modals/NewProfileModal.vue';
 import ApplyOptionsConfirmModal from './Modals/ApplyOptionsConfirmModal.vue';
 
 const router = useRouter();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
-const omega = useOmegaTarget();
 
 const showNewProfileModal = ref(false);
 const showApplyConfirm = ref(false);
 
 const sortedProfiles = computed(() => profilesStore.sortedProfiles);
+
+const isExperimental = isFirefox;
 
 function getIcon(profile: any): string {
   let target = profile;
@@ -34,11 +36,23 @@ function getProfileColor(profile: any): string {
 }
 
 function dispName(name: string): string {
-  return omega.getMessage(`profile_${  name}`) || name;
+  return $t(`profile_${name}`) || name;
 }
 
 function goProfile(name: string) {
-  router.push(`/profile/${  encodeURIComponent(name)}`);
+  router.push(`/profile/${encodeURIComponent(name)}`);
+}
+
+function isProfileActive(name: string): boolean {
+  return router.currentRoute.value.params?.name === name;
+}
+
+function isTabActive(name: string): boolean {
+  return router.currentRoute.value.name === name;
+}
+
+async function newProfile() {
+  showNewProfileModal.value = true;
 }
 
 function applyOptions() {
@@ -52,72 +66,77 @@ function revertOptions() {
 
 <template>
   <header class="side-nav">
-    <div class="omega-brand">
-      <h3>
-        <a
-          href="#!/about"
-          @click.prevent="router.push('/about')"
-        >
-          SwitchyOmega
-        </a>
-        <small
-          v-if="/* isExperimental */ false"
-          class="badge"
-        >EXP</small>
-      </h3>
-    </div>
+    <h1>
+      <a
+        href="#!/about"
+        :title="$t('about_title')"
+        @click.prevent="router.push('/about')"
+      >{{ $t('appNameShort') }}</a>
+      <sup
+        v-if="isExperimental"
+        class="om-experimental text-danger"
+      >{{ $t('options_experimental_badge') }}</sup>
+    </h1>
 
-    <!-- Settings nav -->
+    <!-- Single nav list matching legacy Bootstrap .nav-pills structure -->
     <ul class="nav nav-pills nav-stacked">
+      <!-- Settings header -->
+      <li class="nav-header">
+        {{ $t('options_navHeader_setting') }}
+      </li>
       <li
         role="presentation"
-        :class="{ active: router.currentRoute.value.name === 'ui' }"
+        :class="{ active: isTabActive('ui') }"
       >
         <a
           href="#!/ui"
           @click.prevent="router.push('/ui')"
         >
-          <span class="glyphicon glyphicon-cog" />
-          {{ omega.getMessage('options_tab_ui') }}
+          <span class="glyphicon glyphicon-wrench" />
+          {{ $t('options_tab_ui') }}
         </a>
       </li>
       <li
         role="presentation"
-        :class="{ active: router.currentRoute.value.name === 'general' }"
+        :class="{ active: isTabActive('general') }"
       >
         <a
           href="#!/general"
           @click.prevent="router.push('/general')"
         >
-          <span class="glyphicon glyphicon-th" />
-          {{ omega.getMessage('options_tab_general') }}
+          <span class="glyphicon glyphicon-cog" />
+          {{ $t('options_tab_general') }}
         </a>
       </li>
       <li
         role="presentation"
-        :class="{ active: router.currentRoute.value.name === 'io' }"
+        :class="{ active: isTabActive('io') }"
       >
         <a
           href="#!/io"
           @click.prevent="router.push('/io')"
         >
-          <span class="glyphicon glyphicon-floppy-disk" />
-          {{ omega.getMessage('options_tab_importExport') }}
+          <span class="glyphicon glyphicon-floppy-save" />
+          {{ $t('options_tab_importExport') }}
         </a>
       </li>
-    </ul>
 
-    <hr>
+      <!-- Divider -->
+      <li class="divider" />
 
-    <!-- Profile list -->
-    <ul class="nav nav-pills nav-stacked">
+      <!-- Profiles header -->
+      <li class="nav-header">
+        {{ $t('options_navHeader_profiles') }}
+      </li>
+
+      <!-- Profile list -->
       <li
         v-for="p in sortedProfiles"
         :key="p.name"
         role="presentation"
         :data-profile-type="p.profile.profileType"
         class="nav-profile"
-        :class="{ active: router.currentRoute.value.params?.name === p.name }"
+        :class="{ active: isProfileActive(p.name) }"
       >
         <a
           href="#"
@@ -130,38 +149,51 @@ function revertOptions() {
           {{ dispName(p.name) }}
         </a>
       </li>
+
+      <!-- New profile link (matching legacy inline-link style) -->
+      <li class="nav-new-profile">
+        <a
+          role="button"
+          @click.prevent="newProfile()"
+        >
+          <span class="glyphicon glyphicon-plus" />
+          <span>{{ $t('options_newProfile') }}</span>
+        </a>
+      </li>
+
+      <!-- Divider -->
+      <li class="divider" />
+
+      <!-- Actions header -->
+      <li class="nav-header">
+        {{ $t('options_navHeader_actions') }}
+      </li>
+
+      <!-- Apply button — always visible, highlights when dirty -->
+      <li>
+        <a
+          class="btn-default align-initial"
+          :class="{ 'btn-success': optionsStore.optionsDirty }"
+          role="button"
+          @click="applyOptions()"
+        >
+          <span class="glyphicon glyphicon-ok-circle" />
+          {{ $t('options_apply') }}
+        </a>
+      </li>
+
+      <!-- Discard button — always visible, disabled when not dirty -->
+      <li :class="{ disabled: !optionsStore.optionsDirty }">
+        <a
+          class="text-danger"
+          role="button"
+          @click="optionsStore.optionsDirty ? revertOptions() : undefined"
+        >
+          <span class="glyphicon glyphicon-remove-circle" />
+          {{ $t('options_discard') }}
+        </a>
+      </li>
     </ul>
-
-    <hr>
-
-    <!-- New profile button -->
-    <div class="nav-new-profile">
-      <button
-        class="btn btn-primary btn-block"
-        @click="showNewProfileModal = true"
-      >
-        {{ omega.getMessage('options_newProfile') }}
-      </button>
-    </div>
-
-    <!-- Apply / Revert -->
-    <div
-      v-if="optionsStore.optionsDirty"
-      class="nav-apply"
-    >
-      <button
-        class="btn btn-success btn-block"
-        @click="applyOptions()"
-      >
-        {{ omega.getMessage('options_apply') }}
-      </button>
-      <button
-        class="btn btn-default btn-block"
-        @click="revertOptions()"
-      >
-        {{ omega.getMessage('options_discard') }}
-      </button>
-    </div>
 
     <!-- Modals -->
     <NewProfileModal
@@ -177,7 +209,5 @@ function revertOptions() {
 </template>
 
 <style scoped>
-.side-nav {
-  /* Sidebar styles handled by options.less */
-}
+/* Sidebar styles handled by options.less */
 </style>

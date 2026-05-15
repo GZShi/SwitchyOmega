@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
+import ProfileInline from '@/options/components/ProfileInline.vue';
 
 defineProps<{ profile: any; profileName: string }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
-const omega = useOmegaTarget();
 </script>
 
 <template>
@@ -25,24 +24,30 @@ const omega = useOmegaTarget();
               &times;
             </button>
             <h4 class="modal-title">
-              {{ omega.getMessage('options_deleteProfile') }}
+              {{ $t('options_deleteProfile') }}
             </h4>
           </div>
           <div class="modal-body">
-            <p>{{ omega.getMessage('options_deleteProfileConfirm', [profileName]) }}</p>
+            <p>{{ $t('options_deleteProfileConfirm') }}</p>
+            <div class="well">
+              <ProfileInline
+                :profile="profile"
+                :name="profileName"
+              />
+            </div>
           </div>
           <div class="modal-footer">
             <button
               class="btn btn-default"
               @click="emit('close')"
             >
-              {{ omega.getMessage('dialog_cancel') }}
+              {{ $t('dialog_cancel') }}
             </button>
             <button
               class="btn btn-danger"
               @click="emit('confirm')"
             >
-              {{ omega.getMessage('options_deleteProfile') }}
+              {{ $t('options_deleteProfile') }}
             </button>
           </div>
         </div>

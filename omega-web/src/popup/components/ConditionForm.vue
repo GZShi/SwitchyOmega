@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
+import ProfileSelect from '../../options/components/ProfileSelect.vue';
 
 const store = usePopupStore();
 const target = usePopupTarget();
@@ -13,10 +14,6 @@ const conditionTypes = [
   { value: 'UrlRegexCondition', label: 'URL Regex' },
   { value: 'KeywordCondition', label: 'Keyword' },
 ];
-
-function getProfileName(name: string): string {
-  return target.getMessage(`profile_${  name}`) || name;
-}
 
 const sortedValidProfiles = computed(() => {
   const order: Record<string, number> = {
@@ -33,9 +30,16 @@ const sortedValidProfiles = computed(() => {
   });
 });
 
-function updateConditionType(type: string) {
-  store.rule.condition.conditionType = type;
-}
+// Auto-update pattern when condition type changes
+watch(
+  () => store.rule.condition.conditionType,
+  (newType) => {
+    const suggestion = store.conditionSuggestion[newType];
+    if (suggestion) {
+      store.rule.condition.pattern = suggestion;
+    }
+  },
+);
 
 async function addCondition() {
   const condition = { ...store.rule.condition };
@@ -62,7 +66,6 @@ async function openConditionHelp() {
     <div>
       <select
         v-model="store.rule.condition.conditionType"
-        @change="updateConditionType(($event.target as HTMLSelectElement).value)"
       >
         <option
           v-for="ct in conditionTypes"
@@ -81,15 +84,10 @@ async function openConditionHelp() {
       >
     </div>
     <div style="margin-top: 5px;">
-      <select v-model="store.rule.profileName">
-        <option
-          v-for="p in sortedValidProfiles"
-          :key="p.name"
-          :value="p.name"
-        >
-          {{ getProfileName(p.name) }}
-        </option>
-      </select>
+      <ProfileSelect
+        v-model="store.rule.profileName"
+        :profiles="sortedValidProfiles"
+      />
     </div>
     <p
       class="om-dialog-controls"

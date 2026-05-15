@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
+import ProfileInline from '@/options/components/ProfileInline.vue';
 
 const props = defineProps<{
   fromName: string; // The profile whose references will be replaced
@@ -14,7 +14,6 @@ const emit = defineEmits<{
   confirm: [from: string, to: string];
 }>();
 
-const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
@@ -37,6 +36,9 @@ const validFromProfiles = computed(() => {
 const validToProfiles = computed(() =>
   validFromProfiles.value.filter((p: any) => p.name !== fromValue.value),
 );
+
+const fromProfile = computed(() => profilesStore.profileByName(fromValue.value));
+const toProfile = computed(() => profilesStore.profileByName(toValue.value));
 
 function submit() {
   emit('confirm', fromValue.value, toValue.value);
@@ -64,14 +66,27 @@ function submit() {
                 &times;
               </button>
               <h4 class="modal-title">
-                {{ omega.getMessage('options_modalHeader_replaceProfile') }}
+                {{ $t('options_modalHeader_replaceProfile') }}
               </h4>
             </div>
             <div class="modal-body">
-              <p>{{ omega.getMessage('options_replaceProfileHelp') }}</p>
+              <p>{{ $t('options_replaceProfileHelp') }}</p>
+              <div class="well">
+                <ProfileInline
+                  v-if="fromProfile"
+                  :profile="fromProfile"
+                />
+                <span />
+                <span class="glyphicon glyphicon-chevron-right" />
+                <span />
+                <ProfileInline
+                  v-if="toProfile"
+                  :profile="toProfile"
+                />
+              </div>
               <div class="form-group">
                 <label>
-                  {{ omega.getMessage('options_replaceProfileConfirm', ['__FROM__', '__TO__']).split('__FROM__')[0] }}
+                  {{ $t('options_replaceProfileConfirm', ['__FROM__', '__TO__']).split('__FROM__')[0] }}
                 </label>
                 <ProfileSelect
                   style="display: inline-block;"
@@ -96,14 +111,14 @@ function submit() {
                 class="btn btn-default"
                 @click="emit('close')"
               >
-                {{ omega.getMessage('dialog_cancel') }}
+                {{ $t('dialog_cancel') }}
               </button>
               <button
                 type="submit"
                 class="btn btn-primary"
                 :disabled="!fromValue || !toValue || fromValue === toValue"
               >
-                {{ omega.getMessage('dialog_ok') }}
+                {{ $t('dialog_ok') }}
               </button>
             </div>
           </form>

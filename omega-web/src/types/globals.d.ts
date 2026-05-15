@@ -2,6 +2,13 @@
 // omegaTarget is an ES module imported directly (no longer a window global).
 // OmegaPac is a workspace dependency imported by useOmegaPac composable.
 
+declare module "vue" {
+  interface ComponentCustomProperties {
+    /** Shortcut for chrome.i18n.getMessage. Falls back to the key if no translation found. */
+    $t(key: string, substitutions?: string | string[]): string;
+  }
+}
+
 export interface OmegaTargetWeb {
   getMessage(key: string, substitutions?: string | string[]): string;
   lastUrl(url?: string): Promise<string | undefined>;

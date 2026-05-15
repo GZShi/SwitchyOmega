@@ -9,10 +9,10 @@ export const useProfilesStore = defineStore("profiles", () => {
 
   const profileIcons: Record<string, string> = {
     DirectProfile: "glyphicon-transfer",
-    SystemProfile: "glyphicon-globe",
-    FixedProfile: "glyphicon-cog",
+    SystemProfile: "glyphicon-off",
+    FixedProfile: "glyphicon-globe",
     PacProfile: "glyphicon-file",
-    VirtualProfile: "glyphicon-chevron-right",
+    VirtualProfile: "glyphicon-question-sign",
     SwitchProfile: "glyphicon-retweet",
     RuleListProfile: "glyphicon-list",
   };
@@ -42,9 +42,7 @@ export const useProfilesStore = defineStore("profiles", () => {
   });
 
   const visibleProfiles = computed(() =>
-    allProfiles.value.filter(
-      (p) => !p.name.startsWith("__") && !p.name.startsWith("_"),
-    ),
+    allProfiles.value.filter((p) => !p.name.startsWith("_")),
   );
 
   const sortedProfiles = computed(() =>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import Sortable from 'sortablejs';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
@@ -6,6 +7,9 @@ import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
+import RuleRemoveConfirmModal from '@/options/components/Modals/RuleRemoveConfirmModal.vue';
+import RuleResetConfirmModal from '@/options/components/Modals/RuleResetConfirmModal.vue';
+import DeleteAttachedModal from '@/options/components/Modals/DeleteAttachedModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
 const props = defineProps<{ profileName: string }>();
@@ -77,10 +81,24 @@ const validResultProfiles = computed(() => {
 const updating = ref(false);
 
 function getConditionTypeLabel(type: string): string {
-  return omega.getMessage(`condition_${  type}`) || type;
+  return $t(`condition_${  type}`) || type;
 }
 function getConditionGroupLabel(group: string): string {
-  return omega.getMessage(`condition_group_${  group}`) || '';
+  return $t(`condition_group_${  group}`) || '';
+}
+
+// -- TrueCondition migration (legacy SwitchySharp data) --
+function migrateTrueConditions() {
+  const rules = profile.value?.rules;
+  if (!rules) return;
+  for (const rule of rules) {
+    if (rule.condition?.conditionType === 'TrueCondition') {
+      rule.condition = {
+        conditionType: 'HostWildcardCondition',
+        pattern: '*',
+      };
+    }
+  }
 }
 
 // -- Rule ops --
@@ -101,8 +119,25 @@ function addRule() {
 }
 
 function removeRule(index: number) {
+  if (optionsStore.options['-confirmDeletion']) {
+    ruleRemoveIndex.value = index;
+    showRuleRemoveModal.value = true;
+  } else {
+    doRemoveRule(index);
+  }
+}
+
+function doRemoveRule(index: number) {
   profile.value.rules.splice(index, 1);
   optionsStore.markDirty();
+}
+
+function confirmRemoveRule() {
+  if (ruleRemoveIndex.value != null) {
+    doRemoveRule(ruleRemoveIndex.value);
+    ruleRemoveIndex.value = null;
+  }
+  showRuleRemoveModal.value = false;
 }
 
 function cloneRule(index: number) {
@@ -116,9 +151,14 @@ function addNote(_index: number) {
 }
 
 function resetRules() {
+  showRuleResetModal.value = true;
+}
+
+function confirmResetRules() {
   for (const rule of profile.value.rules) {
     rule.profileName = attachedOptions.value.defaultProfileName;
   }
+  showRuleResetModal.value = false;
   optionsStore.markDirty();
 }
 
@@ -162,9 +202,15 @@ function attachNew() {
 
 function removeAttached() {
   if (!attached.value) return;
+  showDeleteAttachedModal.value = true;
+}
+
+function confirmDeleteAttached() {
+  if (!attached.value) return;
   profile.value.defaultProfileName = attached.value.defaultProfileName;
   delete optionsStore.options[attachedKey.value];
   attachedOptions.value.enabled = false;
+  showDeleteAttachedModal.value = false;
   optionsStore.markDirty();
 }
 
@@ -176,11 +222,13 @@ function toggleSource() {
       defaultProfileName: attachedOptions.value.defaultProfileName,
     }, { withResult: true }) ?? '';
     sourceError.value = null;
+    hasUnsavedSourceChanges.value = false;
     editSource.value = true;
   } else {
     if (!parseSource()) return;
     editSource.value = false;
     sourceError.value = null;
+    hasUnsavedSourceChanges.value = false;
   }
 }
 
@@ -198,9 +246,16 @@ function parseSource(): boolean {
       note: r.note,
     }));
     optionsStore.markDirty();
+    hasUnsavedSourceChanges.value = false;
     return true;
   } catch (e: any) {
-    sourceError.value = { message: e.message };
+    let message = e.message;
+    if (e.reason) {
+      const args = e.args ?? [e.sourceLineNo, e.source].filter((a: any) => a !== undefined);
+      const translated = $t(`ruleList_error_${  e.reason}`, args as string[]);
+      message = translated || message;
+    }
+    sourceError.value = { message };
     return false;
   }
 }
@@ -219,12 +274,21 @@ async function downloadAttached() {
 const rulesTbody = ref<HTMLElement | null>(null);
 let sortableInstance: Sortable | null = null;
 
+// -- Confirmation modal state --
+const showRuleRemoveModal = ref(false);
+const ruleRemoveIndex = ref<number | null>(null);
+const showRuleResetModal = ref(false);
+const showDeleteAttachedModal = ref(false);
+
+// -- Source editor dirty check --
+const hasUnsavedSourceChanges = ref(false);
+
 onMounted(() => {
   if (rulesTbody.value) {
     sortableInstance = Sortable.create(rulesTbody.value, {
       handle: '.sort-bar',
       animation: 150,
-      onEnd(evt) {
+      onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex == null || evt.newIndex == null) return;
         const rules = profile.value.rules;
         if (!rules) return;
@@ -288,6 +352,29 @@ watch(
   },
 );
 
+// -- TrueCondition migration: convert legacy SwitchySharp conditions --
+watch(
+  () => profile.value?.rules,
+  (rules) => {
+    if (!rules || rules.length === 0) return;
+    migrateTrueConditions();
+  },
+  { immediate: true },
+);
+
+// -- Source editor dirty check --
+watch(
+  () => sourceCode.value,
+  (newCode) => {
+    if (!editSource.value) return;
+    const serialized = OmegaPac.RuleList?.Switchy?.compose({
+      rules: profile.value.rules,
+      defaultProfileName: attachedOptions.value.defaultProfileName,
+    }, { withResult: true }) ?? '';
+    hasUnsavedSourceChanges.value = newCode !== serialized;
+  },
+);
+
 // Show notes if any rule has a note
 showNotes.value = (profile.value.rules ?? []).some((r: any) => !!r.note);
 
@@ -311,7 +398,7 @@ function formatDate(ts: any): string {
       class="condition-help-section settings-group"
     >
       <h3>
-        {{ omega.getMessage('options_group_conditionHelp') }}
+        {{ $t('options_group_conditionHelp') }}
         <button
           class="close close-condition-help"
           type="button"
@@ -344,13 +431,13 @@ function formatDate(ts: any): string {
           >
             <dt>{{ getConditionTypeLabel(type) }}</dt>
             <dd>
-              <div v-html="omega.getMessage('condition_help_' + type)" />
+              <div v-html="$t('condition_help_' + type)" />
               <div
                 v-if="isUrlConditionType[type]"
                 class="text-danger"
               >
                 <span class="glyphicon glyphicon-alert" />
-                <span v-html="omega.getMessage('condition_alert_fullUrlLimitation')" />
+                <span v-html="$t('condition_alert_fullUrlLimitation')" />
               </div>
             </dd>
           </template>
@@ -361,21 +448,21 @@ function formatDate(ts: any): string {
     <!-- Switch rules -->
     <section class="settings-group">
       <h3>
-        {{ omega.getMessage('options_group_switchRules') }}
+        {{ $t('options_group_switchRules') }}
         <button
           class="btn"
           :class="editSource ? 'btn-primary active' : 'btn-default'"
           @click="toggleSource()"
         >
           <span class="glyphicon glyphicon-edit" />
-          {{ omega.getMessage('options_profileEditSource') }}
+          {{ $t('options_profileEditSource') }}
         </button>
         <a
           v-if="editSource"
           class="btn btn-link btn-sm clear-padding"
           target="_blank"
-          :title="omega.getMessage('options_profileEditSourceHelp')"
-          :href="omega.getMessage('options_profileEditSourceHelpUrl')"
+          :title="$t('options_profileEditSourceHelp')"
+          :href="$t('options_profileEditSourceHelpUrl')"
         >
           <span class="glyphicon glyphicon-question-sign" />
         </a>
@@ -393,7 +480,7 @@ function formatDate(ts: any): string {
         class="alert alert-danger"
       >
         <span class="glyphicon glyphicon-alert" />
-        <span v-html="omega.getMessage('condition_alert_fullUrlLimitation')" />
+        <span v-html="$t('condition_alert_fullUrlLimitation')" />
       </div>
 
       <!-- Source editor -->
@@ -418,23 +505,23 @@ function formatDate(ts: any): string {
           <thead>
             <tr>
               <th style="white-space: nowrap">
-                {{ omega.getMessage('options_sort') }}
+                {{ $t('options_sort') }}
               </th>
               <th class="condition-type-th">
-                {{ omega.getMessage('options_conditionType') }}
+                {{ $t('options_conditionType') }}
                 <button
                   class="btn btn-link btn-sm clear-padding"
-                  :title="omega.getMessage('options_showConditionTypeHelp')"
+                  :title="$t('options_showConditionTypeHelp')"
                   @click="conditionHelpShow = !conditionHelpShow"
                 >
                   <span class="glyphicon glyphicon-question-sign" />
                 </button>
               </th>
-              <th>{{ omega.getMessage('options_conditionDetails') }}</th>
-              <th>{{ omega.getMessage('options_resultProfile') }}</th>
-              <th>{{ omega.getMessage('options_conditionActions') }}</th>
+              <th>{{ $t('options_conditionDetails') }}</th>
+              <th>{{ $t('options_resultProfile') }}</th>
+              <th>{{ $t('options_conditionActions') }}</th>
               <th v-if="showNotes">
-                {{ omega.getMessage('options_ruleNote') }}
+                {{ $t('options_ruleNote') }}
               </th>
             </tr>
           </thead>
@@ -471,7 +558,7 @@ function formatDate(ts: any): string {
                 <a
                   v-if="isUrlConditionType[rule.condition.conditionType]"
                   class="icon-wrapper"
-                  :href="omega.getMessage('condition_alert_fullUrlLimitationLink')"
+                  :href="$t('condition_alert_fullUrlLimitationLink')"
                   target="_blank"
                 >
                   <span class="glyphicon glyphicon-alert text-danger" />
@@ -485,9 +572,9 @@ function formatDate(ts: any): string {
                     v-model="rule.condition.pattern"
                     class="form-control"
                     disabled
-                    :title="omega.getMessage('condition_details_FalseCondition')"
+                    :title="$t('condition_details_FalseCondition')"
                   >
-                  <span v-else>{{ omega.getMessage('condition_details_FalseCondition') }}</span>
+                  <span v-else>{{ $t('condition_details_FalseCondition') }}</span>
                 </template>
                 <!-- HostLevels -->
                 <span
@@ -502,7 +589,7 @@ function formatDate(ts: any): string {
                     max="99"
                     @change="optionsStore.markDirty()"
                   >
-                  <span>{{ omega.getMessage('options_hostLevelsBetween') }}</span>
+                  <span>{{ $t('options_hostLevelsBetween') }}</span>
                   <input
                     v-model.number="rule.condition.maxValue"
                     class="form-control"
@@ -535,7 +622,7 @@ function formatDate(ts: any): string {
                     max="23"
                     @change="optionsStore.markDirty()"
                   >
-                  <span>{{ omega.getMessage('options_hourBetween') }}</span>
+                  <span>{{ $t('options_hourBetween') }}</span>
                   <input
                     v-model.number="rule.condition.endHour"
                     class="form-control"
@@ -560,7 +647,7 @@ function formatDate(ts: any): string {
                       :checked="getWeekdayList(rule.condition)[i]"
                       @change="updateDay(rule.condition, i, ($event.target as HTMLInputElement).checked)"
                     >
-                    {{ omega.getMessage('options_weekDayShort_' + i) || 'SMTWTFS'[i] }}
+                    {{ $t('options_weekDayShort_' + i) || 'SMTWTFS'[i] }}
                   </label>
                 </span>
                 <!-- Default (pattern input) -->
@@ -583,23 +670,23 @@ function formatDate(ts: any): string {
               <td>
                 <button
                   class="btn btn-danger btn-sm"
-                  :title="omega.getMessage('options_deleteRule')"
-                  @click="removeRule(idx)"
+                  :title="$t('options_deleteRule')"
+                  @click="removeRule(Number(idx))"
                 >
                   <span class="glyphicon glyphicon-trash" />
                 </button>
                 <button
                   class="btn btn-default btn-sm"
-                  :title="omega.getMessage('options_cloneRule')"
-                  @click="cloneRule(idx)"
+                  :title="$t('options_cloneRule')"
+                  @click="cloneRule(Number(idx))"
                 >
                   <span class="glyphicon glyphicon-duplicate" />
                 </button>
                 <button
                   v-if="!showNotes"
                   class="btn btn-default btn-sm"
-                  :title="omega.getMessage('options_ruleNote')"
-                  @click="addNote(idx)"
+                  :title="$t('options_ruleNote')"
+                  @click="addNote(Number(idx))"
                 >
                   <span class="glyphicon glyphicon-comment" />
                 </button>
@@ -626,7 +713,7 @@ function formatDate(ts: any): string {
                   @click="addRule()"
                 >
                   <span class="glyphicon glyphicon-plus" />
-                  {{ omega.getMessage('options_addCondition') }}
+                  {{ $t('options_addCondition') }}
                 </button>
               </td>
             </tr>
@@ -650,16 +737,16 @@ function formatDate(ts: any): string {
                       v-model="attachedOptions.enabled"
                       type="checkbox"
                     >
-                    {{ omega.getMessage('options_switchAttachedProfileInCondition') }}
+                    {{ $t('options_switchAttachedProfileInCondition') }}
                   </label>
                 </span>
               </td>
               <td>
                 <span v-if="attachedOptions.enabled">
-                  {{ omega.getMessage('options_switchAttachedProfileInConditionDetails') }}
+                  {{ $t('options_switchAttachedProfileInConditionDetails') }}
                 </span>
                 <span v-else>
-                  {{ omega.getMessage('options_switchAttachedProfileInConditionDisabled') }}
+                  {{ $t('options_switchAttachedProfileInConditionDisabled') }}
                 </span>
               </td>
               <td>
@@ -673,7 +760,7 @@ function formatDate(ts: any): string {
               <td>
                 <button
                   class="btn btn-danger btn-sm"
-                  :title="omega.getMessage('options_deleteAttached')"
+                  :title="$t('options_deleteAttached')"
                   @click="removeAttached()"
                 >
                   <span class="glyphicon glyphicon-trash" />
@@ -687,7 +774,7 @@ function formatDate(ts: any): string {
             <tr class="switch-default-row">
               <td />
               <td colspan="2">
-                {{ omega.getMessage('options_switchDefaultProfile') }}
+                {{ $t('options_switchDefaultProfile') }}
               </td>
               <td>
                 <ProfileSelect
@@ -699,7 +786,7 @@ function formatDate(ts: any): string {
               <td>
                 <button
                   class="btn btn-info btn-sm"
-                  :title="omega.getMessage('options_resetRules_help')"
+                  :title="$t('options_resetRules_help')"
                   @click="resetRules()"
                 >
                   <span class="glyphicon glyphicon-chevron-up" />
@@ -717,16 +804,16 @@ function formatDate(ts: any): string {
       v-if="!attached"
       class="settings-group"
     >
-      <h3>{{ omega.getMessage('options_group_attachProfile') }}</h3>
+      <h3>{{ $t('options_group_attachProfile') }}</h3>
       <p class="help-block">
-        {{ omega.getMessage('options_attachProfileHelp') }}
+        {{ $t('options_attachProfileHelp') }}
       </p>
       <button
         class="btn btn-default"
         @click="attachNew()"
       >
         <span class="glyphicon glyphicon-plus" />
-        {{ omega.getMessage('options_attachProfile') }}
+        {{ $t('options_attachProfile') }}
       </button>
     </section>
 
@@ -735,9 +822,9 @@ function formatDate(ts: any): string {
       v-if="attached"
       class="settings-group"
     >
-      <h3>{{ omega.getMessage('options_group_ruleListConfig') }}</h3>
+      <h3>{{ $t('options_group_ruleListConfig') }}</h3>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_ruleListFormat') }}</label>
+        <label>{{ $t('options_ruleListFormat') }}</label>
         <div
           v-for="fmt in ruleListFormats"
           :key="fmt"
@@ -751,12 +838,12 @@ function formatDate(ts: any): string {
               :value="fmt"
               @change="optionsStore.markDirty()"
             >
-            {{ omega.getMessage('ruleListFormat_' + fmt) || fmt }}
+            {{ $t('ruleListFormat_' + fmt) || fmt }}
           </label>
         </div>
       </div>
       <div class="form-group">
-        <label>{{ omega.getMessage('options_group_ruleListUrl') }}</label>
+        <label>{{ $t('options_group_ruleListUrl') }}</label>
         <input
           v-model="attached.sourceUrl"
           type="url"
@@ -766,7 +853,7 @@ function formatDate(ts: any): string {
         >
       </div>
       <p class="help-block">
-        {{ omega.getMessage('options_ruleListUrlHelp') }}
+        {{ $t('options_ruleListUrlHelp') }}
       </p>
       <p>
         <button
@@ -776,7 +863,7 @@ function formatDate(ts: any): string {
           @click="downloadAttached()"
         >
           <span class="glyphicon glyphicon-download-alt" />
-          {{ omega.getMessage('options_downloadProfileNow') }}
+          {{ $t('options_downloadProfileNow') }}
         </button>
       </p>
     </section>
@@ -786,18 +873,18 @@ function formatDate(ts: any): string {
       v-if="attached"
       class="settings-group"
     >
-      <h3>{{ omega.getMessage('options_group_ruleListText') }}</h3>
+      <h3>{{ $t('options_group_ruleListText') }}</h3>
       <p
         v-if="attached.sourceUrl && attached.lastUpdate"
         class="alert alert-success width-limit"
       >
-        {{ omega.getMessage('options_ruleListLastUpdate', [formatDate(attached.lastUpdate)]) }}
+        {{ $t('options_ruleListLastUpdate', [formatDate(attached.lastUpdate)]) }}
       </p>
       <p
         v-if="attached.sourceUrl && !attached.lastUpdate"
         class="alert alert-danger width-limit"
       >
-        {{ omega.getMessage('options_ruleListObsolete') }}
+        {{ $t('options_ruleListObsolete') }}
       </p>
       <textarea
         id="attached-rulelist"
@@ -809,4 +896,31 @@ function formatDate(ts: any): string {
       />
     </section>
   </div>
+
+  <!-- Rule remove confirmation modal -->
+  <RuleRemoveConfirmModal
+    :show="showRuleRemoveModal"
+    :rule="ruleRemoveIndex != null ? (profile.rules ?? [])[ruleRemoveIndex] ?? null : null"
+    @close="showRuleRemoveModal = false"
+    @confirm="confirmRemoveRule()"
+  />
+
+  <!-- Rule reset confirmation modal -->
+  <RuleResetConfirmModal
+    :show="showRuleResetModal"
+    :default-profile-name="attachedOptions.defaultProfileName"
+    @close="showRuleResetModal = false"
+    @confirm="confirmResetRules()"
+  />
+
+  <!-- Delete attached profile confirmation modal -->
+  <DeleteAttachedModal
+    :show="showDeleteAttachedModal"
+    :profile-name="attachedName"
+    :parent-name="props.profileName"
+    :source-url="attached?.sourceUrl"
+    :rule-list="attached?.ruleList"
+    @close="showDeleteAttachedModal = false"
+    @confirm="confirmDeleteAttached()"
+  />
 </template>

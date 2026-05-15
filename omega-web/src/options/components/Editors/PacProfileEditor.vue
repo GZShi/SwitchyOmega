@@ -79,7 +79,7 @@ function formatDate(ts: any): string {
   <div>
     <!-- PAC URL section -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_pacUrl') }}</h3>
+      <h3>{{ $t('options_group_pacUrl') }}</h3>
       <input
         v-model="profile.pacUrl"
         type="text"
@@ -87,7 +87,7 @@ function formatDate(ts: any): string {
         @change="updatePacUrl()"
       >
       <p class="help-block">
-        {{ omega.getMessage('options_pacUrlHelp') }}
+        {{ $t('options_pacUrlHelp') }}
       </p>
 
       <div
@@ -96,7 +96,7 @@ function formatDate(ts: any): string {
       >
         <p class="help-block">
           <span class="glyphicon glyphicon-warning-sign" />
-          {{ omega.getMessage('options_pacUrlFile') }}
+          {{ $t('options_pacUrlFile') }}
         </p>
       </div>
       <div
@@ -105,10 +105,10 @@ function formatDate(ts: any): string {
       >
         <p class="help-block">
           <span class="glyphicon glyphicon-remove-sign" />
-          {{ omega.getMessage('options_pacUrlFile') }}
+          {{ $t('options_pacUrlFile') }}
         </p>
         <p class="help-block">
-          {{ omega.getMessage('options_pacUrlFileDisabled') }}
+          {{ $t('options_pacUrlFileDisabled') }}
         </p>
       </div>
 
@@ -120,7 +120,7 @@ function formatDate(ts: any): string {
           @click="downloadProfile()"
         >
           <span class="glyphicon glyphicon-download-alt" />
-          {{ omega.getMessage('options_downloadProfileNow') }}
+          {{ $t('options_downloadProfileNow') }}
         </button>
       </p>
     </section>
@@ -128,12 +128,12 @@ function formatDate(ts: any): string {
     <!-- PAC Script section -->
     <section class="settings-group">
       <h3>
-        {{ omega.getMessage('options_group_pacScript') }}
+        {{ $t('options_group_pacScript') }}
         <button
           class="btn btn-xs proxy-auth-toggle"
           :class="hasAuth ? 'btn-success' : 'btn-default'"
           type="button"
-          :title="omega.getMessage('options_proxy_auth')"
+          :title="$t('options_proxy_auth')"
           @click="openAuthModal()"
         >
           <span class="glyphicon glyphicon-lock" />
@@ -144,16 +144,16 @@ function formatDate(ts: any): string {
         v-if="hasAuth"
         class="alert alert-warning width-limit"
       >
-        <p>{{ omega.getMessage('options_proxy_authAllWarningPac') }}</p>
+        <p>{{ $t('options_proxy_authAllWarningPac') }}</p>
         <p v-if="profile.pacUrl">
-          {{ omega.getMessage('options_proxy_authAllWarningPacUrl') }}
+          {{ $t('options_proxy_authAllWarningPacUrl') }}
         </p>
         <p v-if="!profile.pacUrl">
-          {{ omega.getMessage('options_proxy_authAllWarningPacScript') }}
+          {{ $t('options_proxy_authAllWarningPacScript') }}
         </p>
         <p v-if="referenced">
           <span class="glyphicon glyphicon-warning-sign" />
-          {{ omega.getMessage('options_proxy_authReferencedWarning') }}
+          {{ $t('options_proxy_authReferencedWarning') }}
         </p>
       </div>
 
@@ -162,13 +162,13 @@ function formatDate(ts: any): string {
           v-if="profile.pacUrl && profile.lastUpdate"
           class="alert alert-success width-limit"
         >
-          {{ omega.getMessage('options_pacScriptLastUpdate', [formatDate(profile.lastUpdate)]) }}
+          {{ $t('options_pacScriptLastUpdate', [formatDate(profile.lastUpdate)]) }}
         </p>
         <p
           v-if="profile.pacUrl && !profile.lastUpdate"
           class="alert alert-danger width-limit"
         >
-          {{ omega.getMessage('options_pacScriptObsolete') }}
+          {{ $t('options_pacScriptObsolete') }}
         </p>
         <textarea
           v-model="profile.pacScript"

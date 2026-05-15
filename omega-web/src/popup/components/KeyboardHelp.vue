@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 
-const emit = defineEmits<{ close: [] }>();
-
 const keyForId: Record<string, string> = {
   'js-direct': '0',
   'js-system': 'S',
@@ -34,8 +32,7 @@ onMounted(() => {
   for (let i = 1; i <= 9; i++) {
     showHelp(`js-profile-${  i}`, String(i));
   }
-  // Auto-hide help after a delay
-  setTimeout(() => emit('close'), 3000);
+  // Help stays visible until user presses a key or clicks (keyboard event in PopupApp will close it)
 });
 </script>
 

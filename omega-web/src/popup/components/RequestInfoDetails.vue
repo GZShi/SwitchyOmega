@@ -2,12 +2,13 @@
 import { ref, watchEffect } from 'vue';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
+import ProfileSelect from '../../options/components/ProfileSelect.vue';
 
 const store = usePopupStore();
 const target = usePopupTarget();
 
 const domainsForCondition = ref<Record<string, boolean>>({});
-const profileForDomains = ref<string | null>(null);
+const profileForDomains = ref<string>('direct');
 
 // Initialize domain checkboxes when requestInfo changes
 watchEffect(() => {
@@ -45,17 +46,45 @@ async function addConditionsForDomains() {
 }
 
 async function openManage() {
-  await target.openManage()
-  store.closeWindow()
+  await target.openManage();
+  store.closeWindow();
+}
+
+async function configureMonitor() {
+  await target.openOptions('#/general');
+  store.closeWindow();
 }
 </script>
 
 <template>
   <div class="om-dialog">
     <div v-if="store.requestInfo?.domains?.length">
-      <p>
-        {{ target.getMessage('popup_requestErrorCount', [String(store.requestInfo.domains.length)]) }}
+      <!-- Legend: different text based on whether current profile can add rules -->
+      <p v-if="store.currentProfileCanAddRule">
+        {{ target.getMessage('popup_addConditionTo') }}
+        <span class="profile-inline">
+          {{ getProfileName(store.currentProfileName) }}
+        </span>
       </p>
+      <p v-else>
+        {{ target.getMessage('popup_requestErrorHeading') }}
+      </p>
+
+      <!-- Warning and help text -->
+      <p class="text-warning">
+        {{ target.getMessage('popup_requestErrorWarning') }}
+      </p>
+      <p class="help-block">
+        {{ target.getMessage('popup_requestErrorWarningHelp') }}
+      </p>
+      <p
+        v-if="store.currentProfileCanAddRule"
+        class="help-block"
+      >
+        {{ target.getMessage('popup_requestErrorAddCondition') }}
+      </p>
+
+      <!-- Domain list with checkboxes -->
       <div
         v-for="d in store.requestInfo.domains"
         :key="d.domain"
@@ -66,23 +95,32 @@ async function openManage() {
             v-model="domainsForCondition[d.domain]"
             type="checkbox"
           >
-          {{ d.domain }} ({{ d.errorCount }})
+          <span class="label label-warning">{{ d.errorCount }}</span>
+          {{ d.domain }}
         </label>
       </div>
-      <div style="margin-top: 8px;">
-        <select
+
+      <!-- Profile select (only shown when can add rule) -->
+      <div
+        v-if="store.currentProfileCanAddRule"
+        style="margin-top: 8px;"
+      >
+        <label>{{ target.getMessage('options_resultProfileForSelectedDomains') }}</label>
+        <ProfileSelect
           v-model="profileForDomains"
-          style="width: 100%;"
-        >
-          <option
-            v-for="p in store.validResultProfiles"
-            :key="p.name"
-            :value="p.name"
-          >
-            {{ getProfileName(p.name) }}
-          </option>
-        </select>
+          :profiles="store.validResultProfiles"
+        />
       </div>
+
+      <!-- Cannot add rule message -->
+      <p
+        v-if="!store.currentProfileCanAddRule"
+        class="help-block"
+      >
+        {{ target.getMessage('popup_requestErrorCannotAddCondition') }}
+      </p>
+
+      <!-- Action buttons -->
       <p
         class="om-dialog-controls"
         style="margin-top: 10px;"
@@ -100,10 +138,19 @@ async function openManage() {
           {{ target.getMessage('popup_manageExt') }}
         </button>
         <button
+          v-if="store.currentProfileCanAddRule"
           class="om-btn om-btn-primary"
           @click="addConditionsForDomains()"
         >
           {{ target.getMessage('popup_add') }}
+        </button>
+        <button
+          v-if="!store.currentProfileCanAddRule"
+          class="om-btn om-btn-default"
+          style="float: right;"
+          @click="configureMonitor()"
+        >
+          {{ target.getMessage('popup_configureMonitorWebRequests') }}
         </button>
       </p>
     </div>

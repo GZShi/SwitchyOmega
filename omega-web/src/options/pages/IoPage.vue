@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, onMounted } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
@@ -32,6 +33,10 @@ function showAlert(type: string, message: string) {
 async function exportOptions() {
   try {
     if (optionsStore.optionsDirty) {
+      const confirmed = window.confirm(
+        $t('options_applyOptionsConfirm') || 'Do you want to save and apply the options?',
+      );
+      if (!confirmed) return;
       await optionsStore.applyOptions();
     }
     const plain = JSON.parse(JSON.stringify(optionsStore.options));
@@ -53,9 +58,9 @@ async function restoreLocal(e: Event) {
   try {
     const content = await file.text();
     await optionsStore.resetOptions(content);
-    showAlert('success', omega.getMessage('options_importSuccess') || 'Options imported.');
+    showAlert('success', $t('options_importSuccess') || 'Options imported.');
   } catch (_) {
-    showAlert('error', omega.getMessage('options_importFormatError') || 'Invalid backup file!');
+    showAlert('error', $t('options_importFormatError') || 'Invalid backup file!');
   } finally {
     restoringLocal.value = false;
     input.value = '';
@@ -65,16 +70,25 @@ async function restoreLocal(e: Event) {
 async function restoreOnline() {
   omega.state('web.restoreOnlineUrl', restoreOnlineUrl.value);
   restoringOnline.value = true;
+  let downloadSucceeded = false;
   try {
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 10000);
     const resp = await fetch(restoreOnlineUrl.value, { signal: controller.signal });
     clearTimeout(tid);
+    if (!resp.ok) {
+      throw new Error();
+    }
     const text = await resp.text();
+    downloadSucceeded = true;
     await optionsStore.resetOptions(text);
-    showAlert('success', omega.getMessage('options_importSuccess') || 'Options imported.');
+    showAlert('success', $t('options_importSuccess') || 'Options imported.');
   } catch (_) {
-    showAlert('error', omega.getMessage('options_importDownloadError') || 'Error downloading backup file!');
+    if (downloadSucceeded) {
+      showAlert('error', $t('options_importFormatError') || 'Invalid backup file!');
+    } else {
+      showAlert('error', $t('options_importDownloadError') || 'Error downloading backup file!');
+    }
   } finally {
     restoringOnline.value = false;
   }
@@ -111,16 +125,16 @@ async function resetOptionsSync() {
       class="page-header"
       style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;"
     >
-      <h2>{{ omega.getMessage('options_tab_importExport') }}</h2>
+      <h2>{{ $t('options_tab_importExport') }}</h2>
     </div>
 
     <!-- Profile export help + legacy toggle -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_importExportProfile') }}</h3>
+      <h3>{{ $t('options_group_importExportProfile') }}</h3>
       <div class="help-block">
         <div class="text-info">
           <span class="glyphicon glyphicon-info-sign" />
-          {{ omega.getMessage('options_exportProfileHelp') }}
+          {{ $t('options_exportProfileHelp') }}
         </div>
       </div>
       <div
@@ -133,18 +147,18 @@ async function resetOptionsSync() {
             type="checkbox"
             @change="optionsStore.markDirty()"
           >
-          <span>{{ omega.getMessage('options_exportLegacyRuleList') }}</span>
+          <span>{{ $t('options_exportLegacyRuleList') }}</span>
         </label>
         <p
           class="help-block"
-          v-html="omega.getMessage('options_exportLegacyRuleListHelp')"
+          v-html="$t('options_exportLegacyRuleListHelp')"
         />
       </div>
     </section>
 
     <!-- Settings import/export -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_importExportSettings') }}</h3>
+      <h3>{{ $t('options_group_importExportSettings') }}</h3>
 
       <p>
         <button
@@ -152,9 +166,9 @@ async function resetOptionsSync() {
           @click="exportOptions()"
         >
           <span class="glyphicon glyphicon-floppy-save" />
-          {{ omega.getMessage('options_makeBackup') }}
+          {{ $t('options_makeBackup') }}
         </button>
-        <span class="help-inline">{{ omega.getMessage('options_makeBackupHelp') }}</span>
+        <span class="help-inline">{{ $t('options_makeBackupHelp') }}</span>
       </p>
 
       <p>
@@ -171,19 +185,19 @@ async function resetOptionsSync() {
           @click="triggerFileInput()"
         >
           <span class="glyphicon glyphicon-folder-open" />
-          {{ omega.getMessage('options_restoreLocal') }}
+          {{ $t('options_restoreLocal') }}
         </button>
-        <span class="help-inline">{{ omega.getMessage('options_restoreLocalHelp') }}</span>
+        <span class="help-inline">{{ $t('options_restoreLocalHelp') }}</span>
       </p>
 
       <div>
-        <label>{{ omega.getMessage('options_restoreOnline') }}</label>
+        <label>{{ $t('options_restoreOnline') }}</label>
         <div class="input-group width-limit">
           <input
             v-model="restoreOnlineUrl"
             class="form-control"
             type="url"
-            :placeholder="omega.getMessage('options_restoreOnlinePlaceholder')"
+            :placeholder="$t('options_restoreOnlinePlaceholder')"
           >
           <span class="input-group-btn">
             <button
@@ -191,7 +205,7 @@ async function resetOptionsSync() {
               :disabled="!restoreOnlineUrl || restoringOnline"
               @click="restoreOnline()"
             >
-              {{ omega.getMessage('options_restoreOnlineSubmit') }}
+              {{ $t('options_restoreOnlineSubmit') }}
             </button>
           </span>
         </div>
@@ -200,12 +214,12 @@ async function resetOptionsSync() {
 
     <!-- Sync -->
     <section class="settings-group">
-      <h3>{{ omega.getMessage('options_group_syncing') }}</h3>
+      <h3>{{ $t('options_group_syncing') }}</h3>
 
       <div v-if="syncOptions === 'pristine' || syncOptions === 'disabled'">
         <p
           class="help-block"
-          v-html="omega.getMessage('options_syncPristineHelp')"
+          v-html="$t('options_syncPristineHelp')"
         />
         <p>
           <button
@@ -213,7 +227,7 @@ async function resetOptionsSync() {
             @click="enableOptionsSync()"
           >
             <span class="glyphicon glyphicon-cloud-upload" />
-            {{ omega.getMessage('options_syncEnable') }}
+            {{ $t('options_syncEnable') }}
           </button>
         </p>
       </div>
@@ -221,11 +235,11 @@ async function resetOptionsSync() {
       <div v-if="syncOptions === 'sync'">
         <p class="alert alert-success width-limit">
           <span class="glyphicon glyphicon-ok" />
-          {{ omega.getMessage('options_syncSyncAlert') }}
+          {{ $t('options_syncSyncAlert') }}
         </p>
         <p
           class="help-block"
-          v-html="omega.getMessage('options_syncSyncHelp')"
+          v-html="$t('options_syncSyncHelp')"
         />
         <p>
           <button
@@ -233,7 +247,7 @@ async function resetOptionsSync() {
             @click="disableOptionsSync()"
           >
             <span class="glyphicon glyphicon-remove-sign" />
-            {{ omega.getMessage('options_syncDisable') }}
+            {{ $t('options_syncDisable') }}
           </button>
         </p>
       </div>
@@ -241,11 +255,11 @@ async function resetOptionsSync() {
       <div v-if="syncOptions === 'conflict'">
         <p class="alert alert-info width-limit">
           <span class="glyphicon glyphicon-info-sign" />
-          {{ omega.getMessage('options_syncConflictAlert') }}
+          {{ $t('options_syncConflictAlert') }}
         </p>
         <p
           class="help-block"
-          v-html="omega.getMessage('options_syncConflictHelp')"
+          v-html="$t('options_syncConflictHelp')"
         />
         <p>
           <button
@@ -253,14 +267,14 @@ async function resetOptionsSync() {
             @click="enableOptionsSync(true)"
           >
             <span class="glyphicon glyphicon-cloud-download" />
-            {{ omega.getMessage('options_syncEnableForce') }}
+            {{ $t('options_syncEnableForce') }}
           </button>
           <button
             class="btn btn-link"
             @click="resetOptionsSync()"
           >
             <span class="glyphicon glyphicon-erase" />
-            {{ omega.getMessage('options_syncReset') }}
+            {{ $t('options_syncReset') }}
           </button>
         </p>
       </div>
@@ -268,7 +282,7 @@ async function resetOptionsSync() {
       <div v-if="syncOptions === 'unsupported'">
         <p
           class="help-block"
-          v-html="omega.getMessage('options_syncUnsupportedHelp')"
+          v-html="$t('options_syncUnsupportedHelp')"
         />
       </div>
     </section>

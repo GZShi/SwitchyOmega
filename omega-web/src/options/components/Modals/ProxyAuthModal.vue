@@ -1,23 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
+import { ref, computed, watch } from 'vue';
+import { isFirefox } from '@/services/chrome';
+import { getMessage as $t } from '@/services/chrome/i18n';
 
 const props = defineProps<{
   auth: { username?: string; password?: string } | null | undefined;
   title?: string;
+  proxyScheme?: string;
 }>();
 const emit = defineEmits<{
   close: [];
   save: [auth: { username: string; password: string } | null];
 }>();
 
-const omega = useOmegaTarget();
 
 const username = ref(props.auth?.username ?? '');
 const password = ref(props.auth?.password ?? '');
 const showPassword = ref(false);
 
-const titleLabel = props.title ?? omega.getMessage('options_proxy_auth') ?? 'Proxy Authentication';
+const authSupported = computed(() => {
+  if (!props.proxyScheme) return true; // No scheme set yet, assume supported
+  if (props.proxyScheme === 'http' || props.proxyScheme === 'https') return true;
+  if (props.proxyScheme === 'socks5' && !isFirefox) return true;
+  return false;
+});
+
+// Fix 8: Reset password when username is cleared
+watch(username, (newVal) => {
+  if (!newVal) {
+    password.value = '';
+  }
+});
+
+const titleLabel = props.title ?? $t('options_proxy_auth') ?? 'Proxy Authentication';
 
 function save() {
   if (!username.value) {
@@ -53,8 +68,15 @@ function save() {
               </h4>
             </div>
             <div class="modal-body">
+              <div
+                v-if="!authSupported"
+                class="alert alert-danger"
+              >
+                <span class="glyphicon glyphicon-warning-sign" />
+                {{ ' ' + ($t('options_proxy_authNotSupported') || 'Proxy authentication is not supported for this protocol.') }}
+              </div>
               <div class="form-group">
-                <label>{{ omega.getMessage('options_proxy_username') || 'Username' }}</label>
+                <label>{{ $t('options_proxy_username') || 'Username' }}</label>
                 <input
                   v-model="username"
                   class="form-control"
@@ -63,17 +85,27 @@ function save() {
                 >
               </div>
               <div class="form-group">
-                <label>{{ omega.getMessage('options_proxy_password') || 'Password' }}</label>
+                <label>{{ $t('options_proxy_password') || 'Password' }}</label>
                 <div class="input-group">
                   <input
+                    v-if="username"
                     v-model="password"
                     class="form-control"
                     :type="showPassword ? 'text' : 'password'"
+                  >
+                  <input
+                    v-else
+                    class="form-control"
+                    type="text"
+                    value=""
+                    :placeholder="$t('options_proxyAuthNone') || 'No password'"
+                    disabled
                   >
                   <span class="input-group-btn">
                     <button
                       type="button"
                       class="btn btn-default"
+                      :disabled="!username"
                       @click="showPassword = !showPassword"
                     >
                       <span
@@ -91,13 +123,13 @@ function save() {
                 class="btn btn-default"
                 @click="emit('close')"
               >
-                {{ omega.getMessage('dialog_cancel') }}
+                {{ $t('dialog_cancel') }}
               </button>
               <button
                 type="submit"
                 class="btn btn-primary"
               >
-                {{ omega.getMessage('dialog_save') }}
+                {{ $t('dialog_save') }}
               </button>
             </div>
           </form>

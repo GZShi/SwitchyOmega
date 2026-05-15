@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { computed } from 'vue';
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 
@@ -10,7 +10,6 @@ const props = defineProps<{
   profile?: any;
 }>();
 
-const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
@@ -39,7 +38,7 @@ const isVirtual = computed(() => resolved.value?.profileType === 'VirtualProfile
 
 const displayName = computed(() => {
   const name = resolved.value?.name ?? props.name ?? '';
-  return omega.getMessage(`profile_${  name}`) || name;
+  return $t(`profile_${  name}`) || name;
 });
 </script>
 

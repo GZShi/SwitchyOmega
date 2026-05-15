@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
@@ -17,14 +18,20 @@ const nameError = ref('');
 
 function validate(): boolean {
   const name = newName.value.trim();
-  if (!name) return false;
-  if (name === props.profileName) return true;
+  if (!name) {
+    nameError.value = $t('options_profileNameEmpty');
+    return false;
+  }
+  if (name === props.profileName) {
+    nameError.value = '';
+    return true;
+  }
   if (profilesStore.isProfileNameReserved(name)) {
-    nameError.value = omega.getMessage('options_profileNameReserved');
+    nameError.value = $t('options_profileNameReserved');
     return false;
   }
   if (optionsStore.profileByName(name)) {
-    nameError.value = omega.getMessage('options_profileNameConflict');
+    nameError.value = $t('options_profileNameConflict');
     return false;
   }
   nameError.value = '';
@@ -32,7 +39,6 @@ function validate(): boolean {
 }
 
 async function submit() {
-  if (!newName.value.trim()) return;
   if (!validate()) return;
   const toName = newName.value.trim();
 
@@ -79,7 +85,7 @@ async function submit() {
               &times;
             </button>
             <h4 class="modal-title">
-              {{ omega.getMessage('options_renameProfile') }}
+              {{ $t('options_renameProfile') }}
             </h4>
           </div>
           <div class="modal-body">
@@ -87,7 +93,7 @@ async function submit() {
               class="form-group"
               :class="{ 'has-error': nameError }"
             >
-              <label>{{ omega.getMessage('options_renameProfileName') }}</label>
+              <label>{{ $t('options_renameProfileName') }}</label>
               <input
                 v-model="newName"
                 class="form-control"
@@ -106,13 +112,13 @@ async function submit() {
               class="btn btn-default"
               @click="emit('close')"
             >
-              {{ omega.getMessage('dialog_cancel') }}
+              {{ $t('dialog_cancel') }}
             </button>
             <button
               class="btn btn-primary"
               @click="submit()"
             >
-              {{ omega.getMessage('options_renameProfile') }}
+              {{ $t('options_renameProfile') }}
             </button>
           </div>
         </div>

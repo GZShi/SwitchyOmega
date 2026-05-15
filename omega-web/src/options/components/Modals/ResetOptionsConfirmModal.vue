@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { useOmegaTarget } from '@/composables/useOmegaTarget';
 
 const emit = defineEmits<{ close: []; confirm: [opt?: any] }>();
-const omega = useOmegaTarget();
 </script>
 
 <template>
@@ -24,12 +22,12 @@ const omega = useOmegaTarget();
               &times;
             </button>
             <h4 class="modal-title">
-              {{ omega.getMessage('options_modalHeader_resetOptions') }}
+              {{ $t('options_modalHeader_resetOptions') }}
             </h4>
           </div>
           <div class="modal-body">
             <p class="text-danger">
-              {{ omega.getMessage('options_resetOptionsConfirm') }}
+              {{ $t('options_resetOptionsConfirm') }}
             </p>
           </div>
           <div class="modal-footer">
@@ -37,13 +35,13 @@ const omega = useOmegaTarget();
               class="btn btn-default"
               @click="emit('close')"
             >
-              {{ omega.getMessage('dialog_cancel') }}
+              {{ $t('dialog_cancel') }}
             </button>
             <button
               class="btn btn-danger"
               @click="emit('confirm')"
             >
-              {{ omega.getMessage('options_reset') }}
+              {{ $t('options_reset') }}
             </button>
           </div>
         </div>
