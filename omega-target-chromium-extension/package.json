@@ -19,6 +19,7 @@
   "scripts": {
     "build": "node scripts/build-extension.js && tsdown --config tsdown.config.ts",
     "dev": "node scripts/build-extension.js && tsdown --config tsdown.config.ts --watch",
+    "dev:ui": "node scripts/dev-init.js",
     "release": "BUILD=release npm run build && node scripts/release.js",
     "test": "echo 'No tests in omega-target-chromium-extension (covered by omega-pac/omega-target)'",
     "lint": "eslint src/ --no-cache",

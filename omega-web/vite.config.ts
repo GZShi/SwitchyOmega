@@ -4,6 +4,14 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [vue()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      host: "localhost",
+      protocol: "ws",
+    },
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),

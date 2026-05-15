@@ -5,7 +5,8 @@
   "scripts": {
     "build": "vite build && node scripts/move-output.js && npm run build:copy",
     "build:copy": "node scripts/copy-libs.js",
-    "dev": "vite build --watch",
+    "dev": "vite",
+    "dev:watch": "vite build --watch",
     "lint": "eslint src/ --no-cache",
     "clean": "rm -rf build/"
   },
