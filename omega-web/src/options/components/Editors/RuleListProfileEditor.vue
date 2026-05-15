@@ -5,6 +5,7 @@ import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import { formatDate } from '@/composables/useFormatters';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -45,10 +46,6 @@ async function downloadProfile() {
   }
 }
 
-function formatDate(ts: any): string {
-  if (!ts) return '';
-  try { return new Date(ts).toLocaleString(); } catch (_) { return String(ts); }
-}
 </script>
 
 <template>

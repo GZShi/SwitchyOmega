@@ -11,26 +11,26 @@ import KeyboardHelp from './KeyboardHelp.vue';
 const store = usePopupStore();
 
 // -- Keyboard shortcuts --
-const shortcutKeys: Record<number, string | ((items: HTMLElement[], i: number) => void)> = {
-  38: 'moveUp',    // Up
-  40: 'moveDown',  // Down
-  74: 'moveDown',  // j
-  75: 'moveUp',    // k
-  48: '#js-direct', // 0
-  83: '#js-system', // S
-  191: 'help',     // /
-  63: 'help',      // ?
-  69: '#js-external', // E
-  65: '#js-addrule',  // A
-  187: '#js-addrule', // = (+)
-  84: '#js-temprule', // T
-  79: '#js-option',   // O
-  82: '#js-reqinfo',  // R
+const shortcutKeys: Record<string, string | ((items: HTMLElement[], i: number) => void)> = {
+  ArrowUp: 'moveUp',
+  ArrowDown: 'moveDown',
+  j: 'moveDown',
+  k: 'moveUp',
+  '0': '#js-direct',
+  s: '#js-system',
+  '/': 'help',
+  '?': 'help',
+  e: '#js-external',
+  a: '#js-addrule',
+  '=': '#js-addrule',
+  t: '#js-temprule',
+  o: '#js-option',
+  r: '#js-reqinfo',
 };
 
 // 1-9 map to custom profiles
 for (let i = 1; i <= 9; i++) {
-  shortcutKeys[48 + i] = `#js-profile-${i}`;
+  shortcutKeys[String(i)] = `#js-profile-${i}`;
 }
 
 function moveUp() {
@@ -56,7 +56,7 @@ function getMenuItems(): HTMLElement[] {
 }
 
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
-  const handler = shortcutKeys[e.keyCode];
+  const handler = shortcutKeys[e.key.toLowerCase()];
   if (!handler) return;
   if (e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA')) return;
 

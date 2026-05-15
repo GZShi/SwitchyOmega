@@ -2,6 +2,7 @@
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { computed } from 'vue';
 import { useProfilesStore } from '@/stores/profiles';
+import BaseModal from '@/options/components/BaseModal.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -26,60 +27,24 @@ const attachedDetails = computed(() => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="show"
-      class="modal-backdrop fade in"
-    />
-    <div
-      v-if="show"
-      class="modal fade in"
-      style="display: block;"
-      @keydown.esc="emit('close')"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button
-              type="button"
-              class="close"
-              @click="emit('close')"
-            >
-              &times;
-            </button>
-            <h4 class="modal-title">
-              {{ $t('options_modalHeader_deleteAttached') }}
-            </h4>
-          </div>
-          <div class="modal-body">
-            <p>{{ $t('options_deleteAttachedConfirm') }}</p>
-            <div class="well">
-              <span
-                class="glyphicon"
-                :class="[profileIcon]"
-              />
-              {{ profileName }}
-              <span v-if="attachedDetails">
-                &mdash; {{ attachedDetails }}
-              </span>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              class="btn btn-default"
-              @click="emit('close')"
-            >
-              {{ $t('dialog_cancel') }}
-            </button>
-            <button
-              class="btn btn-danger"
-              @click="emit('confirm')"
-            >
-              {{ $t('options_deleteAttached') }}
-            </button>
-          </div>
-        </div>
-      </div>
+  <BaseModal
+    :show="show"
+    :title="$t('options_modalHeader_deleteAttached')"
+    @close="emit('close')"
+  >
+    <p>{{ $t('options_deleteAttachedConfirm') }}</p>
+    <div class="well">
+      <span class="glyphicon" :class="[profileIcon]" />
+      {{ profileName }}
+      <span v-if="attachedDetails">&mdash; {{ attachedDetails }}</span>
     </div>
-  </Teleport>
+    <template #footer>
+      <button class="btn btn-default" @click="emit('close')">
+        {{ $t('dialog_cancel') }}
+      </button>
+      <button class="btn btn-danger" @click="emit('confirm')">
+        {{ $t('options_deleteAttached') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseModal from '@/options/components/BaseModal.vue';
 import ProfileInline from '@/options/components/ProfileInline.vue';
 
 defineProps<{ profile: any; profileName: string }>();
@@ -6,52 +7,21 @@ const emit = defineEmits<{ close: []; confirm: [] }>();
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="modal-backdrop fade in" />
-    <div
-      class="modal fade in"
-      style="display: block;"
-      @keydown.esc="emit('close')"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button
-              type="button"
-              class="close"
-              @click="emit('close')"
-            >
-              &times;
-            </button>
-            <h4 class="modal-title">
-              {{ $t('options_deleteProfile') }}
-            </h4>
-          </div>
-          <div class="modal-body">
-            <p>{{ $t('options_deleteProfileConfirm') }}</p>
-            <div class="well">
-              <ProfileInline
-                :profile="profile"
-                :name="profileName"
-              />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              class="btn btn-default"
-              @click="emit('close')"
-            >
-              {{ $t('dialog_cancel') }}
-            </button>
-            <button
-              class="btn btn-danger"
-              @click="emit('confirm')"
-            >
-              {{ $t('options_deleteProfile') }}
-            </button>
-          </div>
-        </div>
-      </div>
+  <BaseModal
+    :title="$t('options_deleteProfile')"
+    @close="emit('close')"
+  >
+    <p>{{ $t('options_deleteProfileConfirm') }}</p>
+    <div class="well">
+      <ProfileInline :profile="profile" :name="profileName" />
     </div>
-  </Teleport>
+    <template #footer>
+      <button class="btn btn-default" @click="emit('close')">
+        {{ $t('dialog_cancel') }}
+      </button>
+      <button class="btn btn-danger" @click="emit('confirm')">
+        {{ $t('options_deleteProfile') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>

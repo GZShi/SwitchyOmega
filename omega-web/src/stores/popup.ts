@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { usePopupTarget } from "@/composables/usePopupTarget";
+import { useProfilesStore } from "@/stores/profiles";
 
 interface Profile {
   name: string;
@@ -74,14 +75,10 @@ export const usePopupStore = defineStore("popup", () => {
     return availableProfiles.value[`+${currentProfileName.value}`] || null;
   });
 
+  const profilesStore = useProfilesStore();
+
   const sortedCustomProfiles = computed(() => {
-    const order: Record<string, number> = {
-      FixedProfile: -2000,
-      PacProfile: -1000,
-      VirtualProfile: 1000,
-      SwitchProfile: 2000,
-      RuleListProfile: 3000,
-    };
+    const order = profilesStore.profileOrder;
     return [...customProfiles.value].sort((a, b) => {
       const diff = (order[a.profileType] || 0) - (order[b.profileType] || 0);
       if (diff !== 0) return diff;

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import BaseModal from '@/options/components/BaseModal.vue';
 
 const props = defineProps<{ profile: any; profileName: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -45,7 +46,6 @@ async function submit() {
   if (toName !== props.profileName) {
     try {
       await omega.renameProfile(props.profileName, toName);
-      // Handle attached rule list
       const attachedName = profilesStore.getAttachedName(props.profileName);
       if (optionsStore.profileByName(attachedName)) {
         const toAttached = profilesStore.getAttachedName(toName);
@@ -56,7 +56,7 @@ async function submit() {
         }
       }
       emit('close');
-      router.push(`/profile/${  encodeURIComponent(toName)}`);
+      router.push(`/profile/${encodeURIComponent(toName)}`);
     } catch (err: any) {
       nameError.value = String(err);
     }
@@ -67,62 +67,29 @@ async function submit() {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="modal-backdrop fade in" />
-    <div
-      class="modal fade in"
-      style="display: block;"
-      @keydown.esc="emit('close')"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button
-              type="button"
-              class="close"
-              @click="emit('close')"
-            >
-              &times;
-            </button>
-            <h4 class="modal-title">
-              {{ $t('options_renameProfile') }}
-            </h4>
-          </div>
-          <div class="modal-body">
-            <div
-              class="form-group"
-              :class="{ 'has-error': nameError }"
-            >
-              <label>{{ $t('options_renameProfileName') }}</label>
-              <input
-                v-model="newName"
-                class="form-control"
-                type="text"
-                autofocus
-                @keydown.enter="submit()"
-              >
-              <span
-                v-if="nameError"
-                class="help-block"
-              >{{ nameError }}</span>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              class="btn btn-default"
-              @click="emit('close')"
-            >
-              {{ $t('dialog_cancel') }}
-            </button>
-            <button
-              class="btn btn-primary"
-              @click="submit()"
-            >
-              {{ $t('options_renameProfile') }}
-            </button>
-          </div>
-        </div>
-      </div>
+  <BaseModal
+    :title="$t('options_renameProfile')"
+    @close="emit('close')"
+  >
+    <div class="form-group" :class="{ 'has-error': nameError }">
+      <label for="rename-profile-input">{{ $t('options_renameProfileName') }}</label>
+      <input
+        id="rename-profile-input"
+        v-model="newName"
+        class="form-control"
+        type="text"
+        autofocus
+        @keydown.enter="submit()"
+      >
+      <span v-if="nameError" class="help-block">{{ nameError }}</span>
     </div>
-  </Teleport>
+    <template #footer>
+      <button class="btn btn-default" @click="emit('close')">
+        {{ $t('dialog_cancel') }}
+      </button>
+      <button class="btn btn-primary" @click="submit()">
+        {{ $t('options_renameProfile') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>

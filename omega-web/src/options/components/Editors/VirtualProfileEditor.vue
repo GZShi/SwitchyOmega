@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import { useUiStore } from '@/stores/ui';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ReplaceProfileModal from '@/options/components/Modals/ReplaceProfileModal.vue';
 
@@ -12,6 +13,7 @@ defineProps<{ profileName: string }>();
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
+const uiStore = useUiStore();
 
 const showReplaceModal = ref(false);
 
@@ -41,11 +43,9 @@ function openReplaceModal() {
 async function doReplace(fromName: string, toName: string) {
   try {
     await omega.replaceRef(fromName, toName);
-    const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('success', $t('options_replaceProfileSuccess') || 'Replaced.');
+    uiStore.showAlert('success', $t('options_replaceProfileSuccess') || 'Replaced.');
   } catch (e: any) {
-    const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('error', e.message ?? String(e));
+    uiStore.showAlert('error', e.message ?? String(e));
   }
 }
 </script>

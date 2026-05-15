@@ -1,3 +1,3 @@
-// Phase A0: Stub. Will be ported from switch_profile_guide.coffee in Phase A5.
-// Shepherd.js tour for switch profile rule editing walkthrough.
+// TODO: Port Shepherd.js tour from legacy switch_profile_guide.coffee.
+// This will provide a rule editing walkthrough for switch profiles.
 export {};

@@ -3,6 +3,7 @@ import { getMessage as $t } from '@/services/chrome/i18n';
 import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useOptionsStore } from '@/stores/options';
+import { useUiStore } from '@/stores/ui';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import NavigationSidebar from './components/NavigationSidebar.vue';
@@ -12,36 +13,16 @@ import WelcomeModal from './components/WelcomeModal.vue';
 const router = useRouter();
 const route = useRoute();
 const optionsStore = useOptionsStore();
+const uiStore = useUiStore();
 const omega = useOmegaTarget();
 const OmegaPac = useOmegaPac();
-
-const alert = ref<{ type: string; message: string } | null>(null);
-const alertShown = ref(false);
-let alertShownAt = 0;
 
 // Welcome wizard
 const showWelcome = ref(false);
 const welcomeIsUpgrade = ref(false);
 let showFirstRunOnce = true;
 
-// Expose showAlert for the options store to use
-(window as any).__omegaUi = {
-  showAlert(type: string, message: string) {
-    alert.value = { type, message };
-    alertShown.value = true;
-    alertShownAt = Date.now();
-    setTimeout(hideAlert, 3000);
-  },
-  hideAlert,
-};
-
-function hideAlert() {
-  if (Date.now() - alertShownAt >= 1000) {
-    alertShown.value = false;
-  }
-}
-
-	const alertIcons: Record<string, string> = {
+const alertIcons: Record<string, string> = {
   success: 'glyphicon-ok',
   warning: 'glyphicon-warning-sign',
   error: 'glyphicon-remove',
@@ -108,7 +89,7 @@ window.onbeforeunload = () => {
 };
 
 // Hide alert on click
-document.addEventListener('click', hideAlert, false);
+document.addEventListener('click', () => uiStore.hideAlert(), false);
 
 onMounted(async () => {
   optionsStore.onOptionsChange(() => {
@@ -120,7 +101,7 @@ onMounted(async () => {
   // Track route changes for lastUrl
   router.afterEach((to) => {
     omega.lastUrl(to.fullPath);
-    hideAlert();
+    uiStore.hideAlert();
   });
 });
 </script>
@@ -136,10 +117,10 @@ onMounted(async () => {
     <!-- Main Content -->
     <main class="omega-main">
       <AlertBar
-        v-if="alertShown && alert"
-        :type="alert.type"
-        :message="alert.message"
-        :icon="alertIcons[alert.type]"
+        v-if="uiStore.alertShown && uiStore.alert"
+        :type="uiStore.alert.type"
+        :message="uiStore.alert.message"
+        :icon="alertIcons[uiStore.alert.type]"
       />
       <router-view />
     </main>
@@ -169,44 +150,41 @@ onMounted(async () => {
   flex: 0 0 240px;
   width: 240px;
   max-width: 240px;
-  background-color: #f5f5f5;
-  border-right: 1px solid #e5e5e5;
-  // Override any Bootstrap col-* positioning and float from the original Less
-  position: sticky !important;
+  background-color: var(--color-bg-light);
+  border-right: 1px solid var(--color-border);
+  position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  padding: 15px;
+  padding: var(--spacing-md);
   box-sizing: border-box;
 
   @media (max-width: 767px) {
-    position: static !important;
+    position: static;
     flex: 0 0 auto;
     width: 100%;
     max-width: none;
     height: auto;
     border-right: none;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--color-border);
   }
 }
 
 .omega-main {
   flex: 1 1 auto;
-  min-width: 0; // Prevent flex item from overflowing its container
-  padding: 20px 30px;
+  min-width: 0;
+  padding: var(--spacing-lg) var(--spacing-xl);
   box-sizing: border-box;
   overflow-x: auto;
 
-  // Override options.less's fixed page-header (designed for the old layout)
-  // Use a simple static header with flexbox for action alignment instead.
   .page-header {
-    position: static !important;
-    background: none !important;
-    background-image: none !important;
-    padding: 0 0 15px 0 !important;
-    margin: 0 0 20px 0 !important;
-    max-height: none !important;
-    width: auto !important;
+    position: static;
+    background: none;
+    background-image: none;
+    padding: 0 0 var(--spacing-md) 0;
+    margin: 0 0 var(--spacing-lg) 0;
+    max-height: none;
+    width: auto;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -215,22 +193,22 @@ onMounted(async () => {
   }
 
   .profile-color-editor {
-    float: none !important;
-    margin: 0 !important;
+    float: none;
+    margin: 0;
     order: 1;
   }
 
   h2.profile-name {
     order: 2;
     flex: 1 1 auto;
-    margin: 0 !important;
+    margin: 0;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .profile-actions {
-    float: none !important;
+    float: none;
     order: 3;
     margin-left: auto;
     white-space: nowrap;

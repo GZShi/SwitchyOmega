@@ -1,8 +1,8 @@
-declare let chrome: any;
-
-export function localGet(keys: string | string[] | Record<string, any> | null): Promise<Record<string, any>> {
+export function localGet(
+  keys: string | string[] | Record<string, any> | null,
+): Promise<Record<string, any>> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(keys, resolve);
+    (chrome.storage.local.get as any)(keys, resolve);
   });
 }
 

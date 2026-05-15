@@ -3,9 +3,11 @@ import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, onMounted } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
+import { useUiStore } from '@/stores/ui';
 
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
+const uiStore = useUiStore();
 
 const syncOptions = ref<string>('pristine');
 const restoreOnlineUrl = ref<string>('');
@@ -26,8 +28,7 @@ onMounted(async () => {
 });
 
 function showAlert(type: string, message: string) {
-  const ui = (window as any).__omegaUi;
-  ui?.showAlert?.(type, message);
+  uiStore.showAlert(type as any, message);
 }
 
 async function exportOptions() {
@@ -121,10 +122,7 @@ async function resetOptionsSync() {
 
 <template>
   <div>
-    <div
-      class="page-header"
-      style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;"
-    >
+    <div class="page-header">
       <h2>{{ $t('options_tab_importExport') }}</h2>
     </div>
 

@@ -1,6 +1,6 @@
-declare let chrome: any;
-
-export function query(queryInfo: Record<string, any>): Promise<any[]> {
+export function query(
+  queryInfo: chrome.tabs.QueryInfo,
+): Promise<chrome.tabs.Tab[]> {
   return new Promise((resolve, reject) => {
     chrome.tabs.query(queryInfo, (tabs: any[]) => {
       if (chrome.runtime.lastError) {
@@ -12,9 +12,26 @@ export function query(queryInfo: Record<string, any>): Promise<any[]> {
   });
 }
 
-export function update(tabId: number, props: Record<string, any>): Promise<any> {
+export function update(
+  tabId: number | undefined,
+  props: chrome.tabs.UpdateProperties,
+): Promise<chrome.tabs.Tab> {
   return new Promise((resolve, reject) => {
-    chrome.tabs.update(tabId, props, (tab: any) => {
+    chrome.tabs.update(tabId!, props, (tab) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+        return;
+      }
+      resolve(tab!);
+    });
+  });
+}
+
+export function create(
+  props: chrome.tabs.CreateProperties,
+): Promise<chrome.tabs.Tab> {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.create(props, (tab) => {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
         return;
@@ -24,19 +41,10 @@ export function update(tabId: number, props: Record<string, any>): Promise<any> 
   });
 }
 
-export function create(props: Record<string, any>): Promise<any> {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.create(props, (tab: any) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
-      }
-      resolve(tab);
-    });
-  });
-}
-
-export function reload(tabId: number, reloadProps?: Record<string, any>): Promise<void> {
+export function reload(
+  tabId: number | undefined,
+  reloadProps?: chrome.tabs.ReloadProperties,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const props = reloadProps ?? {};
     chrome.tabs.reload(tabId, props, () => {

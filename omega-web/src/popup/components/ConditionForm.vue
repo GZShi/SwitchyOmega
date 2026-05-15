@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { usePopupStore } from '@/stores/popup';
+import { useProfilesStore } from '@/stores/profiles';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import ProfileSelect from '../../options/components/ProfileSelect.vue';
 
 const store = usePopupStore();
+const profilesStore = useProfilesStore();
 const target = usePopupTarget();
 
 const conditionTypes = [
@@ -16,13 +18,7 @@ const conditionTypes = [
 ];
 
 const sortedValidProfiles = computed(() => {
-  const order: Record<string, number> = {
-    FixedProfile: -2000,
-    PacProfile: -1000,
-    VirtualProfile: 1000,
-    SwitchProfile: 2000,
-    RuleListProfile: 3000,
-  };
+  const order = profilesStore.profileOrder;
   return [...store.validResultProfiles].sort((a, b) => {
     const diff = (order[a.profileType] || 0) - (order[b.profileType] || 0);
     if (diff !== 0) return diff;

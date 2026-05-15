@@ -6,20 +6,15 @@ import {
 } from "@/services/chrome/runtime";
 import { query, update, create, reload } from "@/services/chrome/tabs";
 import { getMessage } from "@/services/chrome/i18n";
+import { decodeError, isChromeUrl } from "@/services/chrome/rpc";
 
 async function callBackground(method: string, args: any[]): Promise<any> {
   const response = await sendMessage<{ error?: any; result?: any }>({
     method,
     args,
   });
-  if (response.error) throw response.error;
+  if (response.error) throw decodeError(response.error);
   return response.result;
-}
-
-function isChromeUrl(url: string): boolean {
-  return url.startsWith("chrome") ||
-    url.startsWith("moz-") ||
-    url.startsWith("about:");
 }
 
 let requestInfoCallback: ((info: any) => void) | null = null;

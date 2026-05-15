@@ -6,6 +6,7 @@ import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import { formatDate } from '@/composables/useFormatters';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import RuleRemoveConfirmModal from '@/options/components/Modals/RuleRemoveConfirmModal.vue';
 import RuleResetConfirmModal from '@/options/components/Modals/RuleResetConfirmModal.vue';
@@ -384,10 +385,6 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
   showConditionTypes.value = 1;
 }
 
-function formatDate(ts: any): string {
-  if (!ts) return '';
-  try { return new Date(ts).toLocaleString(); } catch (_) { return String(ts); }
-}
 </script>
 
 <template>

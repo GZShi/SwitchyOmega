@@ -3,6 +3,7 @@ import { getMessage as $t } from "@/services/chrome/i18n";
 import { ref } from "vue";
 import { useOmegaTarget } from "@/composables/useOmegaTarget";
 import { useOmegaPac } from "@/composables/useOmegaPac";
+import { useUiStore } from "@/stores/ui";
 
 import * as jsondiffpatch from "jsondiffpatch";
 
@@ -77,10 +78,7 @@ export const useOptionsStore = defineStore("options", () => {
   }
 
   function showAlert(type: string, message: string) {
-    const ui = (window as any).__omegaUi;
-    if (ui?.showAlert) {
-      ui.showAlert(type, message);
-    }
+    useUiStore().showAlert(type as any, message);
   }
 
   function markDirty() {

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
+import { formatDate } from '@/composables/useFormatters';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -65,14 +66,6 @@ async function downloadProfile() {
   }
 }
 
-function formatDate(ts: any): string {
-  if (!ts) return '';
-  try {
-    return new Date(ts).toLocaleString();
-  } catch (_) {
-    return String(ts);
-  }
-}
 </script>
 
 <template>

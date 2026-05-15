@@ -63,10 +63,7 @@ function openShortcutConfig() {
 
 <template>
   <div>
-    <div
-      class="page-header"
-      style="position: static; background: none; max-height: none; padding: 0 0 10px 0; margin: 0 0 20px 0; border-bottom: 1px solid #eee;"
-    >
+    <div class="page-header">
       <h2>{{ $t('options_tab_ui') }}</h2>
     </div>
 

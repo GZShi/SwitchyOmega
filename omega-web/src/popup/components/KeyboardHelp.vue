@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 
 const keyForId: Record<string, string> = {
   'js-direct': '0',
@@ -11,28 +11,40 @@ const keyForId: Record<string, string> = {
   'js-reqinfo': 'R',
 };
 
-function showHelp(id: string, key: string) {
+const injectedElements: HTMLSpanElement[] = [];
+
+function injectLabel(id: string, key: string) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (!el.querySelector('.om-keyboard-help')) {
-    const span = document.createElement('span');
-    span.classList.add('om-keyboard-help');
-    span.textContent = key;
-    const ref = el.querySelector('.glyphicon') ?? el.firstElementChild;
-    if (ref?.parentNode) {
-      ref.parentNode.insertBefore(span, ref.nextSibling);
-    }
+  if (el.querySelector('.om-keyboard-help')) return;
+  const span = document.createElement('span');
+  span.classList.add('om-keyboard-help');
+  span.textContent = key;
+  const ref = el.querySelector('.glyphicon') ?? el.firstElementChild;
+  if (ref?.parentNode) {
+    ref.parentNode.insertBefore(span, ref.nextSibling);
+    injectedElements.push(span);
   }
+}
+
+function cleanup() {
+  for (const span of injectedElements) {
+    span.remove();
+  }
+  injectedElements.length = 0;
 }
 
 onMounted(() => {
   for (const [id, key] of Object.entries(keyForId)) {
-    showHelp(id, key);
+    injectLabel(id, key);
   }
   for (let i = 1; i <= 9; i++) {
-    showHelp(`js-profile-${  i}`, String(i));
+    injectLabel(`js-profile-${i}`, String(i));
   }
-  // Help stays visible until user presses a key or clicks (keyboard event in PopupApp will close it)
+});
+
+onUnmounted(() => {
+  cleanup();
 });
 </script>
 

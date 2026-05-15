@@ -8,6 +8,7 @@ import {
 import { query, update, create, reload } from "@/services/chrome/tabs";
 import { localGet, localSet, localAvailable } from "@/services/chrome/storage";
 import { getMessage } from "@/services/chrome/i18n";
+import { decodeError, isChromeUrl } from "@/services/chrome/rpc";
 import type { OmegaTargetWeb } from "@/types/globals";
 
 const prefix = "omega.local.";
@@ -19,20 +20,9 @@ async function callBackground(method: string, ...args: any[]): Promise<any> {
     args,
   });
   if (response.error) {
-    throw _decodeError(response.error);
+    throw decodeError(response.error);
   }
   return response.result;
-}
-
-function _decodeError(obj: any): Error {
-  if (obj._error === "error") {
-    const err: any = new Error(obj.message);
-    err.name = obj.name;
-    err.stack = obj.stack;
-    err.original = obj.original;
-    return err;
-  }
-  return obj;
 }
 
 const optionsChangeCallbacks: Array<(options: Record<string, any>) => void> =
@@ -60,14 +50,6 @@ function _onStorageChange(
     _refreshTimer = null;
     omegaTarget.refresh();
   }, 300);
-}
-
-function _isChromeUrl(url: string): boolean {
-  return (
-    url.startsWith("chrome") ||
-    url.startsWith("about:") ||
-    url.startsWith("moz-")
-  );
 }
 
 function _connectBackground(
@@ -103,11 +85,15 @@ export const omegaTarget: OmegaTargetWeb = {
     return value;
   },
 
-  lastUrl(url?: string): Promise<string | undefined> {
+  async lastUrl(url?: string): Promise<string | undefined> {
     const name = "web.last_url";
     if (url) {
-      omegaTarget.state(name, url);
-      return Promise.resolve(url);
+      try {
+        await omegaTarget.state(name, url);
+      } catch {
+        /* storage write failed, non-critical */
+      }
+      return url;
     }
     return omegaTarget.state(name) as Promise<string | undefined>;
   },
@@ -123,6 +109,21 @@ export const omegaTarget: OmegaTargetWeb = {
       typeof chrome?.storage?.onChanged !== "undefined"
     ) {
       chrome.storage.onChanged.addListener(_onStorageChange);
+    }
+  },
+
+  removeOptionsChangeCallback(
+    callback: (options: Record<string, any>) => void,
+  ): void {
+    const idx = optionsChangeCallbacks.indexOf(callback);
+    if (idx >= 0) {
+      optionsChangeCallbacks.splice(idx, 1);
+    }
+    if (
+      optionsChangeCallbacks.length === 0 &&
+      typeof chrome?.storage?.onChanged !== "undefined"
+    ) {
+      chrome.storage.onChanged.removeListener(_onStorageChange);
     }
   },
 
@@ -157,7 +158,7 @@ export const omegaTarget: OmegaTargetWeb = {
   async updateProfile(name: string, bypassCache?: string): Promise<any> {
     const results = await callBackground("updateProfile", name, bypassCache);
     for (const key of Object.keys(results)) {
-      results[key] = _decodeError(results[key]);
+      results[key] = decodeError(results[key]);
     }
     return omegaTarget.refresh();
   },
@@ -229,7 +230,7 @@ export const omegaTarget: OmegaTargetWeb = {
 
   async refreshActivePage(): Promise<void> {
     const tabs = await query({ active: true, lastFocusedWindow: true });
-    if (tabs[0]?.url && !_isChromeUrl(tabs[0].url)) {
+    if (tabs[0]?.url && !isChromeUrl(tabs[0].url)) {
       await reload(tabs[0].id, { bypassCache: true });
     }
   },

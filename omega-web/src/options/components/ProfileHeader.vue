@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import { useUiStore } from '@/stores/ui';
 import RenameProfileModal from './Modals/RenameProfileModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -16,6 +17,7 @@ const emit = defineEmits<{ delete: [] }>();
 const OmegaPac = useOmegaPac();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
+const uiStore = useUiStore();
 
 const showRenameModal = ref(false);
 
@@ -51,12 +53,10 @@ function exportScript() {
     const fileName = props.profileName.replace(/\W+/g, '_');
     (window as any).saveAs?.(blob, `OmegaProfile_${fileName}.pac`);
     if (missingProfile) {
-      const ui = (window as any).__omegaUi;
-      ui?.showAlert?.('error', $t('options_profileNotFound', [missingProfile]));
+      uiStore.showAlert('error', $t('options_profileNotFound', [missingProfile]));
     }
   } catch (e: any) {
-    const ui = (window as any).__omegaUi;
-    ui?.showAlert?.('error', e.message ?? 'Export failed');
+    uiStore.showAlert('error', e.message ?? 'Export failed');
   }
 }
 

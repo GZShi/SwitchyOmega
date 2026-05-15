@@ -20,9 +20,11 @@ export function sendMessageNoReply(message: any): void {
 }
 
 /** Thin wrapper around chrome.runtime.connect. Returns the raw Port. */
-export function connect(name: string): any {
+export function connect(name: string): chrome.runtime.Port {
   return chrome.runtime.connect({ name });
 }
+
+export { decodeError, isChromeUrl } from "./rpc";
 
 export function getURL(path: string): string {
   return chrome.runtime.getURL(path);

@@ -120,6 +120,34 @@ export const useProfilesStore = defineStore("profiles", () => {
     return {};
   }
 
+  const selectableProfiles = computed(() => {
+    const profiles: any[] = [];
+    for (const key of Object.keys(optionsStore.options)) {
+      if (key.startsWith("+")) {
+        const p = optionsStore.options[key];
+        if (!isProfileNameReserved(p.name)) profiles.push(p);
+      }
+    }
+    const builtins = builtinProfiles.value;
+    for (const key of Object.keys(builtins)) profiles.push(builtins[key]);
+    return profiles;
+  });
+
+  function resolveTargetProfile(
+    name: string,
+  ): { name: string; icon: string; color: string } | null {
+    const p = optionsStore.options[`+${name}`] ?? builtinProfiles.value[name];
+    if (!p) return null;
+    const target = getVirtualTarget(p, optionsStore.options);
+    const icon =
+      profileIcons[target?.profileType ?? ""] || "glyphicon-question-sign";
+    return {
+      name: name,
+      icon,
+      color: target?.color ?? "#aaa",
+    };
+  }
+
   return {
     profileIcons,
     profileOrder,
@@ -129,11 +157,13 @@ export const useProfilesStore = defineStore("profiles", () => {
     sortedProfiles,
     profileColors,
     profileColorPalette,
+    selectableProfiles,
     isProfileNameHidden,
     isProfileNameReserved,
     getAttachedName,
     getParentName,
     getVirtualTarget,
+    resolveTargetProfile,
     profileByName,
     referencedBySet,
   };

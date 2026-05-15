@@ -2,12 +2,13 @@
 import { ref, computed } from 'vue';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import BaseModal from '@/options/components/BaseModal.vue';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ProfileInline from '@/options/components/ProfileInline.vue';
 
 const props = defineProps<{
-  fromName: string; // The profile whose references will be replaced
-  toName: string;   // Replace references that currently point to fromName
+  fromName: string;
+  toName: string;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -47,83 +48,51 @@ function submit() {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="modal-backdrop fade in" />
-    <div
-      class="modal fade in"
-      style="display: block;"
-      @keydown.esc="emit('close')"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form @submit.prevent="submit">
-            <div class="modal-header">
-              <button
-                type="button"
-                class="close"
-                @click="emit('close')"
-              >
-                &times;
-              </button>
-              <h4 class="modal-title">
-                {{ $t('options_modalHeader_replaceProfile') }}
-              </h4>
-            </div>
-            <div class="modal-body">
-              <p>{{ $t('options_replaceProfileHelp') }}</p>
-              <div class="well">
-                <ProfileInline
-                  v-if="fromProfile"
-                  :profile="fromProfile"
-                />
-                <span />
-                <span class="glyphicon glyphicon-chevron-right" />
-                <span />
-                <ProfileInline
-                  v-if="toProfile"
-                  :profile="toProfile"
-                />
-              </div>
-              <div class="form-group">
-                <label>
-                  {{ $t('options_replaceProfileConfirm', ['__FROM__', '__TO__']).split('__FROM__')[0] }}
-                </label>
-                <ProfileSelect
-                  style="display: inline-block;"
-                  :profiles="validFromProfiles"
-                  :model-value="fromValue"
-                  @update:model-value="fromValue = $event"
-                />
-              </div>
-              <div class="form-group">
-                <label>→</label>
-                <ProfileSelect
-                  style="display: inline-block;"
-                  :profiles="validToProfiles"
-                  :model-value="toValue"
-                  @update:model-value="toValue = $event"
-                />
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-default"
-                @click="emit('close')"
-              >
-                {{ $t('dialog_cancel') }}
-              </button>
-              <button
-                type="submit"
-                class="btn btn-primary"
-                :disabled="!fromValue || !toValue || fromValue === toValue"
-              >
-                {{ $t('dialog_ok') }}
-              </button>
-            </div>
-          </form>
-        </div>
+  <BaseModal
+    :title="$t('options_modalHeader_replaceProfile')"
+    @close="emit('close')"
+  >
+    <form @submit.prevent="submit">
+      <p>{{ $t('options_replaceProfileHelp') }}</p>
+      <div class="well">
+        <ProfileInline v-if="fromProfile" :profile="fromProfile" />
+        <span class="glyphicon glyphicon-chevron-right" />
+        <ProfileInline v-if="toProfile" :profile="toProfile" />
       </div>
-    </div>
-  </Teleport>
+      <div class="form-group">
+        <label for="replace-from-profile">
+          {{ $t('options_replaceProfileConfirm', ['__FROM__', '__TO__']).split('__FROM__')[0] }}
+        </label>
+        <ProfileSelect
+          id="replace-from-profile"
+          style="display: inline-block;"
+          :profiles="validFromProfiles"
+          :model-value="fromValue"
+          @update:model-value="fromValue = $event"
+        />
+      </div>
+      <div class="form-group">
+        <label for="replace-to-profile">→</label>
+        <ProfileSelect
+          id="replace-to-profile"
+          style="display: inline-block;"
+          :profiles="validToProfiles"
+          :model-value="toValue"
+          @update:model-value="toValue = $event"
+        />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="!fromValue || !toValue || fromValue === toValue"
+        >
+          {{ $t('dialog_ok') }}
+        </button>
+      </div>
+    </form>
+  </BaseModal>
 </template>

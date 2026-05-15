@@ -152,13 +152,13 @@ function revertOptions() {
 
       <!-- New profile link (matching legacy inline-link style) -->
       <li class="nav-new-profile">
-        <a
-          role="button"
-          @click.prevent="newProfile()"
+        <button
+          class="btn btn-link align-initial"
+          @click="newProfile()"
         >
           <span class="glyphicon glyphicon-plus" />
           <span>{{ $t('options_newProfile') }}</span>
-        </a>
+        </button>
       </li>
 
       <!-- Divider -->
@@ -171,27 +171,26 @@ function revertOptions() {
 
       <!-- Apply button — always visible, highlights when dirty -->
       <li>
-        <a
-          class="btn-default align-initial"
+        <button
+          class="btn btn-default align-initial"
           :class="{ 'btn-success': optionsStore.optionsDirty }"
-          role="button"
           @click="applyOptions()"
         >
           <span class="glyphicon glyphicon-ok-circle" />
           {{ $t('options_apply') }}
-        </a>
+        </button>
       </li>
 
       <!-- Discard button — always visible, disabled when not dirty -->
       <li :class="{ disabled: !optionsStore.optionsDirty }">
-        <a
-          class="text-danger"
-          role="button"
-          @click="optionsStore.optionsDirty ? revertOptions() : undefined"
+        <button
+          class="btn btn-link text-danger align-initial"
+          :disabled="!optionsStore.optionsDirty"
+          @click="revertOptions()"
         >
           <span class="glyphicon glyphicon-remove-circle" />
           {{ $t('options_discard') }}
-        </a>
+        </button>
       </li>
     </ul>
 
@@ -207,7 +206,3 @@ function revertOptions() {
     />
   </header>
 </template>
-
-<style scoped>
-/* Sidebar styles handled by options.less */
-</style>

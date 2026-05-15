@@ -1,3 +1,3 @@
-// Phase A0: Stub. Will be ported from options_guide.coffee in Phase A5.
-// Shepherd.js tour for first-run options page walkthrough.
+// TODO: Port Shepherd.js tour from legacy options_guide.coffee.
+// This will provide a first-run walkthrough for the options page.
 export {};
