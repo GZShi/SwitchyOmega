@@ -444,16 +444,20 @@ function encodeError(obj: any): any {
 }
 
 async function refreshActivePageIfEnabled(): Promise<void> {
-  const st = await state.get({ refreshOnProfileChange: false });
-  if (!st.refreshOnProfileChange) return;
-  const tabs = await new Promise<any[]>((resolve) => {
-    chrome.tabs.query({ active: true, lastFocusedWindow: true }, resolve);
-  });
-  const url = tabs[0]?.url;
-  if (!url) return;
-  if (url.startsWith("chrome")) return;
-  if (url.startsWith("about:")) return;
-  chrome.tabs.reload(tabs[0].id, { bypassCache: true });
+  try {
+    const st = await state.get({ refreshOnProfileChange: false });
+    if (!st.refreshOnProfileChange) return;
+    const tabs = await new Promise<any[]>((resolve) => {
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, resolve);
+    });
+    const url = tabs[0]?.url;
+    if (!url) return;
+    if (url.startsWith("chrome")) return;
+    if (url.startsWith("about:")) return;
+    await chrome.tabs.reload(tabs[0].id, { bypassCache: true });
+  } catch {
+    // Tab may have been closed between query and reload
+  }
 }
 
 chrome.runtime.onMessage.addListener(

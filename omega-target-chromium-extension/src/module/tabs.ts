@@ -72,28 +72,36 @@ class ChromeTabs {
 
     if (tab.url == null || tab.url.indexOf("chrome") === 0) {
       if (this._defaultAction) {
-        chrome.action.setTitle({
-          title: this._defaultAction.title,
-          tabId: tab.id,
-        });
+        try {
+          chrome.action.setTitle({
+            title: this._defaultAction.title,
+            tabId: tab.id,
+          });
+        } catch (_e) {
+          /* tab may have closed */
+        }
         this.clearIcon(tab.id);
       }
       return;
     }
 
-    const action = await this.actionForUrl(tab.url);
-    if (!action) {
-      this.clearIcon(tab.id);
-      return;
-    }
-    this.setIcon(action.icon, tab.id);
-    if (chrome.action.setPopup != null) {
-      chrome.action.setTitle({ title: action.title, tabId: tab.id });
-    } else {
-      chrome.action.setTitle({
-        title: action.shortTitle,
-        tabId: tab.id,
-      });
+    try {
+      const action = await this.actionForUrl(tab.url);
+      if (!action) {
+        this.clearIcon(tab.id);
+        return;
+      }
+      this.setIcon(action.icon, tab.id);
+      if (chrome.action.setPopup != null) {
+        chrome.action.setTitle({ title: action.title, tabId: tab.id });
+      } else {
+        chrome.action.setTitle({
+          title: action.shortTitle,
+          tabId: tab.id,
+        });
+      }
+    } catch (_e) {
+      // Tab may have been closed while waiting for actionForUrl
     }
   }
 
