@@ -172,6 +172,7 @@ class ChromeOptions extends OmegaTarget.Options {
         const port = new ChromePort(rawPort);
         port.onMessage.addListener((msg: any) => {
           tabId = msg.tabId;
+          if (tabId == null) return;
           this._tabRequestInfoPorts[tabId] = port;
           const info = this._requestMonitor.tabInfo[tabId];
           if (info) {
@@ -214,7 +215,7 @@ class ChromeOptions extends OmegaTarget.Options {
   async updateProfile(...args: any[]): Promise<any> {
     const results = await OmegaTarget.Options.prototype.updateProfile.apply(
       this,
-      args,
+      args as Parameters<typeof OmegaTarget.Options.prototype.updateProfile>,
     );
     let error = false;
     for (const profileName of Object.keys(results)) {
@@ -361,9 +362,9 @@ class ChromeOptions extends OmegaTarget.Options {
     if (resolvedUrl.startsWith("chrome")) {
       const errorPagePrefix = "chrome://errorpage/";
       if (resolvedUrl.startsWith(errorPagePrefix)) {
-        resolvedUrl = querystring.parse(
-          resolvedUrl.slice(resolvedUrl.indexOf("?") + 1),
-        ).lasturl;
+        resolvedUrl =
+          (querystring.parse(resolvedUrl.slice(resolvedUrl.indexOf("?") + 1))
+            .lasturl as string) ?? undefined;
         if (!resolvedUrl) return result;
       } else {
         return result;
@@ -372,7 +373,9 @@ class ChromeOptions extends OmegaTarget.Options {
     if (resolvedUrl.startsWith("about:")) return result;
     if (resolvedUrl.startsWith("moz-")) return result;
 
-    const domain = OmegaPac.getBaseDomain(Url.parse(resolvedUrl).hostname);
+    const hostname = Url.parse(resolvedUrl).hostname;
+    if (!hostname) return result;
+    const domain = OmegaPac.getBaseDomain(hostname);
     return {
       url: resolvedUrl,
       domain,

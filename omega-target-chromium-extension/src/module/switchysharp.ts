@@ -1,3 +1,4 @@
+import OmegaTarget from "omega-target";
 import { ChromePort } from "./chrome_port";
 
 class SwitchySharp {

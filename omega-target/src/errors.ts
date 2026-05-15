@@ -27,7 +27,7 @@ export class HttpServerError extends HttpError {
 export class ContentTypeRejectedError extends Error {
   override name = "ContentTypeRejectedError";
 
-  constructor() {
-    super("");
+  constructor(message?: string) {
+    super(message ?? "");
   }
 }

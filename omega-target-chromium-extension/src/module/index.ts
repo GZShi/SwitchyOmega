@@ -25,7 +25,7 @@ const mod: any = {
 
 // Merge omega-target exports
 for (const name of Object.keys(omegaTarget)) {
-  mod[name] ??= omegaTarget[name];
+  mod[name] ??= (omegaTarget as Record<string, any>)[name];
 }
 
 export { mod };

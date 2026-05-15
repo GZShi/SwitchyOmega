@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { getMessage as $t } from '@/services/chrome/i18n';
+import { getMessage as $t } from "@/services/chrome/i18n";
 import { ref } from "vue";
 import { useOmegaTarget } from "@/composables/useOmegaTarget";
 import { useOmegaPac } from "@/composables/useOmegaPac";
@@ -8,7 +8,7 @@ import * as jsondiffpatch from "jsondiffpatch";
 
 const diffEngine = jsondiffpatch.create({
   objectHash: (obj: any) => JSON.stringify(obj),
-  textDiff: { minLength: Infinity },
+  textDiff: { minLength: Infinity } as any,
 });
 
 export const useOptionsStore = defineStore("options", () => {

@@ -179,6 +179,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.3.0)
+      '@types/chrome':
+        specifier: ^0.1.42
+        version: 0.1.42
       '@vitejs/plugin-vue':
         specifier: ^6.0.0
         version: 6.0.6(vite@8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(less@4.6.4)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript@5.9.3))

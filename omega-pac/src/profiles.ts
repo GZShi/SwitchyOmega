@@ -367,7 +367,7 @@ _profileTypes["FixedProfile"] = {
     ) {
       return b.str(pacResult(profile.fallbackProxy));
     }
-    const body = [b.directive("use strict")];
+    const body: any[] = [b.directive("use strict")];
 
     if (profile.bypassList?.length) {
       let conditions: any = null;
@@ -485,7 +485,7 @@ _profileTypes["SwitchProfile"] = {
     if (rules.length === 0) {
       return profileResult(profile.defaultProfileName);
     }
-    const body = [b.directive("use strict")];
+    const body: any[] = [b.directive("use strict")];
     for (const rule of rules) {
       body.push(
         b.if_stmt(

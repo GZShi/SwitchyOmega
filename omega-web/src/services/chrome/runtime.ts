@@ -1,5 +1,3 @@
-declare let chrome: any;
-
 /**
  * Promise wrapper around chrome.runtime.sendMessage.
  * Rejects on chrome.runtime.lastError; resolves with the raw response on success.

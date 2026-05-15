@@ -56,7 +56,7 @@ class OptionsSync implements OptionsSyncLike {
 
   private readonly _diffEngine = jsondiffpatch.create({
     objectHash: (obj: any) => JSON.stringify(obj),
-    textDiff: { minLength: Infinity },
+    textDiff: { minLength: Infinity } as any,
   });
 
   constructor(storage?: StorageLike, bucket?: TokenBucket) {

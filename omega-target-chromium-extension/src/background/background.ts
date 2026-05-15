@@ -3,6 +3,7 @@ import { logState } from "./log-state.js";
 import OmegaTargetChromium from "../modules.mjs";
 // draw_omega.js is a plain JS file in img/icons/ — the relative path
 // from build/js/background/ is ../../img/icons/draw_omega.js
+// @ts-expect-error – no .d.ts for this JS file
 import { drawOmega } from "../../img/icons/draw_omega.js";
 
 declare let chrome: any;

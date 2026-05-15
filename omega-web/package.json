@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/chrome": "^0.1.42",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vueuse/core": "^10.0.0",
     "autoprefixer": "^10.4.0",

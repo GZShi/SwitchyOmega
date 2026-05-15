@@ -93,7 +93,7 @@ class Storage implements StorageLike {
 
   watch(_keys: any, _callback: Function): Function {
     Log.method("Storage#watch", this, arguments);
-    return () => null;
+    return () => undefined;
   }
 
   async apply(operations: any): Promise<any> {

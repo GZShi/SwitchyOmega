@@ -622,7 +622,7 @@ _conditionTypes["IpCondition"] = {
     if (cache.addr.subnetMask === 0) {
       return hostLooksLikeIp;
     }
-    let hostIsInNet = b.call(b.id("isInNet"), [
+    let hostIsInNet: any = b.call(b.id("isInNet"), [
       b.id("host"),
       b.str(cache.normalized),
       b.str(cache.mask),

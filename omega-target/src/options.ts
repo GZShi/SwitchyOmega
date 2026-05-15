@@ -242,7 +242,7 @@ class Options {
     return "<Options>";
   }
 
-  printProfile(_profile: any): null {
+  printProfile(_profile: any): any {
     return null;
   }
 
@@ -317,7 +317,7 @@ class Options {
   }
 
   onFirstRun(_reason: string): any {
-    return null;
+    return null as any;
   }
 
   getDefaultOptions(): any {
@@ -735,7 +735,7 @@ class Options {
   }
 
   fetchUrl(_url: string, _bypass?: boolean, _hints?: string[]): any {
-    return Promise.reject(new Error("not implemented"));
+    return Promise.reject(new Error("not implemented")) as any;
   }
 
   _replaceRefChanges(
@@ -888,7 +888,6 @@ class Options {
   }
 
   async addCondition(condition: any, profileName: string): Promise<any> {
-
     this.log.method("Options#addCondition", this, arguments as any);
     if (!this._currentProfileName) {
       throw new Error("No current profile set.");

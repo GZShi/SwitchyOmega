@@ -9,7 +9,7 @@ export default defineConfig([
     outDir: "dist",
     platform: "neutral",
     target: "es2020",
-    dts: false,
+    dts: true,
     minify: false,
     clean: true,
     onSuccess: "eslint src/ --no-cache --max-warnings 0",

@@ -10,7 +10,7 @@ export default defineConfig([
     format: ["esm", "cjs"],
     outDir: "dist",
     target: "es2022",
-    dts: false,
+    dts: true,
     platform: "neutral",
     deps: { neverBundle: ["omega-pac", "jsondiffpatch", "limiter"] },
     sourcemap: false,

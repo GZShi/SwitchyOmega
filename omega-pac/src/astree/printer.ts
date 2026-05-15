@@ -5,7 +5,7 @@
 import { generate, GENERATOR } from "astring";
 
 // Merge custom node types with astring's default generators.
- 
+
 const CUSTOM_GENERATOR: Record<string, (node: any, state: any) => void> = {
   ...GENERATOR,
   RawCode(node: any, state: any) {
@@ -18,7 +18,7 @@ function printToStr(
   options?: { beautify?: boolean; comments?: boolean },
 ): string {
   const indent = options?.beautify ? "    " : "";
-  const code = generate(this, { indent, generator: CUSTOM_GENERATOR });
+  const code = generate(this, { indent, generator: CUSTOM_GENERATOR as any });
   if (!options?.beautify) {
     // "Compact" mode: astring has no true minifier.  Strip the per-line
     // indentation but keep newlines — user-supplied PAC scripts may
@@ -35,6 +35,6 @@ function printToStr(
 
 /** Attach the standard `.print_to_string()` method to a plain ESTree node. */
 export function withPrint<T extends Record<string, any>>(node: T): T {
-  node.print_to_string = printToStr;
+  (node as any).print_to_string = printToStr;
   return node;
 }

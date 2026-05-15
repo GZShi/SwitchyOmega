@@ -40,11 +40,11 @@ class WebRequestMonitor {
       return;
     }
     chrome.webRequest.onBeforeRequest.addListener(
-      this._requestStart.bind(this),
+      this._requestStart.bind(this) as any,
       { urls: ["<all_urls>"] },
     );
     chrome.webRequest.onHeadersReceived.addListener(
-      this._requestHeadersReceived.bind(this),
+      this._requestHeadersReceived.bind(this) as any,
       { urls: ["<all_urls>"] },
     );
     chrome.webRequest.onBeforeRedirect.addListener(

@@ -50,7 +50,8 @@ class ChromeTabs {
         return;
       }
     }
-    this.processTab(tab, changeInfo);
+    void changeInfo; // unused — kept in signature for call-site clarity
+    this.processTab(tab);
   }
 
   async processTab(tab: any): Promise<void> {

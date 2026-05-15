@@ -14,7 +14,7 @@ class ProxyImpl {
     return false;
   }
 
-  applyProfile(_profile: any, _meta: any): any {
+  applyProfile(_profile: any, _meta: any, _options?: any): any {
     return Promise.reject();
   }
 
