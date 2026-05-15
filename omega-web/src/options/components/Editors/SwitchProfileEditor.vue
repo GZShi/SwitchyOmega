@@ -75,7 +75,7 @@ const validResultProfiles = computed(() => {
     props.profileName,
     optionsStore.options,
   ) ?? [];
-  return profiles.filter((p: any) => !!p && !!p.name);
+  return profiles.filter((p: any) => !!p && !!p.name && !p.name.startsWith("__"));
 });
 
 const updating = ref(false);

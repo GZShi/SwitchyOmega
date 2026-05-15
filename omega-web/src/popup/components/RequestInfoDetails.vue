@@ -25,28 +25,34 @@ function getProfileName(name: string): string {
   return target.getMessage(`profile_${  name}`) || name;
 }
 
+const addDomainsError = ref('');
+
 async function addConditionsForDomains() {
-  const domains: Record<string, boolean> = {};
+  addDomainsError.value = '';
+  const conditions: Array<{ conditionType: string; pattern: string }> = [];
   for (const [domain, enabled] of Object.entries(domainsForCondition.value)) {
-    if (enabled) domains[domain] = true;
+    if (enabled) {
+      conditions.push({
+        conditionType: 'HostWildcardCondition',
+        pattern: domain,
+      });
+    }
+  }
+  if (conditions.length === 0) {
+    addDomainsError.value = target.getMessage('popup_addConditionError') || 'No domains selected.';
+    return;
   }
   const _profileName = profileForDomains.value ?? store.rule.profileName;
-
-  // Open options page to add conditions for all domains
-  const conditions = Object.keys(domains).map(domain => ({
-    conditionType: 'HostWildcardCondition',
-    pattern: domain,
-  }));
-  await target.openOptions(
-    `#/profile/${
-    encodeURIComponent(store.currentProfileName)
-    }?addCondition=${  encodeURIComponent(JSON.stringify(conditions))}`,
-  );
-  store.closeWindow();
-}
-
-async function openManage() {
-  await target.openManage();
+  try {
+    const result = await target.addCondition(conditions, _profileName);
+    if (result === undefined) {
+      addDomainsError.value = target.getMessage('popup_addConditionError') || 'Failed to add conditions. The current profile may not support conditions.';
+      return;
+    }
+  } catch (_) {
+    addDomainsError.value = target.getMessage('popup_addConditionError') || 'Failed to add conditions.';
+    return;
+  }
   store.closeWindow();
 }
 
@@ -57,8 +63,11 @@ async function configureMonitor() {
 </script>
 
 <template>
-  <div class="om-dialog">
-    <div v-if="store.requestInfo?.domains?.length">
+  <div class="om-dialog request-info-details">
+    <form
+      v-if="store.requestInfo?.domains?.length"
+      @submit.prevent="addConditionsForDomains"
+    >
       <!-- Legend: different text based on whether current profile can add rules -->
       <p v-if="store.currentProfileCanAddRule">
         {{ target.getMessage('popup_addConditionTo') }}
@@ -69,6 +78,15 @@ async function configureMonitor() {
       <p v-else>
         {{ target.getMessage('popup_requestErrorHeading') }}
       </p>
+
+      <!-- Error display -->
+      <div
+        v-if="addDomainsError"
+        class="alert alert-danger"
+        style="margin-top: 8px;"
+      >
+        {{ addDomainsError }}
+      </div>
 
       <!-- Warning and help text -->
       <p class="text-warning">
@@ -126,33 +144,29 @@ async function configureMonitor() {
         style="margin-top: 10px;"
       >
         <button
-          class="om-btn om-btn-link"
+          class="om-btn om-btn-default"
+          type="button"
           @click="store.returnToMenu()"
         >
-          {{ target.getMessage('popup_cancel') }}
-        </button>
-        <button
-          class="om-btn om-btn-link"
-          @click="openManage()"
-        >
-          {{ target.getMessage('popup_manageExt') }}
+          {{ target.getMessage('dialog_cancel') }}
         </button>
         <button
           v-if="store.currentProfileCanAddRule"
           class="om-btn om-btn-primary"
-          @click="addConditionsForDomains()"
+          type="submit"
         >
-          {{ target.getMessage('popup_add') }}
+          {{ target.getMessage('popup_addCondition') }}
         </button>
         <button
           v-if="!store.currentProfileCanAddRule"
           class="om-btn om-btn-default"
+          type="button"
           style="float: right;"
           @click="configureMonitor()"
         >
           {{ target.getMessage('popup_configureMonitorWebRequests') }}
         </button>
       </p>
-    </div>
+    </form>
   </div>
 </template>

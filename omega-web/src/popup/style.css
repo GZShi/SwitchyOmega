@@ -153,11 +153,25 @@ body {
   margin-top: -3px;
 }
 
-/* Dialog (for condition form / proxy not controllable) */
+/* Dialog (for condition form / request info / proxy not controllable) */
 .om-dialog {
-  min-width: 400px;
   padding: 10px 10px;
   font-size: 14px;
+}
+
+/* Condition form — wider than the menu to fit all fields */
+.condition-form {
+  min-width: 360px;
+}
+
+/* Request info details — same width as condition form */
+.request-info-details {
+  min-width: 360px;
+}
+
+/* Proxy not controllable — wider for longer messages */
+.proxy-not-controllable {
+  min-width: 400px;
 }
 
 .om-text-danger {

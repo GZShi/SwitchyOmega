@@ -1,10 +1,10 @@
 import {
   sendMessage,
-  sendMessageNoReply,
   getURL,
   RUNTIME_ID,
+  connect,
 } from "@/services/chrome/runtime";
-import { query, update, create } from "@/services/chrome/tabs";
+import { query, update, create, reload } from "@/services/chrome/tabs";
 import { getMessage } from "@/services/chrome/i18n";
 
 async function callBackground(method: string, args: any[]): Promise<any> {
@@ -16,19 +16,21 @@ async function callBackground(method: string, args: any[]): Promise<any> {
   return response.result;
 }
 
+function isChromeUrl(url: string): boolean {
+  return url.startsWith("chrome") ||
+    url.startsWith("moz-") ||
+    url.startsWith("about:");
+}
+
+let requestInfoCallback: ((info: any) => void) | null = null;
+
 export const omegaTargetPopup = {
   getState(keys: string[]): Promise<any> {
     return callBackground("getState", [keys]);
   },
 
-  applyProfile(name: string): Promise<void> {
-    sendMessageNoReply({
-      method: "applyProfile",
-      args: [name],
-      noReply: true,
-      refreshActivePage: true,
-    });
-    return Promise.resolve();
+  applyProfile(name: string): Promise<any> {
+    return callBackground("applyProfile", [name]);
   },
 
   async openOptions(hash?: string): Promise<void> {
@@ -47,30 +49,50 @@ export const omegaTargetPopup = {
     const tabs = await query({ active: true, lastFocusedWindow: true });
     if (tabs.length === 0 || !tabs[0].url) return undefined;
     const args = { tabId: tabs[0].id, url: tabs[0].url };
+
+    // Connect tabRequestInfo port for live request error updates
+    if (tabs[0].id && requestInfoCallback) {
+      const port = connect("tabRequestInfo");
+      port.postMessage(args);
+      port.onMessage.addListener(requestInfoCallback);
+      port.onDisconnect.addListener(() => {
+        port.onMessage.removeListener(requestInfoCallback!);
+      });
+    }
+
     return callBackground("getPageInfo", [args]);
   },
 
   setDefaultProfile(
     profileName: string,
     defaultProfileName: string,
-  ): Promise<void> {
-    sendMessageNoReply({
-      method: "setDefaultProfile",
-      args: [profileName, defaultProfileName],
-      noReply: true,
-      refreshActivePage: true,
-    });
-    return Promise.resolve();
+  ): Promise<any> {
+    return callBackground("setDefaultProfile", [
+      profileName,
+      defaultProfileName,
+    ]);
   },
 
-  addTempRule(domain: string, profileName: string): Promise<void> {
-    sendMessageNoReply({
-      method: "addTempRule",
-      args: [domain, profileName],
-      noReply: true,
-      refreshActivePage: true,
-    });
-    return Promise.resolve();
+  addTempRule(domain: string, profileName: string): Promise<any> {
+    return callBackground("addTempRule", [domain, profileName]);
+  },
+
+  /** Add condition(s) to a profile. Accepts a single condition or an array. */
+  addCondition(condition: any, profileName: string): Promise<any> {
+    return callBackground("addCondition", [condition, profileName]);
+  },
+
+  /** Reload the active tab (if it is not a chrome: / about: / moz- page). */
+  async refreshActivePage(): Promise<void> {
+    const tabs = await query({ active: true, lastFocusedWindow: true });
+    if (tabs[0]?.url && !isChromeUrl(tabs[0].url)) {
+      await reload(tabs[0].id, { bypassCache: true });
+    }
+  },
+
+  /** Register a callback for live request error updates from background. */
+  setRequestInfoCallback(cb: (info: any) => void): void {
+    requestInfoCallback = cb;
   },
 
   addProfile(profile: any): Promise<any> {

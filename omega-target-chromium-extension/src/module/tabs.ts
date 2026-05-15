@@ -54,6 +54,9 @@ class ChromeTabs {
   }
 
   async processTab(tab: any): Promise<void> {
+    // Skip uncommitted tabs (tab.id is -1 in Chrome MV3 for pre-commit tabs)
+    if (tab.id == null || tab.id < 0) return;
+
     if (this._badgeTab) {
       for (const id of Object.keys(this._badgeTab)) {
         try {
@@ -122,7 +125,7 @@ class ChromeTabs {
   setIcon(icon: any, tabId?: number): void {
     if (icon == null) return;
     let params: any;
-    if (tabId != null) {
+    if (tabId != null && tabId >= 0) {
       params = { imageData: icon, tabId };
     } else {
       params = { imageData: icon };
@@ -148,10 +151,9 @@ class ChromeTabs {
 
   clearIcon(tabId?: number): void {
     if (this._defaultAction?.icon == null) return;
-    this._chromeSetIcon({
-      imageData: this._defaultAction.icon,
-      tabId,
-    });
+    const params: any = { imageData: this._defaultAction.icon };
+    if (tabId != null && tabId >= 0) params.tabId = tabId;
+    this._chromeSetIcon(params);
   }
 }
 

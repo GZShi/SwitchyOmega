@@ -38,6 +38,29 @@ function _decodeError(obj: any): Error {
 const optionsChangeCallbacks: Array<(options: Record<string, any>) => void> =
   [];
 let requestInfoCallback: ((info: any) => void) | null = null;
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function _notifyCallbacks(opt: Record<string, any>): void {
+  for (const cb of optionsChangeCallbacks) {
+    cb(opt);
+  }
+}
+
+/** Debounced refresh triggered by external storage changes (e.g. popup added a condition). */
+function _onStorageChange(
+  changes: Record<string, any>,
+  areaName: string,
+): void {
+  if (areaName !== "local") return;
+  // Only refresh if profile data changed (keys starting with "+")
+  const hasProfileChange = Object.keys(changes).some((k) => k.startsWith("+"));
+  if (!hasProfileChange) return;
+  if (_refreshTimer != null) clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(() => {
+    _refreshTimer = null;
+    omegaTarget.refresh();
+  }, 300);
+}
 
 function _isChromeUrl(url: string): boolean {
   return (
@@ -93,15 +116,21 @@ export const omegaTarget: OmegaTargetWeb = {
     callback: (options: Record<string, any>) => void,
   ): void {
     optionsChangeCallbacks.push(callback);
+    // Set up storage listener on first callback registration to detect
+    // external changes (e.g. conditions added from the popup).
+    if (
+      optionsChangeCallbacks.length === 1 &&
+      typeof chrome?.storage?.onChanged !== "undefined"
+    ) {
+      chrome.storage.onChanged.addListener(_onStorageChange);
+    }
   },
 
   async refresh(): Promise<any> {
     const opt = await callBackground("getAll");
     omegaTarget.options = opt;
     if (opt) {
-      for (const cb of optionsChangeCallbacks) {
-        cb(opt);
-      }
+      _notifyCallbacks(opt);
     }
   },
 

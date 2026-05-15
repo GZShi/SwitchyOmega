@@ -33,7 +33,7 @@ export const usePopupStore = defineStore("popup", () => {
   const currentProfileName = ref("");
   const isSystemProfile = ref(false);
   const refreshOnProfileChange = ref(true);
-  const proxyNotControllable = ref(false);
+  const proxyNotControllable = ref<string | false>(false);
   const externalProfile = ref<Profile | null>(null);
 
   const validResultProfiles = ref<Profile[]>([]);
@@ -129,7 +129,7 @@ export const usePopupStore = defineStore("popup", () => {
       const extProfile = state.externalProfile;
 
       if (isNotControllable) {
-        proxyNotControllable.value = true;
+        proxyNotControllable.value = isNotControllable as string;
         return;
       }
 
@@ -170,7 +170,46 @@ export const usePopupStore = defineStore("popup", () => {
       builtinProfiles.value = builtin;
       customProfiles.value = custom;
       validResultProfiles.value = valid;
-      rule.value.profileName = preselectedProfileName;
+
+      // Check lastProfileNameForCondition for pre-selection
+      const lastProfile = state.lastProfileNameForCondition;
+      if (lastProfile) {
+        for (const p of valid) {
+          if (p.name === lastProfile) {
+            rule.value.profileName = lastProfile;
+            break;
+          }
+        }
+      }
+      if (rule.value.profileName !== lastProfile) {
+        rule.value.profileName = preselectedProfileName;
+      }
+
+      // Register callback for live request error updates from background
+      target.setRequestInfoCallback((info: any) => {
+        // Process summary into sorted domains array
+        info.domains = [];
+        for (const [domain, domainInfo] of Object.entries(info.summary ?? {})) {
+          (domainInfo as any).domain = domain;
+          info.domains.push(domainInfo);
+        }
+        info.domains.sort((a: any, b: any) => b.errorCount - a.errorCount);
+
+        requestInfo.value = info;
+        if (requestInfoProvided.value == null) {
+          requestInfoProvided.value = (info.domains?.length ?? 0) > 0;
+        }
+        // Initialize domain checkboxes
+        for (const domain of info.domains) {
+          if (!(domain.domain in domainsForCondition.value)) {
+            domainsForCondition.value[domain.domain] = true;
+          }
+        }
+        // Set default profile for domains if not set
+        if (!profileForDomains.value) {
+          profileForDomains.value = "direct";
+        }
+      });
     } catch (e) {
       // eslint-disable-next-line no-console -- error log for popup state load failure
       console.error("Failed to load popup state:", e);
@@ -196,11 +235,17 @@ export const usePopupStore = defineStore("popup", () => {
 
   async function applyProfile(profileName: string) {
     if (!refreshOnProfileChange.value) {
-      target.applyProfile(profileName);
+      await target.applyProfile(profileName);
       closeWindow();
     } else {
       try {
         await target.applyProfile(profileName);
+        // Refresh active page after profile change
+        try {
+          await target.refreshActivePage();
+        } catch (_) {
+          /* ignore */
+        }
       } catch (_) {
         /* ignore */
       }

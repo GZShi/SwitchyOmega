@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import ProfileSelect from '../../options/components/ProfileSelect.vue';
@@ -8,11 +8,11 @@ const store = usePopupStore();
 const target = usePopupTarget();
 
 const conditionTypes = [
-  { value: 'HostWildcardCondition', label: 'Host Wildcard' },
-  { value: 'HostRegexCondition', label: 'Host Regex' },
-  { value: 'UrlWildcardCondition', label: 'URL Wildcard' },
-  { value: 'UrlRegexCondition', label: 'URL Regex' },
-  { value: 'KeywordCondition', label: 'Keyword' },
+  { value: 'HostWildcardCondition', label: target.getMessage('condition_HostWildcardCondition') || 'Host Wildcard' },
+  { value: 'HostRegexCondition', label: target.getMessage('condition_HostRegexCondition') || 'Host Regex' },
+  { value: 'UrlWildcardCondition', label: target.getMessage('condition_UrlWildcardCondition') || 'URL Wildcard' },
+  { value: 'UrlRegexCondition', label: target.getMessage('condition_UrlRegexCondition') || 'URL Regex' },
+  { value: 'KeywordCondition', label: target.getMessage('condition_KeywordCondition') || 'Keyword' },
 ];
 
 const sortedValidProfiles = computed(() => {
@@ -30,6 +30,11 @@ const sortedValidProfiles = computed(() => {
   });
 });
 
+function getCurrentProfileName() {
+  const profile = store.availableProfiles[`+${store.currentProfileName}`];
+  return profile?.name || store.currentProfileName;
+}
+
 // Auto-update pattern when condition type changes
 watch(
   () => store.rule.condition.conditionType,
@@ -41,76 +46,109 @@ watch(
   },
 );
 
+const addError = ref('');
+
 async function addCondition() {
+  addError.value = '';
   const condition = { ...store.rule.condition };
   const _profileName = store.rule.profileName;
+  try {
+    const result = await target.addCondition(condition, _profileName);
+    if (result === undefined) {
+      addError.value = target.getMessage('popup_addConditionError') || 'Failed to add condition. The current profile may not support conditions.';
+      return;
+    }
+  } catch (_) {
+    addError.value = target.getMessage('popup_addConditionError') || 'Failed to add condition.';
+    return;
+  }
   store.returnToMenu();
-  await target.openOptions(
-    `#/profile/${
-    encodeURIComponent(store.currentProfileName)
-    }?addCondition=${  encodeURIComponent(JSON.stringify(condition))}`,
-  );
   store.closeWindow();
 }
 
 async function openConditionHelp() {
   const pname = encodeURIComponent(store.currentProfileName);
-  await target.openOptions(`#/profile/${  pname  }?help=condition`);
+  await target.openOptions(`#/profile/${pname}?help=condition`);
   store.closeWindow();
 }
 </script>
 
 <template>
   <div class="om-dialog">
-    <p>{{ target.getMessage('popup_addCondition') }}</p>
-    <div>
-      <select
-        v-model="store.rule.condition.conditionType"
-      >
-        <option
-          v-for="ct in conditionTypes"
-          :key="ct.value"
-          :value="ct.value"
-        >
-          {{ ct.label }}
-        </option>
-      </select>
-    </div>
-    <div style="margin-top: 5px;">
-      <input
-        v-model="store.rule.condition.pattern"
-        type="text"
-        style="width: 100%;"
-      >
-    </div>
-    <div style="margin-top: 5px;">
-      <ProfileSelect
-        v-model="store.rule.profileName"
-        :profiles="sortedValidProfiles"
-      />
-    </div>
-    <p
-      class="om-dialog-controls"
-      style="margin-top: 10px;"
+    <form
+      class="condition-form"
+      @submit.prevent="addCondition"
     >
-      <button
-        class="om-btn om-btn-link"
-        @click="store.returnToMenu()"
-      >
-        {{ target.getMessage('popup_cancel') }}
-      </button>
-      <button
-        class="om-btn om-btn-link"
-        @click="openConditionHelp()"
-      >
-        {{ target.getMessage('popup_help') }}
-      </button>
-      <button
-        class="om-btn om-btn-primary"
-        @click="addCondition()"
-      >
-        {{ target.getMessage('popup_add') }}
-      </button>
-    </p>
+      <fieldset>
+        <legend>
+          {{ target.getMessage('popup_addConditionTo') }}
+          <span class="profile-inline">{{ getCurrentProfileName() }}</span>
+        </legend>
+        <div
+          v-if="addError"
+          class="alert alert-danger"
+        >
+          {{ addError }}
+        </div>
+        <div class="form-group">
+          <label>
+            {{ target.getMessage('options_conditionType') }}
+            <button
+              type="button"
+              class="btn btn-link btn-sm clear-padding"
+              @click="openConditionHelp()"
+            >
+              {{ target.getMessage('options_showConditionTypeHelp') }}
+              <span class="glyphicon glyphicon-new-window" />
+            </button>
+          </label>
+          <select
+            v-model="store.rule.condition.conditionType"
+            class="form-control"
+          >
+            <option
+              v-for="ct in conditionTypes"
+              :key="ct.value"
+              :value="ct.value"
+            >
+              {{ ct.label }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ target.getMessage('options_conditionDetails') }}</label>
+          <input
+            v-model="store.rule.condition.pattern"
+            type="text"
+            class="form-control condition-details"
+            required
+            autofocus
+          >
+        </div>
+        <div class="form-group">
+          <label>{{ target.getMessage('options_resultProfile') }}</label>
+          <ProfileSelect
+            v-model="store.rule.profileName"
+            :profiles="sortedValidProfiles"
+          />
+        </div>
+        <div class="condition-controls">
+          <button
+            type="button"
+            class="btn btn-default"
+            @click="store.returnToMenu()"
+          >
+            {{ target.getMessage('dialog_cancel') }}
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="!store.rule.condition.pattern.trim()"
+          >
+            {{ target.getMessage('popup_addCondition') }}
+          </button>
+        </div>
+      </fieldset>
+    </form>
   </div>
 </template>

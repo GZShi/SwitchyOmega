@@ -143,11 +143,15 @@ function filterDefaultDropdownProfiles(profile: any): any[] {
   return filtered.map((name: string) => store.availableProfiles[`+${  name}`]).filter(Boolean);
 }
 
+const hasDomain = computed(() => !!store.currentDomain);
+
 const hasAddRule = computed(() =>
-  store.validResultProfiles.length > 0 && store.currentProfileCanAddRule,
+  hasDomain.value && store.validResultProfiles.length > 0 && store.currentProfileCanAddRule,
 );
 
-const hasTempRule = computed(() => store.validResultProfiles.length > 0);
+const hasTempRule = computed(() =>
+  hasDomain.value && store.validResultProfiles.length > 0,
+);
 </script>
 
 <template>
@@ -306,7 +310,10 @@ const hasTempRule = computed(() => store.validResultProfiles.length > 0);
       </template>
     </template>
 
-    <li class="om-divider" />
+    <li
+      v-if="hasDomain && store.validResultProfiles.length > 0"
+      class="om-divider"
+    />
 
     <!-- Add Rule -->
     <li

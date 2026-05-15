@@ -826,7 +826,9 @@ class Options {
 
   async addTempRule(domain: string, profileName: string): Promise<any> {
     this.log.method("Options#addTempRule", this, arguments as any);
-    if (!this._currentProfileName) return;
+    if (!this._currentProfileName) {
+      throw new Error("No current profile set.");
+    }
     const profile = Profiles.byName(profileName, this._options);
     if (!profile) {
       throw new Options.ProfileNotExistError(profileName);
@@ -886,8 +888,11 @@ class Options {
   }
 
   async addCondition(condition: any, profileName: string): Promise<any> {
+
     this.log.method("Options#addCondition", this, arguments as any);
-    if (!this._currentProfileName) return;
+    if (!this._currentProfileName) {
+      throw new Error("No current profile set.");
+    }
     const profile = Profiles.byName(this._currentProfileName, this._options);
     if (!(profile?.rules != null)) {
       throw new Error(
