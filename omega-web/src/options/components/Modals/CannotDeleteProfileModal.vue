@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
+import { NButton, NSpace } from 'naive-ui';
 import ProfileInline from '@/options/components/ProfileInline.vue';
 
 defineProps<{ refs: any[]; profileName: string }>();
@@ -7,13 +8,13 @@ const emit = defineEmits<{ close: [] }>();
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_cannotDeleteProfile')"
     @close="emit('close')"
   >
     <p>{{ $t('options_profileReferredBy') }}</p>
-    <div class="well">
-      <ul class="list-style-none">
+    <div style="background: #f5f5f5; border: 1px solid #e3e3e3; border-radius: 4px; padding: 12px; margin: 8px 0;">
+      <ul style="list-style: none; padding-left: 0;">
         <li v-for="r in refs" :key="r?.name">
           <ProfileInline :profile="r" />
         </li>
@@ -21,9 +22,11 @@ const emit = defineEmits<{ close: [] }>();
     </div>
     <p>{{ $t('options_modifyReferringProfiles') }}</p>
     <template #footer>
-      <button class="btn btn-primary" @click="emit('close')">
-        {{ $t('dialog_ok') }}
-      </button>
+      <NSpace justify="end">
+        <NButton type="primary" @click="emit('close')">
+          {{ $t('dialog_ok') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

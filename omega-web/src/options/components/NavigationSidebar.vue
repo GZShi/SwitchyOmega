@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, h } from 'vue';
 import { useRouter } from 'vue-router';
+import { NMenu, NButton, NDivider } from 'naive-ui';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import { isFirefox } from '@/services/chrome';
 import { getMessage as $t } from '@/services/chrome/i18n';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import NewProfileModal from './Modals/NewProfileModal.vue';
 
 const router = useRouter();
@@ -20,9 +22,9 @@ const isExperimental = isFirefox;
 function getIcon(profile: any): string {
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     const resolved = profilesStore.resolveTargetProfile(profile.defaultProfileName);
-    return resolved?.icon ?? 'glyphicon-question-sign';
+    return resolved?.icon ?? 'question-sign';
   }
-  return profilesStore.profileIcons[profile?.profileType] || 'glyphicon-question-sign';
+  return profilesStore.profileIcons[profile?.profileType] || 'question-sign';
 }
 
 function getProfileColor(profile: any): string {
@@ -37,20 +39,79 @@ function dispName(name: string): string {
   return $t(`profile_${name}`) || name;
 }
 
-function goProfile(name: string) {
-  router.push(`/profile/${encodeURIComponent(name)}`);
-}
+const activeTab = computed(() => {
+  const name = router.currentRoute.value.name;
+  if (typeof name === 'string') return name;
+  return null;
+});
 
-function isProfileActive(name: string): boolean {
+const activeProfile = computed(() => {
   const param = router.currentRoute.value.params?.name;
-  return Array.isArray(param) ? param.join('/') === name : param === name;
+  return Array.isArray(param) ? param.join('/') : param ?? null;
+});
+
+const menuOptions = computed(() => {
+  const tabs: any[] = [
+    {
+      label: $t('options_tab_ui'),
+      key: 'tab-ui',
+      icon: () => h(GlyphIcon, { name: 'wrench' }),
+    },
+    {
+      label: $t('options_tab_general'),
+      key: 'tab-general',
+      icon: () => h(GlyphIcon, { name: 'cog' }),
+    },
+    {
+      label: $t('options_tab_importExport'),
+      key: 'tab-io',
+      icon: () => h(GlyphIcon, { name: 'floppy-save' }),
+    },
+  ];
+
+  const profiles: any[] = sortedProfiles.value.map((p) => ({
+    label: dispName(p.name),
+    key: `profile:${p.name}`,
+    icon: () => h(GlyphIcon, { name: getIcon(p.profile), color: getProfileColor(p.profile) }),
+  }));
+
+  return [
+    {
+      type: 'group' as const,
+      label: $t('options_navHeader_setting'),
+      key: 'group-settings',
+      children: tabs,
+    },
+    {
+      type: 'divider' as const,
+      key: 'div-settings',
+    },
+    {
+      type: 'group' as const,
+      label: $t('options_navHeader_profiles'),
+      key: 'group-profiles',
+      children: profiles,
+    },
+  ];
+});
+
+const currentMenuValue = computed(() => {
+  if (activeProfile.value) return `profile:${activeProfile.value}`;
+  if (activeTab.value) return `tab-${activeTab.value}`;
+  return null;
+});
+
+function handleMenuUpdate(key: string) {
+  if (key.startsWith('tab-')) {
+    const route = key.slice('tab-'.length);
+    router.push(`/${route === 'io' ? 'io' : route}`);
+  } else if (key.startsWith('profile:')) {
+    const name = key.slice('profile:'.length);
+    router.push(`/profile/${encodeURIComponent(name)}`);
+  }
 }
 
-function isTabActive(name: string): boolean {
-  return router.currentRoute.value.name === name;
-}
-
-async function newProfile() {
+function newProfile() {
   showNewProfileModal.value = true;
 }
 
@@ -73,125 +134,55 @@ function revertOptions() {
       >{{ $t('appNameShort') }}</a>
       <sup
         v-if="isExperimental"
-        class="om-experimental text-danger"
+        class="om-experimental"
+        style="color: #a94442;"
       >{{ $t('options_experimental_badge') }}</sup>
     </h1>
 
-    <!-- Single nav list matching legacy Bootstrap .nav-pills structure -->
-    <ul class="nav nav-pills nav-stacked">
-      <!-- Settings header -->
-      <li class="nav-header">
-        {{ $t('options_navHeader_setting') }}
-      </li>
-      <li
-        role="presentation"
-        :class="{ active: isTabActive('ui') }"
+    <NMenu
+      :value="currentMenuValue"
+      :options="menuOptions"
+      @update:value="handleMenuUpdate"
+    />
+
+    <div class="sidebar-actions">
+      <NButton
+        size="small"
+        quaternary
+        @click="newProfile()"
       >
-        <a
-          href="#!/ui"
-          @click.prevent="router.push('/ui')"
-        >
-          <span class="glyphicon glyphicon-wrench" />
-          {{ $t('options_tab_ui') }}
-        </a>
-      </li>
-      <li
-        role="presentation"
-        :class="{ active: isTabActive('general') }"
+        <template #icon>
+          <GlyphIcon name="plus" />
+        </template>
+        {{ $t('options_newProfile') }}
+      </NButton>
+
+      <NDivider />
+
+      <NButton
+        size="small"
+        :type="optionsStore.optionsDirty ? 'success' : 'default'"
+        @click="applyOptions()"
       >
-        <a
-          href="#!/general"
-          @click.prevent="router.push('/general')"
-        >
-          <span class="glyphicon glyphicon-cog" />
-          {{ $t('options_tab_general') }}
-        </a>
-      </li>
-      <li
-        role="presentation"
-        :class="{ active: isTabActive('io') }"
+        <template #icon>
+          <GlyphIcon name="ok-circle" />
+        </template>
+        {{ $t('options_apply') }}
+      </NButton>
+
+      <NButton
+        size="small"
+        text
+        type="error"
+        :disabled="!optionsStore.optionsDirty"
+        @click="revertOptions()"
       >
-        <a
-          href="#!/io"
-          @click.prevent="router.push('/io')"
-        >
-          <span class="glyphicon glyphicon-floppy-save" />
-          {{ $t('options_tab_importExport') }}
-        </a>
-      </li>
-
-      <!-- Divider -->
-      <li class="divider" />
-
-      <!-- Profiles header -->
-      <li class="nav-header">
-        {{ $t('options_navHeader_profiles') }}
-      </li>
-
-      <!-- Profile list -->
-      <li
-        v-for="p in sortedProfiles"
-        :key="p.name"
-        role="presentation"
-        :data-profile-type="p.profile.profileType"
-        class="nav-profile"
-        :class="{ active: isProfileActive(p.name) }"
-      >
-        <a
-          href="#"
-          @click.prevent="goProfile(p.name)"
-        >
-          <span
-            :class="['glyphicon', getIcon(p.profile)]"
-            :style="{ color: getProfileColor(p.profile) }"
-          />
-          {{ dispName(p.name) }}
-        </a>
-      </li>
-
-      <!-- New profile link (matching legacy inline-link style) -->
-      <li class="nav-new-profile">
-        <button
-          class="btn btn-link align-initial"
-          @click="newProfile()"
-        >
-          <span class="glyphicon glyphicon-plus" />
-          <span>{{ $t('options_newProfile') }}</span>
-        </button>
-      </li>
-
-      <!-- Divider -->
-      <li class="divider" />
-
-      <!-- Actions header -->
-      <li class="nav-header">
-        {{ $t('options_navHeader_actions') }}
-      </li>
-
-      <!-- Apply button — always visible, highlights when dirty -->
-      <li>
-        <button
-          class="btn btn-default align-initial"
-          :class="{ 'btn-success': optionsStore.optionsDirty }"
-          @click="applyOptions()"
-        >
-          <span class="glyphicon glyphicon-ok-circle" />
-          {{ $t('options_apply') }}
-        </button>
-      </li>
-
-      <!-- Discard button — always visible, disabled when not dirty -->
-      <li :class="{ disabled: !optionsStore.optionsDirty }">
-        <button
-          class="btn btn-link text-danger align-initial"
-          :disabled="!optionsStore.optionsDirty"
-          @click="revertOptions()"
-        >
-          <span class="glyphicon glyphicon-remove-circle" />
-          {{ $t('options_discard') }}
-        </button>
-      </li>
-    </ul>
+        <template #icon>
+          <GlyphIcon name="remove-circle" />
+        </template>
+        {{ $t('options_discard') }}
+      </NButton>
+    </div>
 
     <!-- Modals -->
     <NewProfileModal
@@ -200,3 +191,15 @@ function revertOptions() {
     />
   </header>
 </template>
+
+<style scoped>
+.sidebar-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-actions .n-button {
+  justify-content: flex-start;
+}
+</style>

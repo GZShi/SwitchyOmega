@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NButton, NSpace } from 'naive-ui';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import { usePopupStore } from '@/stores/popup';
 
@@ -25,19 +26,15 @@ async function openManage() {
           || target.getMessage('popup_proxyNotControllableDetails')
       }}
     </p>
-    <p class="om-dialog-controls">
-      <button
-        class="om-btn om-btn-default"
-        @click="store.closeWindow()"
-      >
-        {{ target.getMessage('dialog_cancel') }}
-      </button>
-      <button
-        class="om-btn om-btn-primary"
-        @click="openManage()"
-      >
-        {{ target.getMessage('popup_proxyNotControllableManage') }}
-      </button>
-    </p>
+    <div class="om-dialog-controls">
+      <NSpace justify="end">
+        <NButton @click="store.closeWindow()">
+          {{ target.getMessage('dialog_cancel') }}
+        </NButton>
+        <NButton type="primary" @click="openManage()">
+          {{ target.getMessage('popup_proxyNotControllableManage') }}
+        </NButton>
+      </NSpace>
+    </div>
   </div>
 </template>

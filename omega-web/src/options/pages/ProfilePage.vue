@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { NAlert } from 'naive-ui';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
@@ -144,12 +145,13 @@ function setExportHandler(handler: (...args: any[]) => void, opts?: any) {
       v-model:profile="profile"
       :profile-name="profileName"
     />
-    <div
+    <NAlert
       v-else-if="profileTemplate === 'profile_unsupported'"
-      class="alert alert-warning"
+      type="warning"
+      style="margin-bottom: 12px"
     >
       {{ $t('options_profileUnsupported') }}
-    </div>
+    </NAlert>
 
     <!-- Modals -->
     <DeleteProfileModal

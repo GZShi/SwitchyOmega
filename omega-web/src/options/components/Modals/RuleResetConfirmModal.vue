@@ -3,7 +3,9 @@ import { getMessage as $t } from '@/services/chrome/i18n';
 import { computed } from 'vue';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
+import { NButton, NSpace } from 'naive-ui';
 
 const props = defineProps<{
   defaultProfileName: string;
@@ -26,27 +28,28 @@ const targetProfileDisplay = computed(() => {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_resetRules')"
     @close="emit('close')"
   >
     <p>{{ $t('options_resetRulesConfirm') }}</p>
-    <div class="well">
-      <span
+    <div style="background:#f5f5f5;border:1px solid #e3e3e3;padding:12px;border-radius:4px">
+      <GlyphIcon
         v-if="targetProfileDisplay"
-        class="glyphicon"
-        :class="[targetProfileDisplay.icon]"
-        :style="{ color: targetProfileDisplay.color }"
+        :name="targetProfileDisplay.icon"
+        :color="targetProfileDisplay.color"
       />
       {{ targetProfileDisplay?.name ?? defaultProfileName }}
     </div>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-warning" @click="emit('confirm')">
-        {{ $t('options_resetRules') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="warning" @click="emit('confirm')">
+          {{ $t('options_resetRules') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

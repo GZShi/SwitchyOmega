@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue';
 import { useOptionsStore } from '@/stores/options';
 import { isFirefox } from '@/services/chrome';
 import { getMessage as $t } from '@/services/chrome/i18n';
+import { NButton, NInput, NInputNumber, NSelect, NText } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -164,14 +166,18 @@ const bypassList = computed({
     optionsStore.markDirty();
   },
 });
+
+// Buffer ref to preserve v-model.lazy behavior with NInput
+const bypassListText = ref('');
+watch(bypassList, (v: string) => { bypassListText.value = v; }, { immediate: true });
 </script>
 
 <template>
   <div>
     <section class="settings-group settings-group-fixed-servers">
       <h3>{{ $t('options_group_proxyServers') }}</h3>
-      <div class="table-responsive">
-        <table class="fixed-servers table table-bordered table-striped width-limit-lg">
+      <div>
+        <table class="fixed-servers">
           <thead>
             <tr>
               <th>{{ $t('options_proxy_scheme') }}</th>
@@ -191,68 +197,50 @@ const bypassList = computed({
                 <td>{{ schemeDisp[scheme] }}</td>
                 <!-- Protocol -->
                 <td>
-                  <select
-                    v-model="getProxy(scheme).scheme"
-                    class="form-control"
-                    @change="handleSchemeChange(scheme)"
-                  >
-                    <option
-                      v-for="opt in getProtocolOptions(scheme)"
-                      :key="opt.value"
-                      :value="opt.value"
-                    >
-                      {{ opt.label }}
-                    </option>
-                  </select>
+                  <NSelect
+                    :value="getProxy(scheme).scheme"
+                    :options="getProtocolOptions(scheme)"
+                    @update:value="(v: any) => { getProxy(scheme).scheme = v; handleSchemeChange(scheme); }"
+                  />
                 </td>
                 <!-- Server -->
                 <td>
-                  <input
+                  <NInput
                     v-if="isProxyActive(scheme)"
-                    v-model="getProxy(scheme).host"
-                    class="form-control"
-                    type="text"
-                    required
-                    @change="optionsStore.markDirty()"
-                  >
-                  <input
+                    v-model:value="getProxy(scheme).host"
+                    @update:value="optionsStore.markDirty()"
+                  />
+                  <NInput
                     v-else
-                    class="form-control"
-                    type="text"
                     :placeholder="getProxy('').host"
                     disabled
-                  >
+                  />
                 </td>
                 <!-- Port -->
                 <td>
-                  <input
+                  <NInputNumber
                     v-if="isProxyActive(scheme)"
-                    v-model="getProxy(scheme).port"
-                    class="form-control"
-                    type="number"
-                    min="1"
-                    required
-                    @change="optionsStore.markDirty()"
-                  >
-                  <input
+                    v-model:value="getProxy(scheme).port"
+                    :min="1"
+                    @update:value="optionsStore.markDirty()"
+                  />
+                  <NInputNumber
                     v-else
-                    class="form-control"
-                    type="number"
+                    :value="null"
                     :placeholder="String(getProxy('').port || '')"
                     disabled
-                  >
+                  />
                 </td>
                 <!-- Auth -->
                 <td class="proxy-actions">
-                  <button
-                    class="btn btn-xs proxy-auth-toggle"
-                    :class="isProxyAuthActive(scheme) ? 'btn-success' : 'btn-default'"
-                    type="button"
+                  <NButton
+                    size="tiny"
+                    :type="isProxyAuthActive(scheme) ? 'success' : 'default'"
                     :title="$t('options_proxy_auth')"
                     @click="openAuthModal(scheme)"
                   >
-                    <span class="glyphicon glyphicon-lock" />
-                  </button>
+                    <GlyphIcon name="lock" />
+                  </NButton>
                 </td>
               </tr>
             </template>
@@ -260,13 +248,10 @@ const bypassList = computed({
           <tbody v-if="!showAdvanced">
             <tr class="fixed-show-advanced">
               <td colspan="5">
-                <button
-                  class="btn btn-link"
-                  @click="showAdvanced = true"
-                >
-                  <span class="glyphicon glyphicon-chevron-down" />
+                <NButton text @click="showAdvanced = true">
+                  <GlyphIcon name="chevron-down" />
                   {{ $t('options_proxy_expand') }}
-                </button>
+                </NButton>
               </td>
             </tr>
           </tbody>
@@ -276,21 +261,23 @@ const bypassList = computed({
 
     <section class="settings-group">
       <h3>{{ $t('options_group_bypassList') }}</h3>
-      <p class="help-block">
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_bypassListHelp') }}
-      </p>
-      <p class="help-block">
+      </NText>
+      <NText depth="3" style="font-size:12px;">
         <a
           href="https://developer.chrome.com/extensions/proxy#bypass_list"
           target="_blank"
         >
           {{ $t('options_bypassListHelpLinkText') }}
         </a>
-      </p>
-      <textarea
-        v-model.lazy="bypassList"
-        class="monospace form-control width-limit"
-        rows="10"
+      </NText>
+      <NInput
+        type="textarea"
+        v-model:value="bypassListText"
+        :rows="10"
+        style="font-family: monospace;"
+        @blur="bypassList = bypassListText"
       />
     </section>
 

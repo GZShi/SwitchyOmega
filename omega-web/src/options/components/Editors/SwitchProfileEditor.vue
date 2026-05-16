@@ -7,9 +7,11 @@ import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import { useUiStore } from '@/stores/ui';
+import { NButton, NAlert, NSelect, NInput, NText } from 'naive-ui';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ConditionDetailCell from '@/options/components/Editors/ConditionDetailCell.vue';
 import ConditionHelpSection from '@/options/components/Editors/ConditionHelpSection.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import SwitchRulesFooter from '@/options/components/Editors/SwitchRulesFooter.vue';
 import AttachedRuleListConfig from '@/options/components/Editors/AttachedRuleListConfig.vue';
 import RuleRemoveConfirmModal from '@/options/components/Modals/RuleRemoveConfirmModal.vue';
@@ -48,6 +50,18 @@ const ruleListFormats = computed(() => OmegaPac.Profiles?.ruleListFormats ?? ['S
 
 const conditionTypes = computed(() =>
   showConditionTypes.value === 0 ? basicConditionTypes : advancedConditionTypes,
+);
+
+const conditionTypeOptions = computed(() =>
+  conditionTypes.value.map(group => ({
+    type: 'group' as const,
+    label: getConditionGroupLabel(group.group) || '',
+    key: group.group,
+    children: group.types.map(type => ({
+      label: getConditionTypeLabel(type),
+      value: type,
+    })),
+  })),
 );
 
 const hasUrlConditions = computed(() =>
@@ -403,59 +417,60 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
     <section class="settings-group">
       <h3>
         {{ $t('options_group_switchRules') }}
-        <button
-          class="btn"
-          :class="editSource ? 'btn-primary active' : 'btn-default'"
+        <NButton
+          :type="editSource ? 'primary' : 'default'"
           @click="toggleSource()"
         >
-          <span class="glyphicon glyphicon-edit" />
+          <GlyphIcon name="edit" />
           {{ $t('options_profileEditSource') }}
-        </button>
-        <a
+        </NButton>
+        <NButton
           v-if="editSource"
-          class="btn btn-link btn-sm clear-padding"
+          text
+          size="small"
+          tag="a"
           target="_blank"
           :title="$t('options_profileEditSourceHelp')"
           :href="$t('options_profileEditSourceHelpUrl')"
         >
-          <span class="glyphicon glyphicon-question-sign" />
-        </a>
+          <GlyphIcon name="question-sign" />
+        </NButton>
       </h3>
 
-      <div
+      <NAlert
         v-if="sourceError"
-        class="alert alert-danger width-limit"
+        type="error"
+        style="margin-bottom: 12px"
       >
-        <span class="glyphicon glyphicon-remove" />
+        <GlyphIcon name="remove" />
         {{ sourceError.message }}
-      </div>
-      <div
+      </NAlert>
+      <NAlert
         v-if="hasUrlConditions"
-        class="alert alert-danger"
+        type="error"
+        style="margin-bottom: 12px"
       >
-        <span class="glyphicon glyphicon-alert" />
+        <GlyphIcon name="alert" />
         <span v-html="$t('condition_alert_fullUrlLimitation')" />
-      </div>
+      </NAlert>
 
       <!-- Source editor -->
       <div
         v-if="editSource"
         class="rules-source"
       >
-        <textarea
-          v-model="sourceCode"
-          class="monospace form-control width-limit"
-          rows="20"
+        <NInput
+          type="textarea"
+          v-model:value="sourceCode"
+          :rows="20"
+          style="font-family: monospace"
           @input="optionsStore.markDirty()"
         />
       </div>
 
       <!-- Rules table -->
-      <div
-        v-else
-        class="table-responsive switch-rules-wrapper"
-      >
-        <table class="switch-rules table table-bordered table-condensed width-limit-xl">
+      <div v-else>
+        <table class="switch-rules table width-limit-xl">
           <thead>
             <tr>
               <th style="white-space: nowrap">
@@ -463,13 +478,14 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
               </th>
               <th class="condition-type-th">
                 {{ $t('options_conditionType') }}
-                <button
-                  class="btn btn-link btn-sm clear-padding"
+                <NButton
+                  text
+                  size="small"
                   :title="$t('options_showConditionTypeHelp')"
                   @click="conditionHelpShow = !conditionHelpShow"
                 >
-                  <span class="glyphicon glyphicon-question-sign" />
-                </button>
+                  <GlyphIcon name="question-sign" />
+                </NButton>
               </th>
               <th>{{ $t('options_conditionDetails') }}</th>
               <th>{{ $t('options_resultProfile') }}</th>
@@ -487,35 +503,21 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
               class="switch-rule-row"
             >
               <td class="sort-bar">
-                <span class="glyphicon glyphicon-sort" />
+                <GlyphIcon name="sort" />
               </td>
               <td :class="{ 'has-icon': isUrlConditionType[rule.condition.conditionType] }">
-                <select
-                  v-model="rule.condition.conditionType"
-                  class="form-control"
-                  @change="optionsStore.markDirty()"
-                >
-                  <optgroup
-                    v-for="group in conditionTypes"
-                    :key="group.group"
-                    :label="getConditionGroupLabel(group.group) || ''"
-                  >
-                    <option
-                      v-for="type in group.types"
-                      :key="type"
-                      :value="type"
-                    >
-                      {{ getConditionTypeLabel(type) }}
-                    </option>
-                  </optgroup>
-                </select>
+                <NSelect
+                  :value="rule.condition.conditionType"
+                  :options="conditionTypeOptions"
+                  @update:value="rule.condition.conditionType = $event; optionsStore.markDirty()"
+                />
                 <a
                   v-if="isUrlConditionType[rule.condition.conditionType]"
                   class="icon-wrapper"
                   :href="$t('condition_alert_fullUrlLimitationLink')"
                   target="_blank"
                 >
-                  <span class="glyphicon glyphicon-alert text-danger" />
+                  <GlyphIcon name="alert" color="#a94442" />
                 </a>
               </td>
               <td :class="{ 'has-warning': conditionHasWarning(rule.condition) }">
@@ -529,35 +531,36 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
                 />
               </td>
               <td>
-                <button
-                  class="btn btn-danger btn-sm"
+                <NButton
+                  type="error"
+                  size="small"
                   :title="$t('options_deleteRule')"
                   @click="removeRule(Number(idx))"
                 >
-                  <span class="glyphicon glyphicon-trash" />
-                </button>
-                <button
-                  class="btn btn-default btn-sm"
+                  <GlyphIcon name="trash" />
+                </NButton>
+                <NButton
+                  size="small"
                   :title="$t('options_cloneRule')"
                   @click="cloneRule(Number(idx))"
                 >
-                  <span class="glyphicon glyphicon-duplicate" />
-                </button>
-                <button
+                  <GlyphIcon name="duplicate" />
+                </NButton>
+                <NButton
                   v-if="!showNotes"
-                  class="btn btn-default btn-sm"
+                  size="small"
                   :title="$t('options_ruleNote')"
                   @click="addNote(Number(idx))"
                 >
-                  <span class="glyphicon glyphicon-comment" />
-                </button>
+                  <GlyphIcon name="comment" />
+                </NButton>
               </td>
               <td v-if="showNotes">
-                <input
-                  v-model="rule.note"
-                  class="form-control"
+                <NInput
+                  v-model:value="rule.note"
+                  size="small"
                   @change="optionsStore.markDirty()"
-                >
+                />
               </td>
             </tr>
           </tbody>
@@ -587,16 +590,15 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
       class="settings-group"
     >
       <h3>{{ $t('options_group_attachProfile') }}</h3>
-      <p class="help-block">
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_attachProfileHelp') }}
-      </p>
-      <button
-        class="btn btn-default"
+      </NText>
+      <NButton
         @click="attachNew()"
       >
-        <span class="glyphicon glyphicon-plus" />
+        <GlyphIcon name="plus" />
         {{ $t('options_attachProfile') }}
-      </button>
+      </NButton>
     </section>
 
     <AttachedRuleListConfig

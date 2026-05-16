@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { NButton, NCheckbox, NText, NTag } from 'naive-ui';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ProfileInline from '@/options/components/ProfileInline.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
@@ -63,52 +65,44 @@ function openShortcutConfig() {
 
 <template>
   <div>
-    <div class="page-header">
+    <div>
       <h2>{{ $t('options_tab_ui') }}</h2>
     </div>
 
     <!-- Misc Options -->
     <section class="settings-group">
       <h3>{{ $t('options_group_miscOptions') }}</h3>
-      <div class="checkbox">
-        <label>
-          <input
-            v-model="optionsStore.options['-confirmDeletion']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_confirmDeletion') }}</span>
-        </label>
+      <div>
+        <NCheckbox
+          v-model:checked="optionsStore.options['-confirmDeletion']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_confirmDeletion') }}
+        </NCheckbox>
       </div>
-      <div class="checkbox">
-        <label>
-          <input
-            v-model="optionsStore.options['-refreshOnProfileChange']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_refreshOnProfileChange') }}</span>
-        </label>
+      <div>
+        <NCheckbox
+          v-model:checked="optionsStore.options['-refreshOnProfileChange']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_refreshOnProfileChange') }}
+        </NCheckbox>
       </div>
-      <div class="checkbox">
-        <label>
-          <input
-            v-model="optionsStore.options['-showInspectMenu']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_showInspectMenu') }}</span>
-        </label>
+      <div>
+        <NCheckbox
+          v-model:checked="optionsStore.options['-showInspectMenu']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_showInspectMenu') }}
+        </NCheckbox>
       </div>
-      <div class="checkbox">
-        <label>
-          <input
-            v-model="optionsStore.options['-addConditionsToBottom']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_addConditionsToBottom') }}</span>
-        </label>
+      <div>
+        <NCheckbox
+          v-model:checked="optionsStore.options['-addConditionsToBottom']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_addConditionsToBottom') }}
+        </NCheckbox>
       </div>
     </section>
 
@@ -116,19 +110,17 @@ function openShortcutConfig() {
     <section class="settings-group">
       <h3>{{ $t('options_group_keyboardShortcut') }}</h3>
       <p>
-        <button
-          class="btn btn-default"
-          type="button"
+        <NButton
           @click="openShortcutConfig()"
         >
-          <span class="glyphicon glyphicon-share-alt" />
+          <GlyphIcon name="share-alt" />
           {{ $t('options_menuShortcutConfigure') }}
-        </button>
+        </NButton>
         {{ $t('options_menuShortcutHelp') }}
       </p>
-      <p class="help-block">
+      <NText depth="3" style="font-size: 12px">
         {{ $t('options_menuShortcutMore') }}
-      </p>
+      </NText>
     </section>
 
     <!-- Switch Options -->
@@ -136,7 +128,7 @@ function openShortcutConfig() {
       <h3>{{ $t('options_group_switchOptions') }}</h3>
 
       <!-- Startup Profile -->
-      <div class="form-group">
+      <div>
         <label>{{ $t('options_startupProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
@@ -147,30 +139,26 @@ function openShortcutConfig() {
       </div>
 
       <!-- Show advanced condition types -->
-      <div class="checkbox">
-        <label>
-          <input
-            type="checkbox"
-            :checked="optionsStore.options['-showConditionTypes'] > 0"
-            @change="optionsStore.options['-showConditionTypes'] = ($event.target as HTMLInputElement).checked ? 1 : 0; optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_showConditionTypesAdvanced') }}</span>
-        </label>
-        <p class="help-block">
+      <div>
+        <NCheckbox
+          :checked="optionsStore.options['-showConditionTypes'] > 0"
+          @update:checked="optionsStore.options['-showConditionTypes'] = $event ? 1 : 0; optionsStore.markDirty()"
+        >
+          {{ $t('options_showConditionTypesAdvanced') }}
+        </NCheckbox>
+        <NText depth="3" style="font-size: 12px">
           {{ $t('options_showConditionTypesAdvancedHelp') }}
-        </p>
+        </NText>
       </div>
 
       <!-- Quick Switch -->
-      <div class="checkbox">
-        <label>
-          <input
-            v-model="optionsStore.options['-enableQuickSwitch']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_quickSwitch') }}</span>
-        </label>
+      <div>
+        <NCheckbox
+          v-model:checked="optionsStore.options['-enableQuickSwitch']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_quickSwitch') }}
+        </NCheckbox>
       </div>
 
       <div
@@ -179,16 +167,15 @@ function openShortcutConfig() {
         class="settings-group"
       >
         <h4>{{ $t('options_cycledProfiles') }}</h4>
-        <p class="help-block">
+        <NText depth="3" style="font-size: 12px">
           {{ $t('options_cycledProfilesHelp') }}
-        </p>
+        </NText>
         <div
           v-if="quickSwitchProfiles.length < 2"
-          class="has-error"
         >
-          <p class="help-block">
+          <NText depth="3" style="font-size: 12px">
             {{ $t('options_cycledProfilesTooFew') }}
-          </p>
+          </NText>
         </div>
 
         <!-- Cycled profiles -->
@@ -198,12 +185,14 @@ function openShortcutConfig() {
             :key="name + idx"
           >
             <ProfileInline :name="name" />
-            <button
-              class="btn btn-xs btn-danger pull-right"
+            <NButton
+              size="tiny"
+              type="error"
+              style="float: right;"
               @click="removeFromCycle(idx)"
             >
-              <span class="glyphicon glyphicon-remove" />
-            </button>
+              <GlyphIcon name="remove" />
+            </NButton>
           </li>
         </ul>
 
@@ -213,15 +202,16 @@ function openShortcutConfig() {
           <li
             v-for="name in notCycledProfiles"
             :key="name"
-            class="bg-success"
           >
-            <ProfileInline :name="name" />
-            <button
-              class="btn btn-xs btn-default pull-right"
-              @click="addToCycle(name)"
-            >
-              <span class="glyphicon glyphicon-plus" />
-            </button>
+            <NTag type="success" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <ProfileInline :name="name" />
+              <NButton
+                size="tiny"
+                @click="addToCycle(name)"
+              >
+                <GlyphIcon name="plus" />
+              </NButton>
+            </NTag>
           </li>
         </ul>
       </div>

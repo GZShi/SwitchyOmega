@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { getMessage as $t } from '@/services/chrome/i18n';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const props = defineProps<{
   conditionTypes: Array<{ group: string; types: string[] }>;
@@ -39,9 +40,8 @@ function getConditionGroupLabel(group: string): string {
           role="button"
           @click="expandedSection = gidx"
         >
-          <span
-            class="glyphicon"
-            :class="expandedSection === gidx ? 'glyphicon-chevron-down' : 'glyphicon-chevron-right'"
+          <GlyphIcon
+            :name="expandedSection === gidx ? 'chevron-down' : 'chevron-right'"
           />
           {{ getConditionGroupLabel(group.group) }}
         </a>
@@ -56,9 +56,9 @@ function getConditionGroupLabel(group: string): string {
             <div v-html="$t('condition_help_' + type)" />
             <div
               v-if="props.isUrlConditionType[type]"
-              class="text-danger"
+              style="color: #a94442"
             >
-              <span class="glyphicon glyphicon-alert" />
+              <GlyphIcon name="alert" />
               <span v-html="$t('condition_alert_fullUrlLimitation')" />
             </div>
           </dd>

@@ -8,13 +8,13 @@ export const useProfilesStore = defineStore("profiles", () => {
   const OmegaPac = useOmegaPac();
 
   const profileIcons: Record<string, string> = {
-    DirectProfile: "glyphicon-transfer",
-    SystemProfile: "glyphicon-off",
-    FixedProfile: "glyphicon-globe",
-    PacProfile: "glyphicon-file",
-    VirtualProfile: "glyphicon-question-sign",
-    SwitchProfile: "glyphicon-retweet",
-    RuleListProfile: "glyphicon-list",
+    DirectProfile: "transfer",
+    SystemProfile: "off",
+    FixedProfile: "globe",
+    PacProfile: "file",
+    VirtualProfile: "question-sign",
+    SwitchProfile: "retweet",
+    RuleListProfile: "list",
   };
 
   const profileOrder: Record<string, number> = {
@@ -139,8 +139,7 @@ export const useProfilesStore = defineStore("profiles", () => {
     const p = optionsStore.options[`+${name}`] ?? builtinProfiles.value[name];
     if (!p) return null;
     const target = getVirtualTarget(p, optionsStore.options);
-    const icon =
-      profileIcons[target?.profileType ?? ""] || "glyphicon-question-sign";
+    const icon = profileIcons[target?.profileType ?? ""] || "question-sign";
     return {
       name: name,
       icon,

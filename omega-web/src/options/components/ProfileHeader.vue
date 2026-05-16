@@ -5,6 +5,8 @@ import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import { useUiStore } from '@/stores/ui';
+import { NButton, NColorPicker } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import RenameProfileModal from './Modals/RenameProfileModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -66,51 +68,41 @@ function exportRuleList() {
   }
 }
 
-function onColorChange(color: string) {
-  profile.value.color = color;
-  optionsStore.markDirty();
-}
 </script>
 
 <template>
   <div class="page-header">
     <div class="profile-actions">
-      <button
+      <NButton
         v-if="hasRuleListExport"
-        class="btn"
-        :class="props.exportRuleListOptions?.warning ? 'btn-warning' : 'btn-default'"
+        :type="props.exportRuleListOptions?.warning ? 'warning' : 'default'"
         :title="$t('options_profileExportRuleListHelp')"
         @click="exportRuleList()"
       >
-        <span class="glyphicon glyphicon-list" />
+        <GlyphIcon name="list" />
         {{ $t('options_profileExportRuleList') }}
-      </button>
-      {{ ' ' }}
-      <button
+      </NButton>
+      <NButton
         v-if="isScriptable"
-        class="btn btn-default"
         :title="$t('options_exportPacFileHelp')"
         @click="exportScript()"
       >
-        <span class="glyphicon glyphicon-download" />
+        <GlyphIcon name="download" />
         {{ $t('options_profileExportPac') }}
-      </button>
-      {{ ' ' }}
-      <button
-        class="btn btn-default"
+      </NButton>
+      <NButton
         @click="showRenameModal = true"
       >
-        <span class="glyphicon glyphicon-edit" />
+        <GlyphIcon name="edit" />
         {{ $t('options_renameProfile') }}
-      </button>
-      {{ ' ' }}
-      <button
-        class="btn btn-danger"
+      </NButton>
+      <NButton
+        type="error"
         @click="emit('delete')"
       >
-        <span class="glyphicon glyphicon-trash" />
+        <GlyphIcon name="trash" />
         {{ $t('options_deleteProfile') }}
-      </button>
+      </NButton>
     </div>
 
     <span class="profile-color-editor">
@@ -119,12 +111,12 @@ function onColorChange(color: string) {
         class="profile-color-editor-fake"
         :style="{ backgroundColor: profileColor }"
       />
-      <input
+      <NColorPicker
         v-else
-        type="color"
-        :value="profile.color || '#9ce'"
-        @change="onColorChange(($event.target as HTMLInputElement).value)"
-      >
+        v-model:value="profile.color"
+        :default-value="profile.color || '#9ce'"
+        @update:value="optionsStore.markDirty()"
+      />
     </span>
 
     <h2 class="profile-name">

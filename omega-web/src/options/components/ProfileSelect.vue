@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, h } from 'vue';
+import { NDropdown, NButton } from 'naive-ui';
 import { useProfilesStore } from '@/stores/profiles';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import { useOptionsStore } from '@/stores/options';
 
 const props = defineProps<{
@@ -14,16 +16,14 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const profilesStore = useProfilesStore();
 const optionsStore = useOptionsStore();
-const isOpen = ref(false);
-const rootRef = ref<HTMLElement | null>(null);
 
 function getIcon(profile: any): string {
-  if (!profile) return 'glyphicon-question-sign';
+  if (!profile) return 'question-sign';
   let target = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
     target = profilesStore.getVirtualTarget(profile, optionsStore.options);
   }
-  return profilesStore.profileIcons[target?.profileType] || 'glyphicon-question-sign';
+  return profilesStore.profileIcons[target?.profileType] || 'question-sign';
 }
 
 function getColor(profile: any): string {
@@ -53,96 +53,51 @@ const selectedLabel = computed(() => {
   return props.modelValue || '';
 });
 
-function toggle(e: MouseEvent) {
-  e.stopPropagation();
-  isOpen.value = !isOpen.value;
-}
+const dropdownOptions = computed(() => {
+  const opts: Array<{
+    key: string
+    label: string
+    icon: () => ReturnType<typeof h>
+  }> = [];
 
-function select(name: string) {
-  emit('update:modelValue', name);
-  isOpen.value = false;
-}
-
-// Close on click outside
-function onDocumentClick(e: MouseEvent) {
-  if (!isOpen.value) return;
-  const root = rootRef.value;
-  if (root && !root.contains(e.target as Node)) {
-    isOpen.value = false;
+  if (props.defaultText) {
+    opts.push({
+      key: '',
+      label: props.defaultText,
+      icon: () => h('span', { style: 'width: 1em; display: inline-block' }),
+    });
   }
-}
 
-// Close on Escape
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isOpen.value) {
-    isOpen.value = false;
+  for (const p of props.profiles) {
+    opts.push({
+      key: p.name,
+      label: dispName(p.name),
+      icon: () => h(GlyphIcon, { name: getIcon(p), color: getColor(p) }),
+    });
   }
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick, true);
-  document.addEventListener('keydown', onKeydown);
+  return opts;
 });
 
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick, true);
-  document.removeEventListener('keydown', onKeydown);
-});
+function handleSelect(key: string) {
+  emit('update:modelValue', key);
+}
 </script>
 
 <template>
-  <div
-    ref="rootRef"
-    class="dropdown omega-profile-select"
-    :class="{ open: isOpen }"
+  <NDropdown
+    class="omega-profile-select"
+    trigger="click"
+    :options="dropdownOptions"
+    @select="handleSelect"
   >
-    <button
-      class="btn btn-default dropdown-toggle"
-      type="button"
-      @click="toggle($event)"
-    >
-      <span
-        :class="['glyphicon', getIcon(selectedProfile)]"
-        :style="{ color: getColor(selectedProfile) }"
-      />
+    <NButton block>
+      <template #icon>
+        <GlyphIcon
+          :name="getIcon(selectedProfile)"
+          :color="getColor(selectedProfile)"
+        />
+      </template>
       {{ selectedLabel }}
-      <span class="caret" />
-    </button>
-    <ul
-      v-if="isOpen"
-      class="dropdown-menu"
-      style="display: block;"
-    >
-      <li v-if="defaultText">
-        <a
-          href="#"
-          @click.prevent="select('')"
-        >
-          {{ defaultText }}
-        </a>
-      </li>
-      <li
-        v-for="p in profiles"
-        :key="p.name"
-      >
-        <a
-          href="#"
-          @click.prevent="select(p.name)"
-        >
-          <span
-            :class="['glyphicon', getIcon(p)]"
-            :style="{ color: getColor(p) }"
-          />
-          {{ dispName(p.name) }}
-        </a>
-      </li>
-    </ul>
-  </div>
+    </NButton>
+  </NDropdown>
 </template>
-
-<style scoped>
-.dropdown-menu {
-  max-height: 300px;
-  overflow-y: auto;
-}
-</style>

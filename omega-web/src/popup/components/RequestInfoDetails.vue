@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue';
+import { NButton, NAlert, NCheckbox, NTag, NSpace, NText } from 'naive-ui';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import ProfileSelect from '../../options/components/ProfileSelect.vue';
@@ -80,27 +81,28 @@ async function configureMonitor() {
       </p>
 
       <!-- Error display -->
-      <div
+      <NAlert
         v-if="addDomainsError"
-        class="alert alert-danger"
-        style="margin-top: 8px;"
+        type="error"
+        style="margin: 8px 0 12px;"
       >
         {{ addDomainsError }}
-      </div>
+      </NAlert>
 
       <!-- Warning and help text -->
-      <p class="text-warning">
+      <p style="color: #8a6d3b;">
         {{ target.getMessage('popup_requestErrorWarning') }}
       </p>
-      <p class="help-block">
+      <NText depth="3" style="font-size:12px;">
         {{ target.getMessage('popup_requestErrorWarningHelp') }}
-      </p>
-      <p
+      </NText>
+      <NText
         v-if="store.currentProfileCanAddRule"
-        class="help-block"
+        depth="3"
+        style="font-size:12px;"
       >
         {{ target.getMessage('popup_requestErrorAddCondition') }}
-      </p>
+      </NText>
 
       <!-- Domain list with checkboxes -->
       <div
@@ -108,14 +110,15 @@ async function configureMonitor() {
         :key="d.domain"
         style="margin: 3px 0;"
       >
-        <label>
-          <input
-            v-model="domainsForCondition[d.domain]"
-            type="checkbox"
-          >
-          <span class="label label-warning">{{ d.errorCount }}</span>
+        <NCheckbox
+          :checked="domainsForCondition[d.domain]"
+          @update:checked="(v: boolean) => domainsForCondition[d.domain] = v"
+        >
+          <NTag type="warning" size="small" style="margin-right: 4px;">
+            {{ d.errorCount }}
+          </NTag>
           {{ d.domain }}
-        </label>
+        </NCheckbox>
       </div>
 
       <!-- Profile select (only shown when can add rule) -->
@@ -131,42 +134,38 @@ async function configureMonitor() {
       </div>
 
       <!-- Cannot add rule message -->
-      <p
+      <NText
         v-if="!store.currentProfileCanAddRule"
-        class="help-block"
+        depth="3"
+        style="font-size:12px;"
       >
         {{ target.getMessage('popup_requestErrorCannotAddCondition') }}
-      </p>
+      </NText>
 
       <!-- Action buttons -->
-      <p
+      <div
         class="om-dialog-controls"
         style="margin-top: 10px;"
       >
-        <button
-          class="om-btn om-btn-default"
-          type="button"
-          @click="store.returnToMenu()"
-        >
-          {{ target.getMessage('dialog_cancel') }}
-        </button>
-        <button
-          v-if="store.currentProfileCanAddRule"
-          class="om-btn om-btn-primary"
-          type="submit"
-        >
-          {{ target.getMessage('popup_addCondition') }}
-        </button>
-        <button
-          v-if="!store.currentProfileCanAddRule"
-          class="om-btn om-btn-default"
-          type="button"
-          style="float: right;"
-          @click="configureMonitor()"
-        >
-          {{ target.getMessage('popup_configureMonitorWebRequests') }}
-        </button>
-      </p>
+        <NSpace justify="end">
+          <NButton type="button" @click="store.returnToMenu()">
+            {{ target.getMessage('dialog_cancel') }}
+          </NButton>
+          <NButton
+            v-if="store.currentProfileCanAddRule"
+            type="primary"
+            @click="addConditionsForDomains"
+          >
+            {{ target.getMessage('popup_addCondition') }}
+          </NButton>
+          <NButton
+            v-if="!store.currentProfileCanAddRule"
+            @click="configureMonitor()"
+          >
+            {{ target.getMessage('popup_configureMonitorWebRequests') }}
+          </NButton>
+        </NSpace>
+      </div>
     </form>
   </div>
 </template>

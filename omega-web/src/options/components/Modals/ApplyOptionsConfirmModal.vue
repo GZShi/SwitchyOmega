@@ -1,22 +1,25 @@
 <script setup lang="ts">
-import BaseModal from '@/options/components/BaseModal.vue';
+import { NButton, NSpace } from 'naive-ui';
+import AppModal from '@/options/components/AppModal.vue';
 
 const emit = defineEmits<{ close: []; confirm: [] }>();
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_applyOptions')"
     @close="emit('close')"
   >
     <p>{{ $t('options_applyOptionsConfirm') }}</p>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-primary" @click="emit('confirm')">
-        {{ $t('options_apply') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="primary" @click="emit('confirm')">
+          {{ $t('options_apply') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

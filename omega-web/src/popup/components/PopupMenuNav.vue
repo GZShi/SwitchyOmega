@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { NInput } from 'naive-ui';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import { useProfilesStore } from '@/stores/profiles';
 import { MENU_KEY_LABELS, getProfileKeyLabel } from '@/popup/constants/keymap';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const store = usePopupStore();
 const target = usePopupTarget();
@@ -153,10 +155,7 @@ const hasTempRule = computed(() =>
         :title="getProfileTitle(store.availableProfiles['+direct'])"
         @click.prevent="handleApplyProfile('direct')"
       >
-        <span
-          class="glyphicon glyphicon-transfer"
-          style="color: #aaa;"
-        />
+        <GlyphIcon name="transfer" color="#aaa" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-direct'] }}</span>
         <span class="om-profile-name">{{ getDispName(store.availableProfiles['+direct'] || { name: 'direct' }) }}</span>
       </a>
@@ -171,10 +170,7 @@ const hasTempRule = computed(() =>
         :title="getProfileTitle(store.availableProfiles['+system'])"
         @click.prevent="handleApplyProfile('system')"
       >
-        <span
-          class="glyphicon glyphicon-off"
-          style="color: #000;"
-        />
+        <GlyphIcon name="off" color="#000" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-system'] }}</span>
         <span class="om-profile-name">{{ getDispName(store.availableProfiles['+system'] || { name: 'system' }) }}</span>
       </a>
@@ -191,7 +187,7 @@ const hasTempRule = computed(() =>
         role="button"
         @click.prevent="store.showRequestInfo = true"
       >
-        <span class="glyphicon glyphicon-warning-sign" />
+        <GlyphIcon name="warning-sign" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-reqinfo'] }}</span>
         <span class="om-reqinfo-text">
           {{ target.getMessage('popup_requestErrorCount', [String(store.pageInfo.errorCount)]) }}
@@ -211,9 +207,9 @@ const hasTempRule = computed(() =>
         :title="getProfileTitle(store.externalProfile)"
         @click.prevent="store.saveExternalOpen = !store.saveExternalOpen"
       >
-        <span
-          :class="['glyphicon', getIcon(store.externalProfile)]"
-          :style="{ color: getIconColor(store.externalProfile) }"
+        <GlyphIcon
+          :name="getIcon(store.externalProfile)"
+          :color="getIconColor(store.externalProfile)"
         />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-external'] }}</span>
         <span
@@ -225,13 +221,14 @@ const hasTempRule = computed(() =>
           style="display: inline;"
           @submit.prevent="handleSaveExternal()"
         >
-          <input
-            v-model="externalName"
+          <NInput
+            v-model:value="externalName"
+            size="small"
             :placeholder="target.getMessage('popup_externalProfileName')"
             autofocus
             style="width: 120px;"
             @blur="handleSaveExternal()"
-          >
+          />
         </form>
       </a>
     </li>
@@ -257,10 +254,9 @@ const hasTempRule = computed(() =>
             :title="getProfileTitle(profile)"
             @click.prevent="handleApplyProfile(profile.name)"
           >
-            <span
-              :class="['glyphicon', getIcon(profile),
-                       { 'om-virtual-profile-icon': isVirtual(profile) }]"
-              :style="{ color: getIconColor(profile) }"
+            <GlyphIcon
+              :name="getIcon(profile)"
+              :color="getIconColor(profile)"
             />
             <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ getProfileKeyLabel(idx) }}</span>
             <span class="om-profile-name">{{ getDispName(profile) }}</span>
@@ -270,7 +266,7 @@ const hasTempRule = computed(() =>
               class="om-edit-toggle"
               @click.stop.prevent="toggleDefaultDropdown(profile.name)"
             >
-              <span class="glyphicon glyphicon-chevron-down" />
+              <GlyphIcon name="chevron-down" />
             </div>
           </a>
           <!-- Default Profile Dropdown -->
@@ -289,10 +285,9 @@ const hasTempRule = computed(() =>
                 role="button"
                 @click.prevent="handleSetDefaultProfile(profile.name, rp.name)"
               >
-                <span
-                  :class="['glyphicon', getIcon(rp),
-                           { 'om-virtual-profile-icon': isVirtual(rp) }]"
-                  :style="{ color: getIconColor(rp) }"
+                <GlyphIcon
+                  :name="getIcon(rp)"
+                  :color="getIconColor(rp)"
                 />
                 <span class="om-profile-name">{{ getDispName(rp) }}</span>
               </a>
@@ -318,7 +313,7 @@ const hasTempRule = computed(() =>
         role="button"
         @click.prevent="handleAddRule()"
       >
-        <span class="glyphicon glyphicon-plus" />
+        <GlyphIcon name="plus" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-addrule'] }}</span>
         <span>{{ target.getMessage('popup_addCondition') }}</span>
       </a>
@@ -336,7 +331,7 @@ const hasTempRule = computed(() =>
         role="button"
         @click.prevent="toggleTempRuleMenu()"
       >
-        <span class="glyphicon glyphicon-filter" />
+        <GlyphIcon name="filter" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-temprule'] }}</span>
         <span>
           <span class="om-page-domain">{{ store.currentDomain }}</span>
@@ -359,10 +354,9 @@ const hasTempRule = computed(() =>
             role="button"
             @click.prevent="handleAddTempRule(rp.name)"
           >
-            <span
-              :class="['glyphicon', getIcon(rp),
-                       { 'om-virtual-profile-icon': isVirtual(rp) }]"
-              :style="{ color: getIconColor(rp) }"
+            <GlyphIcon
+              :name="getIcon(rp)"
+              :color="getIconColor(rp)"
             />
             <span class="om-profile-name">{{ getDispName(rp) }}</span>
           </a>
@@ -380,7 +374,7 @@ const hasTempRule = computed(() =>
         role="button"
         @click.prevent="openOptions()"
       >
-        <span class="glyphicon glyphicon-wrench" />
+        <GlyphIcon name="wrench" />
         <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-option'] }}</span>
         <span>{{ target.getMessage('popup_showOptions') }}</span>
       </a>

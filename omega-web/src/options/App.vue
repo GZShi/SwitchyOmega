@@ -6,6 +6,7 @@ import { useOptionsStore } from '@/stores/options';
 import { useUiStore } from '@/stores/ui';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
+import { NaiveProvider } from '@/naive-ui';
 import NavigationSidebar from './components/NavigationSidebar.vue';
 import AlertBar from './components/AlertBar.vue';
 import WelcomeModal from './components/WelcomeModal.vue';
@@ -21,13 +22,6 @@ const OmegaPac = useOmegaPac();
 const showWelcome = ref(false);
 const welcomeIsUpgrade = ref(false);
 let showFirstRunOnce = true;
-
-const alertIcons: Record<string, string> = {
-  success: 'glyphicon-ok',
-  warning: 'glyphicon-warning-sign',
-  error: 'glyphicon-remove',
-  danger: 'glyphicon-danger',
-};
 
 function findFirstFixedProfile(): string | null {
   let profileName: string | null = null;
@@ -86,9 +80,6 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 }
 window.addEventListener('beforeunload', onBeforeUnload);
 
-// Hide alert on click
-document.addEventListener('click', () => uiStore.hideAlert(), false);
-
 onMounted(async () => {
   optionsStore.onOptionsChange(() => {
     showFirstRun();
@@ -109,36 +100,36 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    id="omega-options"
-    class="omega-layout"
-  >
-    <!-- Sidebar Navigation -->
-    <NavigationSidebar />
+  <NaiveProvider>
+    <div
+      id="omega-options"
+      class="omega-layout"
+    >
+      <!-- Sidebar Navigation -->
+      <NavigationSidebar />
 
-    <!-- Main Content -->
-    <main class="omega-main">
-      <AlertBar
-        v-if="uiStore.alertShown && uiStore.alert"
-        :type="uiStore.alert.type"
-        :message="uiStore.alert.message"
-        :icon="alertIcons[uiStore.alert.type]"
+      <!-- Main Content -->
+      <main class="omega-main">
+        <AlertBar
+          v-if="uiStore.alertShown && uiStore.alert"
+          :type="uiStore.alert.type"
+          :message="uiStore.alert.message"
+        />
+        <router-view />
+      </main>
+
+      <!-- Welcome Wizard -->
+      <WelcomeModal
+        v-if="showWelcome"
+        :is-upgrade="welcomeIsUpgrade"
+        @close="handleWelcomeResult($event)"
       />
-      <router-view />
-    </main>
-
-    <!-- Welcome Wizard -->
-    <WelcomeModal
-      v-if="showWelcome"
-      :is-upgrade="welcomeIsUpgrade"
-      @close="handleWelcomeResult($event)"
-    />
-  </div>
+    </div>
+  </NaiveProvider>
 </template>
 
 <style lang="less">
 @import '../styles/common.less';
-@import '../styles/options.less';
 
 // Phase A: Flexbox layout replaces Bootstrap's float-based grid + position:fixed
 // This avoids overlap issues at breakpoint transitions.
@@ -217,34 +208,6 @@ onBeforeUnmount(() => {
   }
 }
 
-// Ensure modals sit above everything (the sticky sidebar creates a stacking
-// context; we Teleport modals to body so they escape it, but we still set
-// high z-index to be safe across browsers).
-.modal-backdrop {
-  position: fixed !important;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1040 !important;
-  background-color: rgba(0, 0, 0, 0.5);
-}
 
-.modal {
-  position: fixed !important;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1050 !important;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
 
-.modal-dialog {
-  position: relative;
-  width: auto;
-  margin: 30px auto;
-  max-width: 600px;
-}
 </style>

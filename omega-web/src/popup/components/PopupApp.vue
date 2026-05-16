@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useEventListener } from '@vueuse/core';
+import { NaiveProvider } from '@/naive-ui';
 import { usePopupStore } from '@/stores/popup';
 import PopupMenuNav from './PopupMenuNav.vue';
 import ConditionForm from './ConditionForm.vue';
@@ -84,7 +85,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <NaiveProvider>
     <!-- Proxy Not Controllable fallback -->
     <ProxyNotControllable v-if="store.proxyNotControllable" />
 
@@ -102,5 +103,5 @@ onMounted(async () => {
       v-if="store.showKeyboardHelp"
       @close="store.showKeyboardHelp = false"
     />
-  </div>
+  </NaiveProvider>
 </template>

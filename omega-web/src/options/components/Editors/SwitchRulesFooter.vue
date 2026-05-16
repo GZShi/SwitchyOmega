@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
+import { NButton, NCheckbox } from 'naive-ui';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const props = defineProps<{
   showNotes: boolean;
@@ -32,13 +34,13 @@ const emit = defineEmits<{
         style="border-left: none;"
         :colspan="props.showNotes ? 5 : 4"
       >
-        <button
-          class="btn btn-default btn-sm"
+        <NButton
+          size="small"
           @click="emit('addRule')"
         >
-          <span class="glyphicon glyphicon-plus" />
+          <GlyphIcon name="plus" />
           {{ $t('options_addCondition') }}
-        </button>
+        </NButton>
       </td>
     </tr>
   </tbody>
@@ -49,22 +51,15 @@ const emit = defineEmits<{
   >
     <tr>
       <td style="border-right: none;">
-        <span
-          class="glyphicon"
-          :class="props.profileIcon"
-        />
+        <GlyphIcon :name="props.profileIcon" />
       </td>
       <td style="border-left: none;">
-        <span class="checkbox">
-          <label>
-            <input
-              type="checkbox"
-              :checked="props.attachedOptionsEnabled"
-              @change="emit('update:attachedOptionsEnabled', ($event.target as HTMLInputElement).checked); emit('dirty')"
-            >
-            {{ $t('options_switchAttachedProfileInCondition') }}
-          </label>
-        </span>
+        <NCheckbox
+          :checked="props.attachedOptionsEnabled"
+          @update:checked="emit('update:attachedOptionsEnabled', $event); emit('dirty')"
+        >
+          {{ $t('options_switchAttachedProfileInCondition') }}
+        </NCheckbox>
       </td>
       <td>
         <span v-if="props.attachedOptionsEnabled">
@@ -83,13 +78,14 @@ const emit = defineEmits<{
         />
       </td>
       <td>
-        <button
-          class="btn btn-danger btn-sm"
+        <NButton
+          type="error"
+          size="small"
           :title="$t('options_deleteAttached')"
           @click="emit('removeAttached')"
         >
-          <span class="glyphicon glyphicon-trash" />
-        </button>
+          <GlyphIcon name="trash" />
+        </NButton>
       </td>
       <td v-if="props.showNotes" />
     </tr>
@@ -109,13 +105,14 @@ const emit = defineEmits<{
         />
       </td>
       <td>
-        <button
-          class="btn btn-info btn-sm"
+        <NButton
+          type="info"
+          size="small"
           :title="$t('options_resetRules_help')"
           @click="emit('resetRules')"
         >
-          <span class="glyphicon glyphicon-chevron-up" />
-        </button>
+          <GlyphIcon name="chevron-up" />
+        </NButton>
       </td>
       <td v-if="props.showNotes" />
     </tr>

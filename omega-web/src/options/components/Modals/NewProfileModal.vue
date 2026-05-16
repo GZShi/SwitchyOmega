@@ -3,7 +3,9 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import BaseModal from '@/options/components/BaseModal.vue';
+import { NInput, NButton, NSpace, NText, NRadioGroup, NRadio } from 'naive-ui';
+import AppModal from '@/options/components/AppModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const emit = defineEmits<{ close: [] }>();
 const router = useRouter();
@@ -63,88 +65,108 @@ function submit() {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_newProfile')"
+    size="lg"
     @close="emit('close')"
   >
-    <form @submit.prevent="submit">
-      <!-- Name -->
-      <div
-        class="form-group"
-        :class="{ 'has-error': nameError && nameError.kind !== 'required' }"
+    <!-- Name -->
+    <div style="margin-bottom: 20px">
+      <label for="profile-new-name">
+        {{ $t('options_newProfileName') }}
+      </label>
+      <NInput
+        id="profile-new-name"
+        v-model:value="newProfile.name"
+        type="text"
+        :status="nameError && nameError.kind !== 'required' ? 'error' : undefined"
+        autofocus
+        @keydown.enter.prevent="submit"
+      />
+      <NText
+        v-if="nameError?.kind === 'required'"
+        depth="3"
+        style="font-size: 12px"
       >
-        <label for="profile-new-name">
-          {{ $t('options_newProfileName') }}
-        </label>
-        <input
-          id="profile-new-name"
-          v-model="newProfile.name"
-          class="form-control"
-          type="text"
-          required
-          autofocus
+        {{ $t('options_profileNameEmpty') }}
+      </NText>
+      <NText
+        v-if="nameError?.kind === 'reserved'"
+        depth="3"
+        style="font-size: 12px"
+      >
+        {{ $t('options_profileNameReserved') }}
+      </NText>
+      <NText
+        v-if="nameError?.kind === 'conflict'"
+        depth="3"
+        style="font-size: 12px"
+      >
+        {{ $t('options_profileNameConflict') }}
+      </NText>
+      <NText
+        v-if="nameHidden"
+        depth="3"
+        style="font-size: 12px"
+      >
+        <span style="color: #2080f0">
+          <GlyphIcon name="info-sign" />
+          {{ $t('options_profileNameHidden') }}
+        </span>
+      </NText>
+    </div>
+
+    <!-- Type -->
+    <label>{{ $t('options_profileType') }}</label>
+
+    <NRadioGroup v-model:value="newProfile.profileType" name="profile-new-type">
+      <div
+        v-for="pt in profileTypes"
+        :key="pt.value"
+        style="margin-bottom: 8px"
+      >
+        <NRadio
+          :value="pt.value"
+          :disabled="pt.value === 'PacProfile' && pacProfilesUnsupported"
         >
-        <div v-if="nameError?.kind === 'required'" class="help-block">
-          {{ $t('options_profileNameEmpty') }}
-        </div>
-        <div v-if="nameError?.kind === 'reserved'" class="help-block">
-          {{ $t('options_profileNameReserved') }}
-        </div>
-        <div v-if="nameError?.kind === 'conflict'" class="help-block">
-          {{ $t('options_profileNameConflict') }}
-        </div>
-        <div v-if="nameHidden" class="help-block">
-          <div class="text-info">
-            <span class="glyphicon glyphicon-info-sign" />
-            {{ $t('options_profileNameHidden') }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Type -->
-      <label>{{ $t('options_profileType') }}</label>
-
-      <div v-for="pt in profileTypes" :key="pt.value" class="radio">
-        <label>
-          <input
-            v-model="newProfile.profileType"
-            type="radio"
-            name="profile-new-type"
-            :value="pt.value"
-            :disabled="pt.value === 'PacProfile' && pacProfilesUnsupported"
-          >
           <span class="profile-type">
-            <span
-              class="glyphicon"
-              :class="[profileIcon(pt.value), { 'virtual-profile-icon': pt.isVirtual }]"
-            />
+            <GlyphIcon :name="profileIcon(pt.value)" />
             <span>
               {{ $t('options_profileType' + pt.value) }}
             </span>
           </span>
-          <div class="help-block">
-            {{ $t('options_profileDesc' + pt.value) }}
-          </div>
-          <div v-if="pt.value === 'PacProfile' && !pacProfilesUnsupported" class="help-block">
-            {{ $t('options_profileDescMorePacProfile') }}
-          </div>
-          <div v-if="pt.value === 'PacProfile' && pacProfilesUnsupported" class="has-error">
-            <div class="help-block">
-              <span class="glyphicon glyphicon-warning-sign" />
-              {{ $t('options_pac_profile_unsupported_moz') }}
-            </div>
-          </div>
-        </label>
+        </NRadio>
+      <NText depth="3" style="font-size: 12px; margin-left: 24px">
+        {{ $t('options_profileDesc' + pt.value) }}
+      </NText>
+      <NText
+        v-if="pt.value === 'PacProfile' && !pacProfilesUnsupported"
+        depth="3"
+        style="font-size: 12px; margin-left: 24px"
+      >
+        {{ $t('options_profileDescMorePacProfile') }}
+      </NText>
+      <div
+        v-if="pt.value === 'PacProfile' && pacProfilesUnsupported"
+        style="margin-left: 24px"
+      >
+        <NText type="error" style="font-size: 12px">
+          <GlyphIcon name="warning-sign" />
+          {{ $t('options_pac_profile_unsupported_moz') }}
+        </NText>
       </div>
+    </div>
+    </NRadioGroup>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" @click="emit('close')">
+    <template #footer>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
           {{ $t('dialog_cancel') }}
-        </button>
-        <button type="submit" class="btn btn-primary" :disabled="!isValid">
+        </NButton>
+        <NButton type="primary" :disabled="!isValid" @click="submit">
           {{ $t('options_createProfile') }}
-        </button>
-      </div>
-    </form>
-  </BaseModal>
+        </NButton>
+      </NSpace>
+    </template>
+  </AppModal>
 </template>

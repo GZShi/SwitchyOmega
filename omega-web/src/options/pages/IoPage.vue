@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, onMounted } from 'vue';
+import { NButton, NAlert, NCheckbox, NInput, NText } from 'naive-ui';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useUiStore } from '@/stores/ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const omega = useOmegaTarget();
 const optionsStore = useOptionsStore();
@@ -131,35 +133,31 @@ async function resetOptionsSync() {
 
 <template>
   <div>
-    <div class="page-header">
+    <div>
       <h2>{{ $t('options_tab_importExport') }}</h2>
     </div>
 
     <!-- Profile export help + legacy toggle -->
     <section class="settings-group">
       <h3>{{ $t('options_group_importExportProfile') }}</h3>
-      <div class="help-block">
-        <div class="text-info">
-          <span class="glyphicon glyphicon-info-sign" />
+      <NText depth="3" style="font-size: 12px">
+        <div style="color: #31708f;">
+          <GlyphIcon name="info-sign" />
           {{ $t('options_exportProfileHelp') }}
         </div>
-      </div>
+      </NText>
       <div
         v-if="!(optionsStore.options['-showConditionTypes'] > 0)"
-        class="checkbox"
       >
-        <label>
-          <input
-            v-model="optionsStore.options['-exportLegacyRuleList']"
-            type="checkbox"
-            @change="optionsStore.markDirty()"
-          >
-          <span>{{ $t('options_exportLegacyRuleList') }}</span>
-        </label>
-        <p
-          class="help-block"
-          v-html="$t('options_exportLegacyRuleListHelp')"
-        />
+        <NCheckbox
+          v-model:checked="optionsStore.options['-exportLegacyRuleList']"
+          @update:checked="optionsStore.markDirty()"
+        >
+          {{ $t('options_exportLegacyRuleList') }}
+        </NCheckbox>
+        <NText depth="3" style="font-size: 12px">
+          <span v-html="$t('options_exportLegacyRuleListHelp')" />
+        </NText>
       </div>
     </section>
 
@@ -168,14 +166,13 @@ async function resetOptionsSync() {
       <h3>{{ $t('options_group_importExportSettings') }}</h3>
 
       <p>
-        <button
-          class="btn btn-default"
+        <NButton
           @click="exportOptions()"
         >
-          <span class="glyphicon glyphicon-floppy-save" />
+          <GlyphIcon name="floppy-save" />
           {{ $t('options_makeBackup') }}
-        </button>
-        <span class="help-inline">{{ $t('options_makeBackupHelp') }}</span>
+        </NButton>
+        <span style="margin-left: 10px; color: #595959;">{{ $t('options_makeBackupHelp') }}</span>
       </p>
 
       <p>
@@ -186,35 +183,30 @@ async function resetOptionsSync() {
           style="display: none;"
           @change="restoreLocal($event)"
         >
-        <button
-          class="btn btn-default"
+        <NButton
           :disabled="restoringLocal"
           @click="triggerFileInput()"
         >
-          <span class="glyphicon glyphicon-folder-open" />
+          <GlyphIcon name="folder-open" />
           {{ $t('options_restoreLocal') }}
-        </button>
-        <span class="help-inline">{{ $t('options_restoreLocalHelp') }}</span>
+        </NButton>
+        <span style="margin-left: 10px; color: #595959;">{{ $t('options_restoreLocalHelp') }}</span>
       </p>
 
       <div>
         <label>{{ $t('options_restoreOnline') }}</label>
-        <div class="input-group width-limit">
-          <input
-            v-model="restoreOnlineUrl"
-            class="form-control"
-            type="url"
+        <div class="width-limit" style="display: flex; gap: 4px;">
+          <NInput
+            v-model:value="restoreOnlineUrl"
             :placeholder="$t('options_restoreOnlinePlaceholder')"
+            style="flex: 1;"
+          />
+          <NButton
+            :disabled="!restoreOnlineUrl || restoringOnline"
+            @click="restoreOnline()"
           >
-          <span class="input-group-btn">
-            <button
-              class="btn btn-default"
-              :disabled="!restoreOnlineUrl || restoringOnline"
-              @click="restoreOnline()"
-            >
-              {{ $t('options_restoreOnlineSubmit') }}
-            </button>
-          </span>
+            {{ $t('options_restoreOnlineSubmit') }}
+          </NButton>
         </div>
       </div>
     </section>
@@ -224,73 +216,68 @@ async function resetOptionsSync() {
       <h3>{{ $t('options_group_syncing') }}</h3>
 
       <div v-if="syncOptions === 'pristine' || syncOptions === 'disabled'">
-        <p
-          class="help-block"
-          v-html="$t('options_syncPristineHelp')"
-        />
+        <NText depth="3" style="font-size: 12px">
+          <span v-html="$t('options_syncPristineHelp')" />
+        </NText>
         <p>
-          <button
-            class="btn btn-default"
+          <NButton
             @click="enableOptionsSync()"
           >
-            <span class="glyphicon glyphicon-cloud-upload" />
+            <GlyphIcon name="cloud-upload" />
             {{ $t('options_syncEnable') }}
-          </button>
+          </NButton>
         </p>
       </div>
 
       <div v-if="syncOptions === 'sync'">
-        <p class="alert alert-success width-limit">
-          <span class="glyphicon glyphicon-ok" />
+        <NAlert type="success" style="margin-bottom: 12px" class="width-limit">
+          <GlyphIcon name="ok" />
           {{ $t('options_syncSyncAlert') }}
-        </p>
-        <p
-          class="help-block"
-          v-html="$t('options_syncSyncHelp')"
-        />
+        </NAlert>
+        <NText depth="3" style="font-size: 12px">
+          <span v-html="$t('options_syncSyncHelp')" />
+        </NText>
         <p>
-          <button
-            class="btn btn-warning"
+          <NButton
+            type="warning"
             @click="disableOptionsSync()"
           >
-            <span class="glyphicon glyphicon-remove-sign" />
+            <GlyphIcon name="remove-sign" />
             {{ $t('options_syncDisable') }}
-          </button>
+          </NButton>
         </p>
       </div>
 
       <div v-if="syncOptions === 'conflict'">
-        <p class="alert alert-info width-limit">
-          <span class="glyphicon glyphicon-info-sign" />
+        <NAlert type="info" style="margin-bottom: 12px" class="width-limit">
+          <GlyphIcon name="info-sign" />
           {{ $t('options_syncConflictAlert') }}
-        </p>
-        <p
-          class="help-block"
-          v-html="$t('options_syncConflictHelp')"
-        />
+        </NAlert>
+        <NText depth="3" style="font-size: 12px">
+          <span v-html="$t('options_syncConflictHelp')" />
+        </NText>
         <p>
-          <button
-            class="btn btn-danger"
+          <NButton
+            type="error"
             @click="enableOptionsSync(true)"
           >
-            <span class="glyphicon glyphicon-cloud-download" />
+            <GlyphIcon name="cloud-download" />
             {{ $t('options_syncEnableForce') }}
-          </button>
-          <button
-            class="btn btn-link"
+          </NButton>
+          <NButton
+            text
             @click="resetOptionsSync()"
           >
-            <span class="glyphicon glyphicon-erase" />
+            <GlyphIcon name="erase" />
             {{ $t('options_syncReset') }}
-          </button>
+          </NButton>
         </p>
       </div>
 
       <div v-if="syncOptions === 'unsupported'">
-        <p
-          class="help-block"
-          v-html="$t('options_syncUnsupportedHelp')"
-        />
+        <NText depth="3" style="font-size: 12px">
+          <span v-html="$t('options_syncUnsupportedHelp')" />
+        </NText>
       </div>
     </section>
   </div>

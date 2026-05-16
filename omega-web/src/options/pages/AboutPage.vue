@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { NButton, NAlert } from 'naive-ui';
 import { useOptionsStore } from '@/stores/options';
 import { getURL, getManifest, isFirefox } from '@/services/chrome';
 import { readErrorLog } from '@/services/errorLog';
 import ResetOptionsConfirmModal from '@/options/components/Modals/ResetOptionsConfirmModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const optionsStore = useOptionsStore();
 const showResetModal = ref(false);
@@ -43,25 +45,22 @@ function handleReset(opt?: any) {
       v-if="isExperimental"
       class="omega-experimental"
     >
-      <p class="alert alert-warning">
-        <span class="glyphicon glyphicon-warning-sign" />
+      <NAlert type="warning" style="margin-bottom: 12px">
+        <GlyphIcon name="warning-sign" />
         <span>{{ $t('about_experimental_warning_moz') }}</span>
-      </p>
+      </NAlert>
     </section>
 
     <section>
-      <div
-        class="media"
-        style="margin: 1em 0"
-      >
-        <div class="media-left">
+      <div style="display: flex; gap: 16px; margin: 1em 0;">
+        <div style="flex-shrink: 0;">
           <img
-            class="media-object"
             :src="appIconUrl"
+            style="width: 64px; height: 64px;"
           >
         </div>
-        <div class="media-body">
-          <h4 class="media-heading">
+        <div>
+          <h4 style="margin-top: 0;">
             {{ $t('appNameShort') }}
           </h4>
           <p>{{ $t('about_app_description') }}</p>
@@ -71,43 +70,42 @@ function handleReset(opt?: any) {
 
     <section>
       <p>
-        <button
-          class="btn btn-info"
+        <NButton
+          type="info"
           @click="reportIssue()"
         >
-          <span class="glyphicon glyphicon-comment" />
+          <GlyphIcon name="comment" />
           {{ $t('popup_reportIssues') }}
-        </button>
-        <button
-          class="btn btn-default"
+        </NButton>
+        <NButton
           @click="downloadLog()"
         >
-          <span class="glyphicon glyphicon-download" />
+          <GlyphIcon name="download" />
           {{ $t('popup_errorLog') }}
-        </button>
-        <button
-          class="btn btn-danger"
+        </NButton>
+        <NButton
+          type="error"
           @click="resetOptions()"
         >
-          <span class="glyphicon glyphicon-alert" />
+          <GlyphIcon name="alert" />
           {{ $t('options_reset') }}
-        </button>
+        </NButton>
       </p>
     </section>
 
     <section>
       <p>{{ $t('about_version', [version]) }}</p>
 
-      <p class="text-warning">
-        <span class="glyphicon glyphicon-info-sign" />
+      <p style="color: #8a6d3b">
+        <GlyphIcon name="info-sign" />
         <span v-html="$t('about_disclaimer_networkService')" />
       </p>
-      <p class="text-success">
-        <span class="glyphicon glyphicon-eye-close" />
+      <p style="color: #3c763d">
+        <GlyphIcon name="eye-close" />
         <span v-html="$t('about_disclaimer_privacy')" />
       </p>
-      <p class="text-info">
-        <span class="glyphicon glyphicon-question-sign" />
+      <p style="color: #31708f">
+        <GlyphIcon name="question-sign" />
         <span v-html="$t('about_help')" />
       </p>
     </section>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { formatDate } from '@/composables/useFormatters';
+import { NButton, NAlert, NInput, NRadioGroup, NRadio, NText } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 defineProps<{
   attached: any;
@@ -18,73 +20,70 @@ const emit = defineEmits<{
   <!-- Attached rule list config -->
   <section class="settings-group">
     <h3>{{ $t('options_group_ruleListConfig') }}</h3>
-    <div class="form-group">
+    <div>
       <label>{{ $t('options_ruleListFormat') }}</label>
-      <div
-        v-for="fmt in ruleListFormats"
-        :key="fmt"
-        class="radio inline-form-control no-min-width"
+      <NRadioGroup
+        :value="attached.format"
+        name="attachedFormat"
+        @update:value="(val: string) => { attached.format = val; emit('dirty'); }"
       >
-        <label>
-          <input
-            v-model="attached.format"
-            type="radio"
-            name="attachedFormat"
-            :value="fmt"
-            @change="emit('dirty')"
-          >
+        <NRadio
+          v-for="fmt in ruleListFormats"
+          :key="fmt"
+          :value="fmt"
+          style="margin-right: 12px;"
+        >
           {{ $t('ruleListFormat_' + fmt) || fmt }}
-        </label>
-      </div>
+        </NRadio>
+      </NRadioGroup>
     </div>
-    <div class="form-group">
+    <div>
       <label>{{ $t('options_group_ruleListUrl') }}</label>
-      <input
-        v-model="attached.sourceUrl"
-        type="url"
-        class="form-control width-limit inline-form-control"
+      <NInput
+        v-model:value="attached.sourceUrl"
         style="vertical-align: middle"
-        @change="emit('dirty')"
-      >
+        @update:value="emit('dirty')"
+      />
     </div>
-    <p class="help-block">
+    <NText depth="3" style="font-size: 12px">
       {{ $t('options_ruleListUrlHelp') }}
-    </p>
+    </NText>
     <p>
-      <button
-        class="btn btn-default"
+      <NButton
+        :type="attached.sourceUrl && !attached.lastUpdate ? 'primary' : 'default'"
         :disabled="!attached.sourceUrl || updating"
-        :class="attached.sourceUrl && !attached.lastUpdate ? 'btn-primary' : 'btn-default'"
         @click="emit('download')"
       >
-        <span class="glyphicon glyphicon-download-alt" />
+        <GlyphIcon name="download-alt" />
         {{ $t('options_downloadProfileNow') }}
-      </button>
+      </NButton>
     </p>
   </section>
 
   <!-- Attached rule list text -->
   <section class="settings-group">
     <h3>{{ $t('options_group_ruleListText') }}</h3>
-    <p
+    <NAlert
       v-if="attached.sourceUrl && attached.lastUpdate"
-      class="alert alert-success width-limit"
+      type="success"
+      style="margin-bottom: 12px"
     >
       {{ $t('options_ruleListLastUpdate', [formatDate(attached.lastUpdate)]) }}
-    </p>
-    <p
+    </NAlert>
+    <NAlert
       v-if="attached.sourceUrl && !attached.lastUpdate"
-      class="alert alert-danger width-limit"
+      type="error"
+      style="margin-bottom: 12px"
     >
       {{ $t('options_ruleListObsolete') }}
-    </p>
-    <textarea
-      id="attached-rulelist"
-      v-model="attached.ruleList"
-      class="monospace form-control width-limit"
-      rows="20"
+    </NAlert>
+    <NInput
+      type="textarea"
+      v-model:value="attached.ruleList"
+      :rows="20"
       :disabled="!!attached.sourceUrl"
-      @change="emit('dirty')"
+      style="font-family: monospace"
+      @update:value="emit('dirty')"
     />
   </section>
 </template>

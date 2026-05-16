@@ -8,6 +8,8 @@ import { useProfilesStore } from '@/stores/profiles';
 import { useUiStore } from '@/stores/ui';
 import { formatDate } from '@/composables/useFormatters';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
+import { NButton, NAlert, NInput, NRadioGroup, NRadio, NText } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const profile = defineModel<any>('profile', { required: true });
 const props = defineProps<{ profileName: string }>();
@@ -49,7 +51,7 @@ async function downloadProfile() {
     <!-- Rule List Config -->
     <section class="settings-group">
       <h3>{{ $t('options_group_ruleListConfig') }}</h3>
-      <div class="form-group">
+      <div>
         <label>{{ $t('options_ruleListMatchProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
@@ -58,7 +60,7 @@ async function downloadProfile() {
           @update:model-value="profile.matchProfileName = $event; optionsStore.markDirty()"
         />
       </div>
-      <div class="form-group">
+      <div>
         <label>{{ $t('options_ruleListDefaultProfile') }}</label>
         <ProfileSelect
           style="display: inline-block;"
@@ -67,76 +69,73 @@ async function downloadProfile() {
           @update:model-value="profile.defaultProfileName = $event; optionsStore.markDirty()"
         />
       </div>
-      <div class="form-group">
+      <div>
         <label>{{ $t('options_ruleListFormat') }}</label>
-        <div
-          v-for="fmt in ruleListFormats"
-          :key="fmt"
-          class="radio inline-form-control no-min-width"
+        <NRadioGroup
+          :value="profile.format"
+          @update:value="(v: any) => { profile.format = v; optionsStore.markDirty(); }"
         >
-          <label>
-            <input
-              v-model="profile.format"
-              type="radio"
-              name="formatInput"
-              :value="fmt"
-              @change="optionsStore.markDirty()"
-            >
+          <NRadio
+            v-for="fmt in ruleListFormats"
+            :key="fmt"
+            :value="fmt"
+            style="display: inline-block; margin-right: 12px;"
+          >
             {{ getFormatLabel(fmt) }}
-          </label>
-        </div>
+          </NRadio>
+        </NRadioGroup>
       </div>
     </section>
 
     <!-- Source URL -->
     <section class="settings-group">
       <h3>{{ $t('options_group_ruleListUrl') }}</h3>
-      <input
-        v-model="profile.sourceUrl"
-        type="url"
-        class="form-control width-limit"
-        @change="optionsStore.markDirty()"
-      >
-      <p class="help-block">
+      <NInput
+        v-model:value="profile.sourceUrl"
+        @update:value="optionsStore.markDirty()"
+      />
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_ruleListUrlHelp') }}
-      </p>
+      </NText>
     </section>
 
     <!-- Rule List Text -->
     <section class="settings-group">
       <h3>{{ $t('options_group_ruleListText') }}</h3>
 
-      <p
+      <NAlert
         v-if="profile.sourceUrl && profile.lastUpdate"
-        class="alert alert-success width-limit"
+        type="success"
+        style="margin-bottom: 12px"
       >
         {{ $t('options_ruleListLastUpdate', [formatDate(profile.lastUpdate)]) }}
-      </p>
-      <p
+      </NAlert>
+      <NAlert
         v-if="profile.sourceUrl && !profile.lastUpdate"
-        class="alert alert-danger width-limit"
+        type="error"
+        style="margin-bottom: 12px"
       >
         {{ $t('options_ruleListObsolete') }}
-      </p>
+      </NAlert>
 
       <p>
-        <button
-          class="btn btn-default"
+        <NButton
+          :type="profile.sourceUrl && !profile.lastUpdate ? 'primary' : 'default'"
           :disabled="!profile.sourceUrl || updating"
-          :class="profile.sourceUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
           @click="downloadProfile()"
         >
-          <span class="glyphicon glyphicon-download-alt" />
+          <GlyphIcon name="download-alt" />
           {{ $t('options_downloadProfileNow') }}
-        </button>
+        </NButton>
       </p>
 
-      <textarea
-        v-model="profile.ruleList"
-        class="monospace form-control width-limit"
-        rows="20"
+      <NInput
+        type="textarea"
+        v-model:value="profile.ruleList"
+        :rows="20"
         :disabled="!!profile.sourceUrl"
-        @change="optionsStore.markDirty()"
+        style="font-family: monospace"
+        @update:value="optionsStore.markDirty()"
       />
     </section>
   </div>

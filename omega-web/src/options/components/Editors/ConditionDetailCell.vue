@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { useOptionsStore } from '@/stores/options';
+import { NInput, NInputNumber, NCheckbox } from 'naive-ui';
 
 const condition = defineModel<any>('condition', { required: true });
 defineProps<{ showNotes?: boolean }>();
@@ -27,13 +28,12 @@ function updateDay(i: number, selected: boolean) {
 <template>
   <!-- FalseCondition -->
   <template v-if="condition.conditionType === 'FalseCondition'">
-    <input
+    <NInput
       v-if="condition.pattern"
-      v-model="condition.pattern"
-      class="form-control"
+      :value="condition.pattern"
       disabled
       :title="$t('condition_details_FalseCondition')"
-    >
+    />
     <span v-else>{{ $t('condition_details_FalseCondition') }}</span>
   </template>
   <!-- HostLevels -->
@@ -41,56 +41,46 @@ function updateDay(i: number, selected: boolean) {
     v-else-if="condition.conditionType === 'HostLevelsCondition'"
     class="host-levels-details"
   >
-    <input
-      v-model.number="condition.minValue"
-      class="form-control"
-      type="number"
-      min="1"
-      max="99"
-      @change="optionsStore.markDirty()"
-    >
+    <NInputNumber
+      v-model:value="condition.minValue"
+      :min="1"
+      :max="99"
+      @update:value="optionsStore.markDirty()"
+    />
     <span>{{ $t('options_hostLevelsBetween') }}</span>
-    <input
-      v-model.number="condition.maxValue"
-      class="form-control"
-      type="number"
-      min="1"
-      max="99"
-      @change="optionsStore.markDirty()"
-    >
+    <NInputNumber
+      v-model:value="condition.maxValue"
+      :min="1"
+      :max="99"
+      @update:value="optionsStore.markDirty()"
+    />
   </span>
   <!-- IP -->
   <span v-else-if="condition.conditionType === 'IpCondition'">
-    <input
-      v-model="condition.pattern"
-      class="form-control"
-      type="text"
+    <NInput
+      v-model:value="condition.pattern"
       placeholder="127.0.0.1/8"
-      @change="optionsStore.markDirty()"
-    >
+      @update:value="optionsStore.markDirty()"
+    />
   </span>
   <!-- Time -->
   <span
     v-else-if="condition.conditionType === 'TimeCondition'"
     class="host-levels-details"
   >
-    <input
-      v-model.number="condition.startHour"
-      class="form-control"
-      type="number"
-      min="0"
-      max="23"
-      @change="optionsStore.markDirty()"
-    >
+    <NInputNumber
+      v-model:value="condition.startHour"
+      :min="0"
+      :max="23"
+      @update:value="optionsStore.markDirty()"
+    />
     <span>{{ $t('options_hourBetween') }}</span>
-    <input
-      v-model.number="condition.endHour"
-      class="form-control"
-      type="number"
-      min="0"
-      max="23"
-      @change="optionsStore.markDirty()"
-    >
+    <NInputNumber
+      v-model:value="condition.endHour"
+      :min="0"
+      :max="23"
+      @update:value="optionsStore.markDirty()"
+    />
   </span>
   <!-- Weekday -->
   <span
@@ -100,23 +90,18 @@ function updateDay(i: number, selected: boolean) {
     <label
       v-for="(_, i) in 'SMTWtFs'.split('')"
       :key="i"
-      class="checkbox-inline"
     >
-      <input
-        type="checkbox"
+      <NCheckbox
         :checked="getWeekdayList(condition.days)[i]"
-        @change="updateDay(i, ($event.target as HTMLInputElement).checked)"
-      >
+        @update:checked="(v: boolean) => updateDay(i, v)"
+      />
       {{ $t('options_weekDayShort_' + i) || 'SMTWTFS'[i] }}
     </label>
   </span>
   <!-- Default (pattern input) -->
-  <input
+  <NInput
     v-else
-    v-model="condition.pattern"
-    class="form-control"
-    type="text"
-    required
-    @change="optionsStore.markDirty()"
-  >
+    v-model:value="condition.pattern"
+    @update:value="optionsStore.markDirty()"
+  />
 </template>

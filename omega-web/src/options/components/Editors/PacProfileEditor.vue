@@ -5,6 +5,8 @@ import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useUiStore } from '@/stores/ui';
 import { formatDate } from '@/composables/useFormatters';
+import { NButton, NAlert, NInput, NText } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
 const profile = defineModel<any>('profile', { required: true });
@@ -76,48 +78,43 @@ async function downloadProfile() {
     <!-- PAC URL section -->
     <section class="settings-group">
       <h3>{{ $t('options_group_pacUrl') }}</h3>
-      <input
-        v-model="profile.pacUrl"
-        type="text"
-        class="form-control width-limit"
-        @change="updatePacUrl()"
-      >
-      <p class="help-block">
+      <NInput
+        v-model:value="profile.pacUrl"
+        @update:value="updatePacUrl()"
+      />
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_pacUrlHelp') }}
-      </p>
+      </NText>
 
       <div
         v-if="pacUrlIsFile && !referenced"
-        class="has-warning"
       >
-        <p class="help-block">
-          <span class="glyphicon glyphicon-warning-sign" />
+        <NText depth="3" style="font-size:12px;">
+          <GlyphIcon name="warning-sign" />
           {{ $t('options_pacUrlFile') }}
-        </p>
+        </NText>
       </div>
       <div
         v-if="pacUrlIsFile && referenced"
-        class="has-error"
       >
-        <p class="help-block">
-          <span class="glyphicon glyphicon-remove-sign" />
+        <NText depth="3" style="font-size:12px;">
+          <GlyphIcon name="remove-sign" />
           {{ $t('options_pacUrlFile') }}
-        </p>
-        <p class="help-block">
+        </NText>
+        <NText depth="3" style="font-size:12px;">
           {{ $t('options_pacUrlFileDisabled') }}
-        </p>
+        </NText>
       </div>
 
       <p v-if="profile.pacUrl && !pacUrlIsFile">
-        <button
-          class="btn"
-          :class="profile.pacUrl && !profile.lastUpdate ? 'btn-primary' : 'btn-default'"
+        <NButton
+          :type="profile.pacUrl && !profile.lastUpdate ? 'primary' : 'default'"
           :disabled="updating"
           @click="downloadProfile()"
         >
-          <span class="glyphicon glyphicon-download-alt" />
+          <GlyphIcon name="download-alt" />
           {{ $t('options_downloadProfileNow') }}
-        </button>
+        </NButton>
       </p>
     </section>
 
@@ -125,20 +122,20 @@ async function downloadProfile() {
     <section class="settings-group">
       <h3>
         {{ $t('options_group_pacScript') }}
-        <button
-          class="btn btn-xs proxy-auth-toggle"
-          :class="hasAuth ? 'btn-success' : 'btn-default'"
-          type="button"
+        <NButton
+          size="tiny"
+          :type="hasAuth ? 'success' : 'default'"
           :title="$t('options_proxy_auth')"
           @click="openAuthModal()"
         >
-          <span class="glyphicon glyphicon-lock" />
-        </button>
+          <GlyphIcon name="lock" />
+        </NButton>
       </h3>
 
-      <div
+      <NAlert
         v-if="hasAuth"
-        class="alert alert-warning width-limit"
+        type="warning"
+        style="margin-bottom: 12px"
       >
         <p>{{ $t('options_proxy_authAllWarningPac') }}</p>
         <p v-if="profile.pacUrl">
@@ -148,30 +145,33 @@ async function downloadProfile() {
           {{ $t('options_proxy_authAllWarningPacScript') }}
         </p>
         <p v-if="referenced">
-          <span class="glyphicon glyphicon-warning-sign" />
+          <GlyphIcon name="warning-sign" />
           {{ $t('options_proxy_authReferencedWarning') }}
         </p>
-      </div>
+      </NAlert>
 
       <div v-if="!pacUrlIsFile">
-        <p
+        <NAlert
           v-if="profile.pacUrl && profile.lastUpdate"
-          class="alert alert-success width-limit"
+          type="success"
+          style="margin-bottom: 12px"
         >
           {{ $t('options_pacScriptLastUpdate', [formatDate(profile.lastUpdate)]) }}
-        </p>
-        <p
+        </NAlert>
+        <NAlert
           v-if="profile.pacUrl && !profile.lastUpdate"
-          class="alert alert-danger width-limit"
+          type="error"
+          style="margin-bottom: 12px"
         >
           {{ $t('options_pacScriptObsolete') }}
-        </p>
-        <textarea
-          v-model="profile.pacScript"
-          class="monospace form-control width-limit"
-          rows="20"
+        </NAlert>
+        <NInput
+          type="textarea"
+          v-model:value="profile.pacScript"
+          :rows="20"
           :disabled="!pacUrlValid || !!profile.pacUrl"
-          @change="optionsStore.markDirty()"
+          style="font-family: monospace"
+          @update:value="optionsStore.markDirty()"
         />
       </div>
     </section>

@@ -2,7 +2,9 @@
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { computed } from 'vue';
 import { useProfilesStore } from '@/stores/profiles';
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
+import { NButton, NSpace } from 'naive-ui';
 
 const props = defineProps<{
   profileName: string;
@@ -26,23 +28,25 @@ const attachedDetails = computed(() => {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_deleteAttached')"
     @close="emit('close')"
   >
     <p>{{ $t('options_deleteAttachedConfirm') }}</p>
-    <div class="well">
-      <span class="glyphicon" :class="[profileIcon]" />
+    <div style="background:#f5f5f5;border:1px solid #e3e3e3;padding:12px;border-radius:4px">
+      <GlyphIcon :name="profileIcon" />
       {{ profileName }}
       <span v-if="attachedDetails">&mdash; {{ attachedDetails }}</span>
     </div>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-danger" @click="emit('confirm')">
-        {{ $t('options_deleteAttached') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="error" @click="emit('confirm')">
+          {{ $t('options_deleteAttached') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

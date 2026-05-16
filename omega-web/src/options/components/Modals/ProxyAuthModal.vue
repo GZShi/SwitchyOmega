@@ -2,7 +2,9 @@
 import { ref, computed, watch } from 'vue';
 import { isFirefox } from '@/services/chrome';
 import { getMessage as $t } from '@/services/chrome/i18n';
-import BaseModal from '@/options/components/BaseModal.vue';
+import { NButton, NSpace, NAlert, NInput } from 'naive-ui';
+import AppModal from '@/options/components/AppModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const props = defineProps<{
   auth: { username?: string; password?: string } | null | undefined;
@@ -16,7 +18,6 @@ const emit = defineEmits<{
 
 const username = ref(props.auth?.username ?? '');
 const password = ref(props.auth?.password ?? '');
-const showPassword = ref(false);
 
 const authSupported = computed(() => {
   if (!props.proxyScheme) return true;
@@ -44,67 +45,51 @@ function save() {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="titleLabel"
     size="sm"
     @close="emit('close')"
   >
     <form @submit.prevent="save">
-      <div v-if="!authSupported" class="alert alert-danger">
-        <span class="glyphicon glyphicon-warning-sign" />
+      <NAlert
+        v-if="!authSupported"
+        type="error"
+        style="margin-bottom: 12px"
+      >
+        <GlyphIcon name="warning-sign" />
         {{ ' ' + ($t('options_proxy_authNotSupported') || 'Proxy authentication is not supported for this protocol.') }}
-      </div>
-      <div class="form-group">
+      </NAlert>
+      <div>
         <label for="proxy-auth-username">{{ $t('options_proxy_username') || 'Username' }}</label>
-        <input
+        <NInput
           id="proxy-auth-username"
-          v-model="username"
-          class="form-control"
-          type="text"
+          v-model:value="username"
           autofocus
-        >
+        />
       </div>
-      <div class="form-group">
+      <div>
         <label for="proxy-auth-password">{{ $t('options_proxy_password') || 'Password' }}</label>
-        <div class="input-group">
-          <input
-            v-if="username"
-            id="proxy-auth-password"
-            v-model="password"
-            class="form-control"
-            :type="showPassword ? 'text' : 'password'"
-          >
-          <input
-            v-else
-            class="form-control"
-            type="text"
-            value=""
-            :placeholder="$t('options_proxyAuthNone') || 'No password'"
-            disabled
-          >
-          <span class="input-group-btn">
-            <button
-              type="button"
-              class="btn btn-default"
-              :disabled="!username"
-              @click="showPassword = !showPassword"
-            >
-              <span
-                class="glyphicon"
-                :class="showPassword ? 'glyphicon-eye-close' : 'glyphicon-eye-open'"
-              />
-            </button>
-          </span>
-        </div>
+        <NInput
+          v-if="username"
+          id="proxy-auth-password"
+          v-model:value="password"
+          type="password"
+          show-password-on="click"
+        />
+        <NInput
+          v-else
+          disabled
+          :placeholder="$t('options_proxyAuthNone') || 'No password'"
+        />
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" @click="emit('close')">
+      <NSpace justify="end" style="margin-top: 16px;">
+        <NButton @click="emit('close')">
           {{ $t('dialog_cancel') }}
-        </button>
-        <button type="submit" class="btn btn-primary">
+        </NButton>
+        <NButton type="primary" @click="save">
           {{ $t('dialog_save') }}
-        </button>
-      </div>
+        </NButton>
+      </NSpace>
     </form>
-  </BaseModal>
+  </AppModal>
 </template>

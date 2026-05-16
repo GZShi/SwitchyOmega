@@ -3,7 +3,9 @@ import { computed } from 'vue';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
 import { getMessage as $t } from '@/services/chrome/i18n';
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
+import { NButton, NSpace, NTag } from 'naive-ui';
 
 const props = defineProps<{
   rule: { condition: { conditionType: string; pattern: string }; profileName: string } | null;
@@ -28,31 +30,34 @@ const conditionTypeLabel = computed(() => {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_deleteRule')"
     @close="emit('close')"
   >
     <p>{{ $t('options_deleteRuleConfirm') }}</p>
-    <div v-if="rule" class="well">
-      <span class="label label-info">{{ conditionTypeLabel }}</span>
-      {{ rule.condition.pattern }}
-      <span class="pull-right">
-        <span
+    <div v-if="rule" style="background:#f5f5f5;border:1px solid #e3e3e3;padding:12px;border-radius:4px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span>
+        <NTag type="info" size="small">{{ conditionTypeLabel }}</NTag>
+        {{ rule.condition.pattern }}
+      </span>
+      <span>
+        <GlyphIcon
           v-if="targetProfileDisplay"
-          class="glyphicon"
-          :class="[targetProfileDisplay.icon]"
-          :style="{ color: targetProfileDisplay.color }"
+          :name="targetProfileDisplay.icon"
+          :color="targetProfileDisplay.color"
         />
         {{ targetProfileDisplay.name || rule.profileName }}
       </span>
     </div>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-danger" @click="emit('confirm')">
-        {{ $t('options_deleteRule') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="error" @click="emit('confirm')">
+          {{ $t('options_deleteRule') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

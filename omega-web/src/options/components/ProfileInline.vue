@@ -2,6 +2,7 @@
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { computed } from 'vue';
 import { useOptionsStore } from '@/stores/options';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 import { useProfilesStore } from '@/stores/profiles';
 
 const props = defineProps<{
@@ -44,10 +45,9 @@ const displayName = computed(() => {
 
 <template>
   <span class="profile-inline">
-    <span
-      class="glyphicon"
-      :class="[icon, { 'virtual-profile-icon': isVirtual }]"
-      :style="{ color }"
+    <GlyphIcon
+      :name="icon"
+      :color="color"
     />
     {{ displayName }}
   </span>

@@ -1,20 +1,31 @@
 <script setup lang="ts">
+import { NAlert } from 'naive-ui'
+import { useUiStore } from '@/stores/ui'
+
 defineProps<{
-  type: string;
-  message: string;
-  icon: string;
-}>();
+  type: string
+  message: string
+}>()
+
+const uiStore = useUiStore()
+
+function alertType(type: string): 'error' | 'warning' | 'success' | 'info' {
+  if (type === 'error' || type === 'danger') return 'error'
+  if (type === 'warning') return 'warning'
+  if (type === 'success') return 'success'
+  return 'info'
+}
 </script>
 
 <template>
   <div class="alert-bar-wrapper">
-    <div
-      :class="['alert', 'alert-' + (type === 'error' ? 'danger' : type)]"
-      role="alert"
+    <NAlert
+      :type="alertType(type)"
+      closable
+      @close="uiStore.hideAlert()"
     >
-      <span :class="['glyphicon', 'glyphicon-' + icon]" />
       {{ message }}
-    </div>
+    </NAlert>
   </div>
 </template>
 
@@ -26,9 +37,5 @@ defineProps<{
   right: 0;
   z-index: 1050;
   padding: 10px;
-}
-.alert {
-  margin-bottom: 0;
-  padding: 8px 15px;
 }
 </style>

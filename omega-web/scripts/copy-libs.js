@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copies vendor libraries from node_modules to build/lib/.
-// Keeps Bootstrap CSS, spectrum-colorpicker, shepherd.js.
+// Keeps spectrum-colorpicker and shepherd.js (Bootstrap replaced by Naive UI).
 
 const fs = require("fs");
 const path = require("path");
@@ -45,29 +45,6 @@ console.log("Copying vendor libraries...");
 if (fs.existsSync(destDir)) {
   fs.rmSync(destDir, { recursive: true });
   console.log("Cleaned build/lib/");
-}
-
-// --- Bootstrap 3 (CSS + fonts only, JS not needed with Vue) ---
-const bootstrapSrc = path.join(nodeModules, "bootstrap", "dist");
-if (fs.existsSync(bootstrapSrc)) {
-  mkdir(path.join(destDir, "bootstrap", "css"));
-  mkdir(path.join(destDir, "bootstrap", "fonts"));
-  copyFile(
-    path.join(bootstrapSrc, "css", "bootstrap.min.css"),
-    path.join(destDir, "bootstrap", "css", "bootstrap.min.css"),
-  );
-  // Copy font files
-  const fontsDir = path.join(bootstrapSrc, "fonts");
-  if (fs.existsSync(fontsDir)) {
-    const fontEntries = fs.readdirSync(fontsDir);
-    for (const f of fontEntries) {
-      copyFile(
-        path.join(fontsDir, f),
-        path.join(destDir, "bootstrap", "fonts", f),
-      );
-    }
-  }
-  console.log("  bootstrap → bootstrap/");
 }
 
 // --- spectrum-colorpicker ---

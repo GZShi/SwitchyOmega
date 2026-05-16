@@ -2,9 +2,11 @@
 import { ref, computed } from 'vue';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ProfileInline from '@/options/components/ProfileInline.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
+import { NButton, NSpace } from 'naive-ui';
 
 const props = defineProps<{
   fromName: string;
@@ -37,18 +39,18 @@ function submit() {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_replaceProfile')"
     @close="emit('close')"
   >
     <form @submit.prevent="submit">
       <p>{{ $t('options_replaceProfileHelp') }}</p>
-      <div class="well">
+      <div style="background:#f5f5f5;border:1px solid #e3e3e3;padding:12px;border-radius:4px">
         <ProfileInline v-if="fromProfile" :profile="fromProfile" />
-        <span class="glyphicon glyphicon-chevron-right" />
+        <GlyphIcon name="chevron-right" />
         <ProfileInline v-if="toProfile" :profile="toProfile" />
       </div>
-      <div class="form-group">
+      <div>
         <label for="replace-from-profile">
           {{ $t('options_replaceProfileConfirm', ['__FROM__', '__TO__']).split('__FROM__')[0] }}
         </label>
@@ -60,8 +62,8 @@ function submit() {
           @update:model-value="fromValue = $event"
         />
       </div>
-      <div class="form-group">
-        <label for="replace-to-profile">→</label>
+      <div>
+        <label for="replace-to-profile">&rarr;</label>
         <ProfileSelect
           id="replace-to-profile"
           style="display: inline-block;"
@@ -70,18 +72,18 @@ function submit() {
           @update:model-value="toValue = $event"
         />
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" @click="emit('close')">
+      <NSpace justify="end" style="margin-top: 16px;">
+        <NButton @click="emit('close')">
           {{ $t('dialog_cancel') }}
-        </button>
-        <button
-          type="submit"
-          class="btn btn-primary"
+        </NButton>
+        <NButton
+          type="primary"
           :disabled="!fromValue || !toValue || fromValue === toValue"
+          @click="submit"
         >
           {{ $t('dialog_ok') }}
-        </button>
-      </div>
+        </NButton>
+      </NSpace>
     </form>
-  </BaseModal>
+  </AppModal>
 </template>

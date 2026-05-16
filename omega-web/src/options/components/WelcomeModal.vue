@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import BaseModal from '@/options/components/BaseModal.vue';
+import AppModal from '@/options/components/AppModal.vue';
+import { NButton, NSpace } from 'naive-ui';
 
 const props = defineProps<{ isUpgrade: boolean }>();
 const emit = defineEmits<{ close: [result: string] }>();
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="props.isUpgrade
       ? $t('options_welcomeUpgrade')
       : $t('options_modalHeader_welcome')"
-    backdrop-class="opacity-half"
     @close="emit('close', 'later')"
   >
     <p v-if="props.isUpgrade">
@@ -21,12 +21,14 @@ const emit = defineEmits<{ close: [result: string] }>();
     </p>
     <p>{{ $t('options_welcomeNormalGuide') }}</p>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close', 'later')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-primary" @click="emit('close', 'show')">
-        {{ $t('dialog_ok') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close', 'later')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="primary" @click="emit('close', 'show')">
+          {{ $t('dialog_ok') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

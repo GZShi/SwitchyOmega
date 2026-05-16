@@ -7,6 +7,8 @@ import { useProfilesStore } from '@/stores/profiles';
 import { useUiStore } from '@/stores/ui';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 import ReplaceProfileModal from '@/options/components/Modals/ReplaceProfileModal.vue';
+import { NButton, NText } from 'naive-ui';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const profile = defineModel<any>('profile', { required: true });
 defineProps<{ profileName: string }>();
@@ -45,10 +47,10 @@ async function doReplace(fromName: string, toName: string) {
   <div>
     <section class="settings-group">
       <h3>{{ $t('options_group_virtualProfile') }}</h3>
-      <p class="help-block">
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_virtualProfileTargetHelp') }}
-      </p>
-      <div class="form-group">
+      </NText>
+      <div>
         <label>{{ $t('options_virtualProfileTarget') }}</label>
         <ProfileSelect
           style="display: inline-block;"
@@ -61,17 +63,16 @@ async function doReplace(fromName: string, toName: string) {
 
     <section class="settings-group">
       <h3>{{ $t('options_group_virtualProfileReplace') }}</h3>
-      <p class="help-block">
+      <NText depth="3" style="font-size:12px;">
         {{ $t('options_virtualProfileReplaceHelp', [dispName(profile.defaultProfileName || '')]) }}
-      </p>
-      <div class="form-group">
-        <button
-          class="btn btn-default"
+      </NText>
+      <div>
+        <NButton
           @click="openReplaceModal()"
         >
-          <span class="glyphicon glyphicon-search" />
+          <GlyphIcon name="search" />
           {{ $t('options_virtualProfileReplace') }}
-        </button>
+        </NButton>
       </div>
     </section>
 

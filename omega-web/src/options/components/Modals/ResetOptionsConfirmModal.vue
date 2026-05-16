@@ -1,24 +1,27 @@
 <script setup lang="ts">
-import BaseModal from '@/options/components/BaseModal.vue';
+import { NButton, NSpace } from 'naive-ui';
+import AppModal from '@/options/components/AppModal.vue';
 
 const emit = defineEmits<{ close: []; confirm: [opt?: any] }>();
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_modalHeader_resetOptions')"
     @close="emit('close')"
   >
-    <p class="text-danger">
+    <p style="color: #a94442">
       {{ $t('options_resetOptionsConfirm') }}
     </p>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-danger" @click="emit('confirm')">
-        {{ $t('options_reset') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="error" @click="emit('confirm')">
+          {{ $t('options_reset') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

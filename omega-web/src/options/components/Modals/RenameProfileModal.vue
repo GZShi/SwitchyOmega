@@ -5,7 +5,8 @@ import { useRouter } from 'vue-router';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import BaseModal from '@/options/components/BaseModal.vue';
+import { NButton, NSpace, NInput, NText } from 'naive-ui';
+import AppModal from '@/options/components/AppModal.vue';
 
 const props = defineProps<{ profile: any; profileName: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -67,29 +68,34 @@ async function submit() {
 </script>
 
 <template>
-  <BaseModal
+  <AppModal
     :title="$t('options_renameProfile')"
     @close="emit('close')"
   >
-    <div class="form-group" :class="{ 'has-error': nameError }">
+    <div>
       <label for="rename-profile-input">{{ $t('options_renameProfileName') }}</label>
-      <input
+      <NInput
         id="rename-profile-input"
-        v-model="newName"
-        class="form-control"
-        type="text"
+        v-model:value="newName"
+        :status="nameError ? 'error' : undefined"
         autofocus
         @keydown.enter="submit()"
-      >
-      <span v-if="nameError" class="help-block">{{ nameError }}</span>
+      />
+      <NText
+        v-if="nameError"
+        depth="3"
+        style="font-size: 12px; margin-top: 4px"
+      >{{ nameError }}</NText>
     </div>
     <template #footer>
-      <button class="btn btn-default" @click="emit('close')">
-        {{ $t('dialog_cancel') }}
-      </button>
-      <button class="btn btn-primary" @click="submit()">
-        {{ $t('options_renameProfile') }}
-      </button>
+      <NSpace justify="end">
+        <NButton @click="emit('close')">
+          {{ $t('dialog_cancel') }}
+        </NButton>
+        <NButton type="primary" @click="submit()">
+          {{ $t('options_renameProfile') }}
+        </NButton>
+      </NSpace>
     </template>
-  </BaseModal>
+  </AppModal>
 </template>

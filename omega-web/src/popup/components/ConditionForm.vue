@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { NButton, NAlert, NSelect, NInput, NSpace, NText } from 'naive-ui';
 import { usePopupStore } from '@/stores/popup';
 import { useProfilesStore } from '@/stores/profiles';
 import { usePopupTarget } from '@/composables/usePopupTarget';
 import ProfileSelect from '../../options/components/ProfileSelect.vue';
+import GlyphIcon from '@/components/GlyphIcon.vue';
 
 const store = usePopupStore();
 const profilesStore = useProfilesStore();
 const target = usePopupTarget();
 
-const conditionTypes = [
+const conditionTypeOptions = [
   { value: 'HostWildcardCondition', label: target.getMessage('condition_HostWildcardCondition') || 'Host Wildcard' },
   { value: 'HostRegexCondition', label: target.getMessage('condition_HostRegexCondition') || 'Host Regex' },
   { value: 'UrlWildcardCondition', label: target.getMessage('condition_UrlWildcardCondition') || 'URL Wildcard' },
@@ -86,48 +88,46 @@ async function openConditionHelp() {
           {{ target.getMessage('popup_addConditionTo') }}
           <span class="profile-inline">{{ getCurrentProfileName() }}</span>
         </legend>
-        <div
+        <NAlert
           v-if="addError"
-          class="alert alert-danger"
+          type="error"
+          style="margin-bottom: 12px"
         >
           {{ addError }}
-        </div>
-        <div class="form-group">
-          <label>
-            {{ target.getMessage('options_conditionType') }}
-            <button
-              type="button"
-              class="btn btn-link btn-sm clear-padding"
+        </NAlert>
+        <div style="margin-bottom: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <span>{{ target.getMessage('options_conditionType') }}</span>
+            <NButton
+              text
+              size="small"
               @click="openConditionHelp()"
             >
               {{ target.getMessage('options_showConditionTypeHelp') }}
-              <span class="glyphicon glyphicon-new-window" />
-            </button>
+              <template #icon>
+                <GlyphIcon name="new-window" />
+              </template>
+            </NButton>
           </label>
-          <select
-            v-model="store.rule.condition.conditionType"
-            class="form-control"
-          >
-            <option
-              v-for="ct in conditionTypes"
-              :key="ct.value"
-              :value="ct.value"
-            >
-              {{ ct.label }}
-            </option>
-          </select>
+          <NSelect
+            :value="store.rule.condition.conditionType"
+            :options="conditionTypeOptions"
+            style="margin-top: 4px;"
+            @update:value="(v: string) => store.rule.condition.conditionType = v"
+          />
         </div>
-        <div class="form-group">
+        <div style="margin-bottom: 12px;">
           <label>{{ target.getMessage('options_conditionDetails') }}</label>
-          <input
-            v-model="store.rule.condition.pattern"
+          <NInput
+            :value="store.rule.condition.pattern"
             type="text"
-            class="form-control condition-details"
             required
             autofocus
-          >
+            style="margin-top: 4px;"
+            @update:value="(v: string) => store.rule.condition.pattern = v"
+          />
         </div>
-        <div class="form-group">
+        <div style="margin-bottom: 12px;">
           <label>{{ target.getMessage('options_resultProfile') }}</label>
           <ProfileSelect
             v-model="store.rule.profileName"
@@ -135,20 +135,18 @@ async function openConditionHelp() {
           />
         </div>
         <div class="condition-controls">
-          <button
-            type="button"
-            class="btn btn-default"
-            @click="store.returnToMenu()"
-          >
-            {{ target.getMessage('dialog_cancel') }}
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="!store.rule.condition.pattern.trim()"
-          >
-            {{ target.getMessage('popup_addCondition') }}
-          </button>
+          <NSpace justify="end">
+            <NButton @click="store.returnToMenu()">
+              {{ target.getMessage('dialog_cancel') }}
+            </NButton>
+            <NButton
+              type="primary"
+              :disabled="!store.rule.condition.pattern.trim()"
+              @click="addCondition"
+            >
+              {{ target.getMessage('popup_addCondition') }}
+            </NButton>
+          </NSpace>
         </div>
       </fieldset>
     </form>

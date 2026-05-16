@@ -29,9 +29,6 @@ body {
   margin: 2px 0;
 }
 
-.om-nav-item > a > .glyphicon {
-  margin-right: 8px;
-}
 
 .om-nav-item > a {
   display: block;
@@ -70,9 +67,6 @@ body {
   background-color: #fcf8e3;
 }
 
-.glyphicon-warning-sign {
-  color: #8a6d3b;
-}
 
 /* Dropdown */
 .om-dropdown {
@@ -187,64 +181,4 @@ body {
 
 .om-dialog-controls {
   margin-bottom: 0;
-}
-
-.om-dialog-controls .om-btn-primary {
-  float: right;
-}
-
-/* Buttons */
-.om-btn {
-  display: inline-block;
-  padding: 6px 12px;
-  margin-bottom: 0;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.42857143;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: middle;
-  cursor: pointer;
-  user-select: none;
-  background-image: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-}
-
-.om-btn-default {
-  color: #333;
-  background-color: #fff;
-  border-color: #ccc;
-}
-
-.om-btn-default:hover {
-  background-color: #e6e6e6;
-  border-color: #adadad;
-}
-
-.om-btn-link {
-  font-weight: 400;
-  color: #337ab7;
-  border-radius: 0;
-  background-color: transparent;
-  box-shadow: none;
-  border-color: transparent;
-}
-
-.om-btn-link:hover {
-  color: #23527c;
-  text-decoration: underline;
-  background-color: transparent;
-}
-
-.om-btn-primary {
-  color: #fff;
-  background-color: #337ab7;
-  border-color: #2e6da4;
-}
-
-.om-btn-primary:hover {
-  color: #fff;
-  background-color: #286090;
-  border-color: #204d74;
 }
