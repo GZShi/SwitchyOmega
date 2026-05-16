@@ -90,13 +90,13 @@ function handleSchemeChange(scheme: string) {
   const prevScheme = prevProxySchemes[scheme];
   const newScheme = proxy.scheme;
 
-  // Fix 4: Clear auth when switching to a scheme that doesn't support proxy auth
+  // Clear auth when switching to a scheme that doesn't support proxy auth
   if (newScheme && !authSupported[newScheme]) {
     delete proxy.username;
     delete proxy.password;
   }
 
-  // Fix 1 & 2: First time selecting a specific scheme — auto-fill port and host
+  // First time selecting a specific scheme — auto-fill port and host
   if (newScheme && !prevScheme) {
     const fallback = getProxy('');
 

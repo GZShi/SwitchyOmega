@@ -1,18 +1,14 @@
-import {
-  sendMessage,
-  sendMessageNoReply,
-  connect,
-  getURL,
-  RUNTIME_ID,
-} from "@/services/chrome/runtime";
-import { query, update, create, reload } from "@/services/chrome/tabs";
+import { sendMessage, connect } from "@/services/chrome/runtime";
+import { query, create } from "@/services/chrome/tabs";
 import { localGet, localSet, localAvailable } from "@/services/chrome/storage";
-import { getMessage } from "@/services/chrome/i18n";
-import { decodeError, isChromeUrl } from "@/services/chrome/rpc";
+import { decodeError } from "@/services/chrome/rpc";
 import type { OmegaTargetWeb } from "@/types/globals";
+import {
+  createBaseMethods,
+  getRequestInfoCallback,
+} from "@/services/omegaTargetBase";
 
 const prefix = "omega.local.";
-const urlParser = document.createElement("a");
 
 async function callBackground(method: string, ...args: any[]): Promise<any> {
   const response = await sendMessage<{ error?: any; result?: any }>({
@@ -25,9 +21,13 @@ async function callBackground(method: string, ...args: any[]): Promise<any> {
   return response.result;
 }
 
+/** Adapt spread-signature callBackground to array-signature expected by createBaseMethods. */
+function callBgArray(method: string, args: any[]): Promise<any> {
+  return callBackground(method, ...args);
+}
+
 const optionsChangeCallbacks: Array<(options: Record<string, any>) => void> =
   [];
-let requestInfoCallback: ((info: any) => void) | null = null;
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 function _notifyCallbacks(opt: Record<string, any>): void {
@@ -48,7 +48,9 @@ function _onStorageChange(
   if (_refreshTimer != null) clearTimeout(_refreshTimer);
   _refreshTimer = setTimeout(() => {
     _refreshTimer = null;
-    omegaTarget.refresh();
+    omegaTarget.refresh().catch((err) => {
+      console.warn("Refresh after storage change failed:", err);
+    });
   }, 300);
 }
 
@@ -67,6 +69,14 @@ function _connectBackground(
 
 export const omegaTarget: OmegaTargetWeb = {
   options: null as Record<string, any> | null,
+
+  ...createBaseMethods(callBgArray),
+
+  // Override addProfile from base to also refresh options after adding
+  async addProfile(profile: any): Promise<any> {
+    await callBackground("addProfile", profile);
+    return omegaTarget.refresh();
+  },
 
   async state(name: string | string[], value?: any): Promise<any> {
     if (!localAvailable) return undefined;
@@ -163,80 +173,16 @@ export const omegaTarget: OmegaTargetWeb = {
     return omegaTarget.refresh();
   },
 
-  getMessage,
-
-  async openOptions(hash?: string): Promise<void> {
-    const optionsUrl = getURL("options/index.html");
-    const tabs = await query({ url: optionsUrl });
-    let url: string;
-    if (hash) {
-      urlParser.href = tabs[0]?.url ?? optionsUrl;
-      urlParser.hash = hash;
-      url = urlParser.href;
-    } else {
-      url = optionsUrl;
-    }
-    if (tabs.length > 0) {
-      const props: any = { active: true };
-      if (hash) props.url = url;
-      await update(tabs[0].id, props);
-    } else {
-      await create({ url });
-    }
-  },
-
-  applyProfile(name: string): Promise<any> {
-    return callBackground("applyProfile", name);
-  },
-
-  applyProfileNoReply(name: string): void {
-    sendMessageNoReply({
-      method: "applyProfile",
-      args: [name],
-      noReply: true,
-    });
-  },
-
-  addTempRule(domain: string, profileName: string): Promise<any> {
-    return callBackground("addTempRule", domain, profileName);
-  },
-
-  addCondition(condition: any, profileName: string): Promise<any> {
-    return callBackground("addCondition", condition, profileName);
-  },
-
-  async addProfile(profile: any): Promise<any> {
-    await callBackground("addProfile", profile);
-    return omegaTarget.refresh();
-  },
-
-  setDefaultProfile(
-    profileName: string,
-    defaultProfileName: string,
-  ): Promise<any> {
-    return callBackground("setDefaultProfile", profileName, defaultProfileName);
-  },
-
   async getActivePageInfo(): Promise<any> {
     const tabs = await query({ active: true, lastFocusedWindow: true });
     if (!tabs[0]?.url) return null;
     const args = { tabId: tabs[0].id, url: tabs[0].url };
-    if (tabs[0].id && requestInfoCallback) {
-      _connectBackground("tabRequestInfo", args, requestInfoCallback);
+    const cb = getRequestInfoCallback();
+    if (tabs[0].id && cb) {
+      _connectBackground("tabRequestInfo", args, cb);
     }
     const info = await callBackground("getPageInfo", args);
     return info?.url ? info : null;
-  },
-
-  async refreshActivePage(): Promise<void> {
-    const tabs = await query({ active: true, lastFocusedWindow: true });
-    if (tabs[0]?.url && !isChromeUrl(tabs[0].url)) {
-      await reload(tabs[0].id, { bypassCache: true });
-    }
-  },
-
-  openManage(): void {
-    create({ url: `chrome://extensions/?id=${RUNTIME_ID}` });
   },
 
   openShortcutConfig(): void {
@@ -249,9 +195,5 @@ export const omegaTarget: OmegaTargetWeb = {
 
   resetOptionsSync(): Promise<any> {
     return callBackground("resetOptionsSync");
-  },
-
-  setRequestInfoCallback(callback: (info: any) => void): void {
-    requestInfoCallback = callback;
   },
 };

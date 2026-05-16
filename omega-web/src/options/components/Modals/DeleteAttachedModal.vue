@@ -5,7 +5,6 @@ import { useProfilesStore } from '@/stores/profiles';
 import BaseModal from '@/options/components/BaseModal.vue';
 
 const props = defineProps<{
-  show: boolean;
   profileName: string;
   parentName: string;
   sourceUrl?: string;
@@ -28,7 +27,6 @@ const attachedDetails = computed(() => {
 
 <template>
   <BaseModal
-    :show="show"
     :title="$t('options_modalHeader_deleteAttached')"
     @close="emit('close')"
   >

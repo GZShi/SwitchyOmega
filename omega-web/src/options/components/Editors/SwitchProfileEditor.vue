@@ -6,8 +6,12 @@ import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
-import { formatDate } from '@/composables/useFormatters';
+import { useUiStore } from '@/stores/ui';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
+import ConditionDetailCell from '@/options/components/Editors/ConditionDetailCell.vue';
+import ConditionHelpSection from '@/options/components/Editors/ConditionHelpSection.vue';
+import SwitchRulesFooter from '@/options/components/Editors/SwitchRulesFooter.vue';
+import AttachedRuleListConfig from '@/options/components/Editors/AttachedRuleListConfig.vue';
 import RuleRemoveConfirmModal from '@/options/components/Modals/RuleRemoveConfirmModal.vue';
 import RuleResetConfirmModal from '@/options/components/Modals/RuleResetConfirmModal.vue';
 import DeleteAttachedModal from '@/options/components/Modals/DeleteAttachedModal.vue';
@@ -36,11 +40,9 @@ const isUrlConditionType: Record<string, boolean> = {
 
 const showConditionTypes = ref(0);
 const conditionHelpShow = ref(false);
-const expandedSection = ref(0);
 const editSource = ref(false);
 const sourceCode = ref('');
 const sourceError = ref<any>(null);
-const sourceTouched = ref(false);
 const showNotes = ref(false);
 const ruleListFormats = computed(() => OmegaPac.Profiles?.ruleListFormats ?? ['Switchy', 'AutoProxy']);
 
@@ -171,21 +173,6 @@ function conditionHasWarning(condition: any): boolean {
   return false;
 }
 
-// Weekday
-const weekdayChars = 'SMTWtFs';
-function getWeekdayList(condition: any): boolean[] {
-  const days = condition.days ?? '-------';
-  return weekdayChars.split('').map((_, i) => days[i] !== '-');
-}
-function updateDay(condition: any, i: number, selected: boolean) {
-  condition.days = condition.days ?? '-------';
-  const char = selected ? weekdayChars[i] : '-';
-  condition.days = condition.days.substring(0, i) + char + condition.days.substring(i + 1);
-  delete condition.startDay;
-  delete condition.endDay;
-  optionsStore.markDirty();
-}
-
 // -- Attached profile ops --
 function attachNew() {
   const newAttached = OmegaPac.Profiles?.create({
@@ -261,13 +248,28 @@ function parseSource(): boolean {
   }
 }
 
+// -- SwitchRulesFooter handlers --
+function onAttachedMatchProfileChange(name: string) {
+  if (attached.value) attached.value.matchProfileName = name;
+  optionsStore.markDirty();
+}
+function onAttachedOptionsEnabledChange(enabled: boolean) {
+  attachedOptions.value.enabled = enabled;
+}
+function onAttachedOptionsDefaultProfileChange(name: string) {
+  attachedOptions.value.defaultProfileName = name;
+  optionsStore.markDirty();
+}
+
 // -- Download attached --
 async function downloadAttached() {
   if (!attached.value) return;
   updating.value = true;
   try {
     await omega.updateProfile(attachedName.value, 'bypass_cache');
-  } catch (_) { /* ignore */ }
+  } catch (e: any) {
+    useUiStore().showAlert('error', e?.message ?? $t('options_downloadFailed'));
+  }
   finally { updating.value = false; }
 }
 
@@ -390,57 +392,12 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
 <template>
   <div>
     <!-- Condition help -->
-    <section
+    <ConditionHelpSection
       v-if="conditionHelpShow"
-      class="condition-help-section settings-group"
-    >
-      <h3>
-        {{ $t('options_group_conditionHelp') }}
-        <button
-          class="close close-condition-help"
-          type="button"
-          @click="conditionHelpShow = false"
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-      </h3>
-      <div
-        v-for="(group, gidx) in conditionTypes"
-        :key="group.group"
-        class="condition-help"
-      >
-        <h4 v-if="getConditionGroupLabel(group.group)">
-          <a
-            role="button"
-            @click="expandedSection = gidx"
-          >
-            <span
-              class="glyphicon"
-              :class="expandedSection === gidx ? 'glyphicon-chevron-down' : 'glyphicon-chevron-right'"
-            />
-            {{ getConditionGroupLabel(group.group) }}
-          </a>
-        </h4>
-        <dl v-if="expandedSection === gidx">
-          <template
-            v-for="type in group.types"
-            :key="type"
-          >
-            <dt>{{ getConditionTypeLabel(type) }}</dt>
-            <dd>
-              <div v-html="$t('condition_help_' + type)" />
-              <div
-                v-if="isUrlConditionType[type]"
-                class="text-danger"
-              >
-                <span class="glyphicon glyphicon-alert" />
-                <span v-html="$t('condition_alert_fullUrlLimitation')" />
-              </div>
-            </dd>
-          </template>
-        </dl>
-      </div>
-    </section>
+      :condition-types="conditionTypes"
+      :is-url-condition-type="isUrlConditionType"
+      @close="conditionHelpShow = false"
+    />
 
     <!-- Switch rules -->
     <section class="settings-group">
@@ -489,7 +446,7 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
           v-model="sourceCode"
           class="monospace form-control width-limit"
           rows="20"
-          @input="sourceTouched = true; optionsStore.markDirty()"
+          @input="optionsStore.markDirty()"
         />
       </div>
 
@@ -562,100 +519,7 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
                 </a>
               </td>
               <td :class="{ 'has-warning': conditionHasWarning(rule.condition) }">
-                <!-- FalseCondition -->
-                <template v-if="rule.condition.conditionType === 'FalseCondition'">
-                  <input
-                    v-if="rule.condition.pattern"
-                    v-model="rule.condition.pattern"
-                    class="form-control"
-                    disabled
-                    :title="$t('condition_details_FalseCondition')"
-                  >
-                  <span v-else>{{ $t('condition_details_FalseCondition') }}</span>
-                </template>
-                <!-- HostLevels -->
-                <span
-                  v-else-if="rule.condition.conditionType === 'HostLevelsCondition'"
-                  class="host-levels-details"
-                >
-                  <input
-                    v-model.number="rule.condition.minValue"
-                    class="form-control"
-                    type="number"
-                    min="1"
-                    max="99"
-                    @change="optionsStore.markDirty()"
-                  >
-                  <span>{{ $t('options_hostLevelsBetween') }}</span>
-                  <input
-                    v-model.number="rule.condition.maxValue"
-                    class="form-control"
-                    type="number"
-                    min="1"
-                    max="99"
-                    @change="optionsStore.markDirty()"
-                  >
-                </span>
-                <!-- IP -->
-                <span v-else-if="rule.condition.conditionType === 'IpCondition'">
-                  <input
-                    v-model="rule.condition.pattern"
-                    class="form-control"
-                    type="text"
-                    placeholder="127.0.0.1/8"
-                    @change="optionsStore.markDirty()"
-                  >
-                </span>
-                <!-- Time -->
-                <span
-                  v-else-if="rule.condition.conditionType === 'TimeCondition'"
-                  class="host-levels-details"
-                >
-                  <input
-                    v-model.number="rule.condition.startHour"
-                    class="form-control"
-                    type="number"
-                    min="0"
-                    max="23"
-                    @change="optionsStore.markDirty()"
-                  >
-                  <span>{{ $t('options_hourBetween') }}</span>
-                  <input
-                    v-model.number="rule.condition.endHour"
-                    class="form-control"
-                    type="number"
-                    min="0"
-                    max="23"
-                    @change="optionsStore.markDirty()"
-                  >
-                </span>
-                <!-- Weekday -->
-                <span
-                  v-else-if="rule.condition.conditionType === 'WeekdayCondition'"
-                  class="host-levels-details"
-                >
-                  <label
-                    v-for="(_, i) in 'SMTWtFs'.split('')"
-                    :key="i"
-                    class="checkbox-inline"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="getWeekdayList(rule.condition)[i]"
-                      @change="updateDay(rule.condition, i, ($event.target as HTMLInputElement).checked)"
-                    >
-                    {{ $t('options_weekDayShort_' + i) || 'SMTWTFS'[i] }}
-                  </label>
-                </span>
-                <!-- Default (pattern input) -->
-                <input
-                  v-else
-                  v-model="rule.condition.pattern"
-                  class="form-control"
-                  type="text"
-                  required
-                  @change="optionsStore.markDirty()"
-                >
+                <ConditionDetailCell v-model:condition="rule.condition" />
               </td>
               <td class="switch-rule-row-target">
                 <ProfileSelect
@@ -697,101 +561,22 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
               </td>
             </tr>
           </tbody>
-          <!-- Add rule button row -->
-          <tbody>
-            <tr>
-              <td style="border-right: none;" />
-              <td
-                style="border-left: none;"
-                :colspan="showNotes ? 5 : 4"
-              >
-                <button
-                  class="btn btn-default btn-sm"
-                  @click="addRule()"
-                >
-                  <span class="glyphicon glyphicon-plus" />
-                  {{ $t('options_addCondition') }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-          <!-- Attached profile row -->
-          <tbody
-            v-if="attached"
-            class="switch-attached"
-          >
-            <tr>
-              <td style="border-right: none;">
-                <span
-                  class="glyphicon"
-                  :class="profilesStore.profileIcons['RuleListProfile']"
-                />
-              </td>
-              <td style="border-left: none;">
-                <span class="checkbox">
-                  <label>
-                    <input
-                      v-model="attachedOptions.enabled"
-                      type="checkbox"
-                    >
-                    {{ $t('options_switchAttachedProfileInCondition') }}
-                  </label>
-                </span>
-              </td>
-              <td>
-                <span v-if="attachedOptions.enabled">
-                  {{ $t('options_switchAttachedProfileInConditionDetails') }}
-                </span>
-                <span v-else>
-                  {{ $t('options_switchAttachedProfileInConditionDisabled') }}
-                </span>
-              </td>
-              <td>
-                <ProfileSelect
-                  :profiles="validResultProfiles"
-                  :model-value="attached.matchProfileName"
-                  :class="{ disabled: !attachedOptions.enabled }"
-                  @update:model-value="attached.matchProfileName = $event; optionsStore.markDirty()"
-                />
-              </td>
-              <td>
-                <button
-                  class="btn btn-danger btn-sm"
-                  :title="$t('options_deleteAttached')"
-                  @click="removeAttached()"
-                >
-                  <span class="glyphicon glyphicon-trash" />
-                </button>
-              </td>
-              <td v-if="showNotes" />
-            </tr>
-          </tbody>
-          <!-- Default profile row -->
-          <tbody>
-            <tr class="switch-default-row">
-              <td />
-              <td colspan="2">
-                {{ $t('options_switchDefaultProfile') }}
-              </td>
-              <td>
-                <ProfileSelect
-                  :profiles="validResultProfiles"
-                  :model-value="attachedOptions.defaultProfileName"
-                  @update:model-value="attachedOptions.defaultProfileName = $event; optionsStore.markDirty()"
-                />
-              </td>
-              <td>
-                <button
-                  class="btn btn-info btn-sm"
-                  :title="$t('options_resetRules_help')"
-                  @click="resetRules()"
-                >
-                  <span class="glyphicon glyphicon-chevron-up" />
-                </button>
-              </td>
-              <td v-if="showNotes" />
-            </tr>
-          </tbody>
+          <SwitchRulesFooter
+            :show-notes="showNotes"
+            :attached="attached"
+            :attached-match-profile-name="attached?.matchProfileName"
+            :attached-options-enabled="attachedOptions.enabled"
+            :attached-options-default-profile-name="attachedOptions.defaultProfileName"
+            :valid-result-profiles="validResultProfiles"
+            :profile-icon="profilesStore.profileIcons['RuleListProfile']"
+            @add-rule="addRule()"
+            @remove-attached="removeAttached()"
+            @reset-rules="resetRules()"
+            @update:attached-match-profile-name="onAttachedMatchProfileChange"
+            @update:attached-options-enabled="onAttachedOptionsEnabledChange"
+            @update:attached-options-default-profile-name="onAttachedOptionsDefaultProfileChange"
+            @dirty="optionsStore.markDirty()"
+          />
         </table>
       </div>
     </section>
@@ -814,89 +599,19 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
       </button>
     </section>
 
-    <!-- Attached rule list config -->
-    <section
+    <AttachedRuleListConfig
       v-if="attached"
-      class="settings-group"
-    >
-      <h3>{{ $t('options_group_ruleListConfig') }}</h3>
-      <div class="form-group">
-        <label>{{ $t('options_ruleListFormat') }}</label>
-        <div
-          v-for="fmt in ruleListFormats"
-          :key="fmt"
-          class="radio inline-form-control no-min-width"
-        >
-          <label>
-            <input
-              v-model="attached.format"
-              type="radio"
-              name="attachedFormat"
-              :value="fmt"
-              @change="optionsStore.markDirty()"
-            >
-            {{ $t('ruleListFormat_' + fmt) || fmt }}
-          </label>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>{{ $t('options_group_ruleListUrl') }}</label>
-        <input
-          v-model="attached.sourceUrl"
-          type="url"
-          class="form-control width-limit inline-form-control"
-          style="vertical-align: middle"
-          @change="optionsStore.markDirty()"
-        >
-      </div>
-      <p class="help-block">
-        {{ $t('options_ruleListUrlHelp') }}
-      </p>
-      <p>
-        <button
-          class="btn btn-default"
-          :disabled="!attached.sourceUrl || updating"
-          :class="attached.sourceUrl && !attached.lastUpdate ? 'btn-primary' : 'btn-default'"
-          @click="downloadAttached()"
-        >
-          <span class="glyphicon glyphicon-download-alt" />
-          {{ $t('options_downloadProfileNow') }}
-        </button>
-      </p>
-    </section>
-
-    <!-- Attached rule list text -->
-    <section
-      v-if="attached"
-      class="settings-group"
-    >
-      <h3>{{ $t('options_group_ruleListText') }}</h3>
-      <p
-        v-if="attached.sourceUrl && attached.lastUpdate"
-        class="alert alert-success width-limit"
-      >
-        {{ $t('options_ruleListLastUpdate', [formatDate(attached.lastUpdate)]) }}
-      </p>
-      <p
-        v-if="attached.sourceUrl && !attached.lastUpdate"
-        class="alert alert-danger width-limit"
-      >
-        {{ $t('options_ruleListObsolete') }}
-      </p>
-      <textarea
-        id="attached-rulelist"
-        v-model="attached.ruleList"
-        class="monospace form-control width-limit"
-        rows="20"
-        :disabled="!!attached.sourceUrl"
-        @change="optionsStore.markDirty()"
-      />
-    </section>
+      :attached="attached"
+      :rule-list-formats="ruleListFormats"
+      :updating="updating"
+      @dirty="optionsStore.markDirty()"
+      @download="downloadAttached()"
+    />
   </div>
 
   <!-- Rule remove confirmation modal -->
   <RuleRemoveConfirmModal
-    :show="showRuleRemoveModal"
+    v-if="showRuleRemoveModal"
     :rule="ruleRemoveIndex != null ? (profile.rules ?? [])[ruleRemoveIndex] ?? null : null"
     @close="showRuleRemoveModal = false"
     @confirm="confirmRemoveRule()"
@@ -904,7 +619,7 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
 
   <!-- Rule reset confirmation modal -->
   <RuleResetConfirmModal
-    :show="showRuleResetModal"
+    v-if="showRuleResetModal"
     :default-profile-name="attachedOptions.defaultProfileName"
     @close="showRuleResetModal = false"
     @confirm="confirmResetRules()"
@@ -912,7 +627,7 @@ if ((profile.value.rules ?? []).some((r: any) => !basicSet.has(r.condition.condi
 
   <!-- Delete attached profile confirmation modal -->
   <DeleteAttachedModal
-    :show="showDeleteAttachedModal"
+    v-if="showDeleteAttachedModal"
     :profile-name="attachedName"
     :parent-name="props.profileName"
     :source-url="attached?.sourceUrl"

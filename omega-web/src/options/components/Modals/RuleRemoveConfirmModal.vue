@@ -6,7 +6,6 @@ import { getMessage as $t } from '@/services/chrome/i18n';
 import BaseModal from '@/options/components/BaseModal.vue';
 
 const props = defineProps<{
-  show: boolean;
   rule: { condition: { conditionType: string; pattern: string }; profileName: string } | null;
 }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
@@ -30,7 +29,6 @@ const conditionTypeLabel = computed(() => {
 
 <template>
   <BaseModal
-    :show="show"
     :title="$t('options_modalHeader_deleteRule')"
     @close="emit('close')"
   >

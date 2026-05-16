@@ -2,52 +2,40 @@
 import { ref, computed } from 'vue';
 import { usePopupStore } from '@/stores/popup';
 import { usePopupTarget } from '@/composables/usePopupTarget';
+import { useProfilesStore } from '@/stores/profiles';
+import { MENU_KEY_LABELS, getProfileKeyLabel } from '@/popup/constants/keymap';
 
 const store = usePopupStore();
 const target = usePopupTarget();
+const profilesStore = useProfilesStore();
 
-const iconForProfileType: Record<string, string> = {
-  DirectProfile: 'glyphicon-transfer',
-  SystemProfile: 'glyphicon-off',
-  AutoDetectProfile: 'glyphicon-file',
-  FixedProfile: 'glyphicon-globe',
-  PacProfile: 'glyphicon-file',
-  VirtualProfile: 'glyphicon-question-sign',
-  RuleListProfile: 'glyphicon-list',
-  SwitchProfile: 'glyphicon-retweet',
-};
+function resolveTarget(profile: any): any {
+  if (!profile) return null;
+  if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
+    return store.availableProfiles[`+${profile.defaultProfileName}`] ?? profile;
+  }
+  return profile;
+}
 
 function getIcon(profile: any): string {
-  if (!profile) return 'glyphicon-question-sign';
-  let targetProfile = profile;
-  if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];
-  }
-  return iconForProfileType[targetProfile?.profileType] || 'glyphicon-question-sign';
+  const target = resolveTarget(profile);
+  if (!target) return 'glyphicon-question-sign';
+  return profilesStore.profileIcons[target.profileType] || 'glyphicon-question-sign';
 }
 
 function getIconColor(profile: any): string {
-  if (!profile) return '#aaa';
-  let targetProfile = profile;
-  if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];
-  }
-  return targetProfile?.color ?? '#aaa';
+  const target = resolveTarget(profile);
+  return target?.color ?? '#aaa';
 }
 
 function isVirtual(profile: any): boolean {
-  if (!profile) return false;
-  if (profile.profileType === 'VirtualProfile') return true;
-  return false;
+  return profile?.profileType === 'VirtualProfile';
 }
 
 function getProfileTitle(profile: any): string {
-  if (!profile) return '';
-  let targetProfile = profile;
-  if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    targetProfile = store.availableProfiles[`+${  profile.defaultProfileName}`];
-  }
-  return targetProfile?.desc ?? targetProfile?.name ?? '';
+  const target = resolveTarget(profile);
+  if (!target) return '';
+  return target.desc ?? target.name ?? '';
 }
 
 function getDispName(profile: any): string {
@@ -169,6 +157,7 @@ const hasTempRule = computed(() =>
           class="glyphicon glyphicon-transfer"
           style="color: #aaa;"
         />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-direct'] }}</span>
         <span class="om-profile-name">{{ getDispName(store.availableProfiles['+direct'] || { name: 'direct' }) }}</span>
       </a>
     </li>
@@ -186,6 +175,7 @@ const hasTempRule = computed(() =>
           class="glyphicon glyphicon-off"
           style="color: #000;"
         />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-system'] }}</span>
         <span class="om-profile-name">{{ getDispName(store.availableProfiles['+system'] || { name: 'system' }) }}</span>
       </a>
     </li>
@@ -202,6 +192,7 @@ const hasTempRule = computed(() =>
         @click.prevent="store.showRequestInfo = true"
       >
         <span class="glyphicon glyphicon-warning-sign" />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-reqinfo'] }}</span>
         <span class="om-reqinfo-text">
           {{ target.getMessage('popup_requestErrorCount', [String(store.pageInfo.errorCount)]) }}
         </span>
@@ -224,6 +215,7 @@ const hasTempRule = computed(() =>
           :class="['glyphicon', getIcon(store.externalProfile)]"
           :style="{ color: getIconColor(store.externalProfile) }"
         />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-external'] }}</span>
         <span
           v-if="!store.saveExternalOpen"
           class="om-profile-name"
@@ -244,7 +236,6 @@ const hasTempRule = computed(() =>
       </a>
     </li>
 
-    <li class="om-divider" />
     <li class="om-divider" />
 
     <!-- Custom Profiles -->
@@ -271,6 +262,7 @@ const hasTempRule = computed(() =>
                        { 'om-virtual-profile-icon': isVirtual(profile) }]"
               :style="{ color: getIconColor(profile) }"
             />
+            <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ getProfileKeyLabel(idx) }}</span>
             <span class="om-profile-name">{{ getDispName(profile) }}</span>
             <!-- Default profile edit toggle -->
             <div
@@ -327,6 +319,7 @@ const hasTempRule = computed(() =>
         @click.prevent="handleAddRule()"
       >
         <span class="glyphicon glyphicon-plus" />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-addrule'] }}</span>
         <span>{{ target.getMessage('popup_addCondition') }}</span>
       </a>
     </li>
@@ -344,6 +337,7 @@ const hasTempRule = computed(() =>
         @click.prevent="toggleTempRuleMenu()"
       >
         <span class="glyphicon glyphicon-filter" />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-temprule'] }}</span>
         <span>
           <span class="om-page-domain">{{ store.currentDomain }}</span>
           <span class="om-caret" />
@@ -387,6 +381,7 @@ const hasTempRule = computed(() =>
         @click.prevent="openOptions()"
       >
         <span class="glyphicon glyphicon-wrench" />
+        <span v-if="store.showKeyboardHelp" class="om-keyboard-help">{{ MENU_KEY_LABELS['js-option'] }}</span>
         <span>{{ target.getMessage('popup_showOptions') }}</span>
       </a>
     </li>

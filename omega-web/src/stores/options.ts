@@ -56,10 +56,15 @@ export const useOptionsStore = defineStore("options", () => {
         }
       }
 
-      const plainOptions = JSON.parse(JSON.stringify(options.value));
-      const patch = diffEngine.diff(optionsOld.value, plainOptions);
-      await omega.optionsPatch(patch);
-      showAlert("success", $t("options_saveSuccess"));
+      try {
+        const plainOptions = JSON.parse(JSON.stringify(options.value));
+        const patch = diffEngine.diff(optionsOld.value, plainOptions);
+        await omega.optionsPatch(patch);
+        showAlert("success", $t("options_saveSuccess"));
+      } catch (err: any) {
+        showAlert("error", String(err));
+        throw err;
+      }
     }
   }
 
@@ -106,17 +111,17 @@ export const useOptionsStore = defineStore("options", () => {
     created.color =
       created.color ?? colors[Math.floor(Math.random() * colors.length)];
     OmegaPac.Profiles.updateRevision(created);
-    options.value[OmegaPac.Profiles.nameAsKey(created)] = created;
+    const key = OmegaPac.Profiles.nameAsKey(created);
+    options.value = { ...options.value, [key]: created };
     markDirty();
     return created;
   }
 
   function deleteProfile(name: string) {
     const key = OmegaPac.Profiles.nameAsKey(name);
-    delete options.value[key];
-    // Clean attached
     const attachedKey = OmegaPac.Profiles.nameAsKey(`__ruleListOf_${name}`);
-    delete options.value[attachedKey];
+    const { [key]: _, [attachedKey]: __, ...rest } = options.value;
+    options.value = rest as Record<string, any>;
     // Clean startup
     if (options.value["-startupProfileName"] === name) {
       options.value["-startupProfileName"] = "";
@@ -124,8 +129,9 @@ export const useOptionsStore = defineStore("options", () => {
     // Clean quick switch
     const qs = options.value["-quickSwitchProfiles"];
     if (qs) {
-      const idx = qs.indexOf(name);
-      if (idx >= 0) qs.splice(idx, 1);
+      options.value["-quickSwitchProfiles"] = qs.filter(
+        (n: string) => n !== name,
+      );
     }
     markDirty();
   }

@@ -1,10 +1,15 @@
 /**
  * Promise wrapper around chrome.runtime.sendMessage.
- * Rejects on chrome.runtime.lastError; resolves with the raw response on success.
+ * Rejects on chrome.runtime.lastError or after timeoutMs (default 5000).
  */
-export function sendMessage<T = any>(message: any): Promise<T> {
+export function sendMessage<T = any>(
+  message: any,
+  timeoutMs = 5000,
+): Promise<T> {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("RPC timeout")), timeoutMs);
     chrome.runtime.sendMessage(message, (response: T) => {
+      clearTimeout(timer);
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
         return;
@@ -12,11 +17,6 @@ export function sendMessage<T = any>(message: any): Promise<T> {
       resolve(response);
     });
   });
-}
-
-/** Fire-and-forget sendMessage (no callback, no wait). */
-export function sendMessageNoReply(message: any): void {
-  chrome.runtime.sendMessage(message);
 }
 
 /** Thin wrapper around chrome.runtime.connect. Returns the raw Port. */
@@ -37,6 +37,7 @@ export function getManifest(): chrome.runtime.Manifest | null {
   try {
     return chrome.runtime.getManifest();
   } catch {
+    // Expected when not running in extension context (e.g. dev server)
     return null;
   }
 }

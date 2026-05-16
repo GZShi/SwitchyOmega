@@ -2,6 +2,7 @@
 import { getMessage as $t } from '@/services/chrome/i18n';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useProfilesStore } from '@/stores/profiles';
+import { useOptionsStore } from '@/stores/options';
 
 const props = defineProps<{
   profiles: any[];
@@ -12,6 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const profilesStore = useProfilesStore();
+const optionsStore = useOptionsStore();
 const isOpen = ref(false);
 const rootRef = ref<HTMLElement | null>(null);
 
@@ -19,7 +21,7 @@ function getIcon(profile: any): string {
   if (!profile) return 'glyphicon-question-sign';
   let target = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    target = profilesStore.getVirtualTarget(profile, {});
+    target = profilesStore.getVirtualTarget(profile, optionsStore.options);
   }
   return profilesStore.profileIcons[target?.profileType] || 'glyphicon-question-sign';
 }
@@ -28,13 +30,13 @@ function getColor(profile: any): string {
   if (!profile) return '#aaa';
   let target = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    target = profilesStore.getVirtualTarget(profile, {});
+    target = profilesStore.getVirtualTarget(profile, optionsStore.options);
   }
   return target?.color ?? '#aaa';
 }
 
 function dispName(name: string): string {
-  return $t(`profile_${  name}`) || name;
+  return $t(`profile_${name}`) || name;
 }
 
 const selectedProfile = computed(() =>

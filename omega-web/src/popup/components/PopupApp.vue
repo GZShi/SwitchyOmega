@@ -56,7 +56,7 @@ function getMenuItems(): HTMLElement[] {
 }
 
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
-  const handler = shortcutKeys[e.key.toLowerCase()];
+  const handler = shortcutKeys[e.key];
   if (!handler) return;
   if (e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA')) return;
 

@@ -20,7 +20,6 @@ export interface OmegaTargetWeb {
   addOptionsChangeCallback(cb: (options: Record<string, any>) => void): void;
   removeOptionsChangeCallback(cb: (options: Record<string, any>) => void): void;
   applyProfile(name: string): Promise<void>;
-  applyProfileNoReply(name: string): void;
   renameProfile(from: string, to: string): Promise<void>;
   replaceRef(from: string, to: string): Promise<void>;
   addProfile(profile: Record<string, any>): Promise<void>;

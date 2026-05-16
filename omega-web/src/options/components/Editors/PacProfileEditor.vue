@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
+import { useUiStore } from '@/stores/ui';
 import { formatDate } from '@/composables/useFormatters';
 import ProxyAuthModal from '@/options/components/Modals/ProxyAuthModal.vue';
 
@@ -60,7 +61,9 @@ async function downloadProfile() {
   updating.value = true;
   try {
     await omega.updateProfile(props.profileName, 'bypass_cache');
-  } catch (_) { /* ignore */ }
+  } catch (e: any) {
+    useUiStore().showAlert('error', e?.message ?? 'Download failed');
+  }
   finally {
     updating.value = false;
   }

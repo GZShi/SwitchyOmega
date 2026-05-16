@@ -21,18 +21,7 @@ const profilesStore = useProfilesStore();
 const fromValue = ref(props.fromName);
 const toValue = ref(props.toName);
 
-const validFromProfiles = computed(() => {
-  const profiles: any[] = [];
-  for (const key of Object.keys(optionsStore.options)) {
-    if (key.startsWith('+')) {
-      const p = optionsStore.options[key];
-      if (!profilesStore.isProfileNameReserved(p.name)) profiles.push(p);
-    }
-  }
-  const builtins = profilesStore.builtinProfiles;
-  for (const key of Object.keys(builtins)) profiles.push(builtins[key]);
-  return profiles;
-});
+const validFromProfiles = computed(() => profilesStore.selectableProfiles);
 
 const validToProfiles = computed(() =>
   validFromProfiles.value.filter((p: any) => p.name !== fromValue.value),

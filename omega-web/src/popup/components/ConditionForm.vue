@@ -44,12 +44,18 @@ watch(
 
 const addError = ref('');
 
+// Clear error when user edits the form fields
+watch(
+  () => [store.rule.condition.pattern, store.rule.condition.conditionType],
+  () => { addError.value = ''; },
+);
+
 async function addCondition() {
   addError.value = '';
   const condition = { ...store.rule.condition };
-  const _profileName = store.rule.profileName;
+  const profileName = store.rule.profileName;
   try {
-    const result = await target.addCondition(condition, _profileName);
+    const result = await target.addCondition(condition, profileName);
     if (result === undefined) {
       addError.value = target.getMessage('popup_addConditionError') || 'Failed to add condition. The current profile may not support conditions.';
       return;

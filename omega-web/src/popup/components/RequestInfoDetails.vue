@@ -42,14 +42,14 @@ async function addConditionsForDomains() {
     addDomainsError.value = target.getMessage('popup_addConditionError') || 'No domains selected.';
     return;
   }
-  const _profileName = profileForDomains.value ?? store.rule.profileName;
+  const profileName = profileForDomains.value ?? store.rule.profileName;
   try {
-    const result = await target.addCondition(conditions, _profileName);
+    const result = await target.addCondition(conditions, profileName);
     if (result === undefined) {
       addDomainsError.value = target.getMessage('popup_addConditionError') || 'Failed to add conditions. The current profile may not support conditions.';
       return;
     }
-  } catch (_) {
+  } catch (e) {
     addDomainsError.value = target.getMessage('popup_addConditionError') || 'Failed to add conditions.';
     return;
   }

@@ -6,33 +6,31 @@ import { useProfilesStore } from '@/stores/profiles';
 import { isFirefox } from '@/services/chrome';
 import { getMessage as $t } from '@/services/chrome/i18n';
 import NewProfileModal from './Modals/NewProfileModal.vue';
-import ApplyOptionsConfirmModal from './Modals/ApplyOptionsConfirmModal.vue';
 
 const router = useRouter();
 const optionsStore = useOptionsStore();
 const profilesStore = useProfilesStore();
 
 const showNewProfileModal = ref(false);
-const showApplyConfirm = ref(false);
 
 const sortedProfiles = computed(() => profilesStore.sortedProfiles);
 
 const isExperimental = isFirefox;
 
 function getIcon(profile: any): string {
-  let target = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    target = profilesStore.profileByName(profile.defaultProfileName);
+    const resolved = profilesStore.resolveTargetProfile(profile.defaultProfileName);
+    return resolved?.icon ?? 'glyphicon-question-sign';
   }
-  return profilesStore.profileIcons[target?.profileType] || 'glyphicon-question-sign';
+  return profilesStore.profileIcons[profile?.profileType] || 'glyphicon-question-sign';
 }
 
 function getProfileColor(profile: any): string {
-  let target = profile;
   if (profile.profileType === 'VirtualProfile' && profile.defaultProfileName) {
-    target = profilesStore.profileByName(profile.defaultProfileName);
+    const resolved = profilesStore.resolveTargetProfile(profile.defaultProfileName);
+    return resolved?.color ?? '#aaa';
   }
-  return target?.color ?? '#aaa';
+  return profile?.color ?? '#aaa';
 }
 
 function dispName(name: string): string {
@@ -44,7 +42,8 @@ function goProfile(name: string) {
 }
 
 function isProfileActive(name: string): boolean {
-  return router.currentRoute.value.params?.name === name;
+  const param = router.currentRoute.value.params?.name;
+  return Array.isArray(param) ? param.join('/') === name : param === name;
 }
 
 function isTabActive(name: string): boolean {
@@ -198,11 +197,6 @@ function revertOptions() {
     <NewProfileModal
       v-if="showNewProfileModal"
       @close="showNewProfileModal = false"
-    />
-    <ApplyOptionsConfirmModal
-      v-if="showApplyConfirm"
-      @close="showApplyConfirm = false"
-      @confirm="applyOptions(); showApplyConfirm = false"
     />
   </header>
 </template>

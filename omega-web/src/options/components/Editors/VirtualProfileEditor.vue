@@ -17,20 +17,11 @@ const uiStore = useUiStore();
 
 const showReplaceModal = ref(false);
 
-const validTargets = computed(() => {
-  const profiles: any[] = [];
-  for (const key of Object.keys(optionsStore.options)) {
-    if (key.startsWith('+')) {
-      const p = optionsStore.options[key];
-      if (p.profileType !== 'VirtualProfile' && !profilesStore.isProfileNameReserved(p.name)) {
-        profiles.push(p);
-      }
-    }
-  }
-  const builtins = profilesStore.builtinProfiles;
-  for (const key of Object.keys(builtins)) profiles.push(builtins[key]);
-  return profiles;
-});
+const validTargets = computed(() =>
+  profilesStore.selectableProfiles.filter(
+    (p: any) => p.profileType !== 'VirtualProfile',
+  ),
+);
 
 function dispName(name: string): string {
   return $t(`profile_${  name}`) || name;

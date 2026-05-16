@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, onScopeDispose } from "vue";
 import { usePopupTarget } from "@/composables/usePopupTarget";
 import { useProfilesStore } from "@/stores/profiles";
 
@@ -137,7 +137,6 @@ export const usePopupStore = defineStore("popup", () => {
       externalProfile.value = extProfile ?? null;
 
       // Build profile lists
-      const charCodeUnderscore = "_".charCodeAt(0);
       const builtin: Profile[] = [];
       const custom: Profile[] = [];
       const preselectedProfileName = "direct";
@@ -146,7 +145,7 @@ export const usePopupStore = defineStore("popup", () => {
         const profile = avails[key];
         if (profile.builtin) {
           builtin.push(profile);
-        } else if (profile.name.charCodeAt(0) !== charCodeUnderscore) {
+        } else if (!profilesStore.isProfileNameHidden(profile.name)) {
           custom.push(profile);
         }
       }
@@ -155,9 +154,7 @@ export const usePopupStore = defineStore("popup", () => {
       const valid: Profile[] = [];
       if (validNames) {
         for (const name of validNames) {
-          const shown =
-            name.charCodeAt(0) !== charCodeUnderscore ||
-            name.charCodeAt(1) !== charCodeUnderscore;
+          const shown = !profilesStore.isProfileNameReserved(name);
           if (shown && avails[`+${name}`]) {
             valid.push(avails[`+${name}`]);
           }
@@ -240,11 +237,11 @@ export const usePopupStore = defineStore("popup", () => {
         // Refresh active page after profile change
         try {
           await target.refreshActivePage();
-        } catch (_) {
-          /* ignore */
+        } catch (e) {
+          console.debug("Suppressed refreshActivePage error:", e);
         }
-      } catch (_) {
-        /* ignore */
+      } catch (e) {
+        console.debug("Suppressed applyProfile error:", e);
       }
       closeWindow();
     }
@@ -254,8 +251,8 @@ export const usePopupStore = defineStore("popup", () => {
     tempRuleMenuOpen.value = false;
     try {
       await target.addTempRule(domain, profileName);
-    } catch (_) {
-      /* ignore */
+    } catch (e) {
+      console.debug("Suppressed addTempRule error:", e);
     }
     closeWindow();
   }
@@ -266,8 +263,8 @@ export const usePopupStore = defineStore("popup", () => {
   ) {
     try {
       await target.setDefaultProfile(profileName, defaultProfileName);
-    } catch (_) {
-      /* ignore */
+    } catch (e) {
+      console.debug("Suppressed setDefaultProfile error:", e);
     }
     closeWindow();
   }
@@ -341,6 +338,11 @@ export const usePopupStore = defineStore("popup", () => {
     showConditionForm.value = false;
     showRequestInfo.value = false;
   }
+
+  // Clean up callbacks on store dispose to prevent memory leaks
+  onScopeDispose(() => {
+    target.removeRequestInfoCallback();
+  });
 
   return {
     // State

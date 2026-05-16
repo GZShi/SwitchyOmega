@@ -1,6 +1,5 @@
 export {
   sendMessage,
-  sendMessageNoReply,
   connect,
   getURL,
   getManifest,

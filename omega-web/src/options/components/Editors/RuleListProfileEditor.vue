@@ -5,6 +5,7 @@ import { useOmegaTarget } from '@/composables/useOmegaTarget';
 import { useOmegaPac } from '@/composables/useOmegaPac';
 import { useOptionsStore } from '@/stores/options';
 import { useProfilesStore } from '@/stores/profiles';
+import { useUiStore } from '@/stores/ui';
 import { formatDate } from '@/composables/useFormatters';
 import ProfileSelect from '@/options/components/ProfileSelect.vue';
 
@@ -19,18 +20,11 @@ const updating = ref(false);
 
 const ruleListFormats = computed(() => OmegaPac.Profiles?.ruleListFormats ?? ['Switchy', 'AutoProxy']);
 
-const validProfiles = computed(() => {
-  const profiles: any[] = [];
-  for (const key of Object.keys(optionsStore.options)) {
-    if (key.startsWith('+')) {
-      const p = optionsStore.options[key];
-      if (p.name !== props.profileName && !profilesStore.isProfileNameReserved(p.name)) {
-        profiles.push(p);
-      }
-    }
-  }
-  return profiles;
-});
+const validProfiles = computed(() =>
+  profilesStore.selectableProfiles.filter(
+    (p: any) => p.name !== props.profileName && !profilesStore.isProfileNameReserved(p.name),
+  ),
+);
 
 function getFormatLabel(format: string): string {
   return $t(`ruleListFormat_${  format}`) || format;
@@ -40,7 +34,9 @@ async function downloadProfile() {
   updating.value = true;
   try {
     await omega.updateProfile(props.profileName, 'bypass_cache');
-  } catch (_) { /* ignore */ }
+  } catch (e: any) {
+    useUiStore().showAlert('error', e?.message ?? 'Download failed');
+  }
   finally {
     updating.value = false;
   }

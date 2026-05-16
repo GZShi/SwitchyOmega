@@ -6,7 +6,6 @@ import { useProfilesStore } from '@/stores/profiles';
 import BaseModal from '@/options/components/BaseModal.vue';
 
 const props = defineProps<{
-  show: boolean;
   defaultProfileName: string;
 }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
@@ -28,7 +27,6 @@ const targetProfileDisplay = computed(() => {
 
 <template>
   <BaseModal
-    :show="show"
     :title="$t('options_modalHeader_resetRules')"
     @close="emit('close')"
   >

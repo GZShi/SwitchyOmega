@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getMessage as $t } from '@/services/chrome/i18n';
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useOptionsStore } from '@/stores/options';
 import { useUiStore } from '@/stores/ui';
@@ -29,6 +29,16 @@ const alertIcons: Record<string, string> = {
   danger: 'glyphicon-danger',
 };
 
+function findFirstFixedProfile(): string | null {
+  let profileName: string | null = null;
+  OmegaPac.Profiles.each(optionsStore.options, (_key: string, profile: any) => {
+    if (!profileName && profile.profileType === 'FixedProfile') {
+      profileName = profile.name;
+    }
+  });
+  return profileName;
+}
+
 // First-run / upgrade wizard
 async function showFirstRun() {
   if (!showFirstRunOnce) return;
@@ -38,14 +48,7 @@ async function showFirstRun() {
   if (!firstRun) return;
   omega.state('firstRun', '');
 
-  // Find first FixedProfile to show
-  let profileName: string | null = null;
-  const opts = optionsStore.options;
-  OmegaPac.Profiles.each(opts, (_key: string, profile: any) => {
-    if (!profileName && profile.profileType === 'FixedProfile') {
-      profileName = profile.name;
-    }
-  });
+  const profileName = findFirstFixedProfile();
   if (!profileName) return;
 
   welcomeIsUpgrade.value = firstRun === 'upgrade';
@@ -55,15 +58,9 @@ async function showFirstRun() {
 function handleWelcomeResult(result: string) {
   showWelcome.value = false;
   if (result === 'show') {
-    // Find first FixedProfile again and navigate
-    let profileName: string | null = null;
-    OmegaPac.Profiles.each(optionsStore.options, (_key: string, profile: any) => {
-      if (!profileName && profile.profileType === 'FixedProfile') {
-        profileName = profile.name;
-      }
-    });
+    const profileName = findFirstFixedProfile();
     if (profileName) {
-      router.push(`/profile/${  encodeURIComponent(profileName)}`);
+      router.push(`/profile/${encodeURIComponent(profileName)}`);
     }
   }
 }
@@ -81,12 +78,13 @@ async function redirectToLastUrl() {
 }
 
 // Window close warning
-window.onbeforeunload = () => {
+function onBeforeUnload(e: BeforeUnloadEvent) {
   if (optionsStore.optionsDirty) {
-    return $t('options_optionsNotSaved');
+    e.preventDefault();
+    e.returnValue = $t('options_optionsNotSaved');
   }
-  return null;
-};
+}
+window.addEventListener('beforeunload', onBeforeUnload);
 
 // Hide alert on click
 document.addEventListener('click', () => uiStore.hideAlert(), false);
@@ -103,6 +101,10 @@ onMounted(async () => {
     omega.lastUrl(to.fullPath);
     uiStore.hideAlert();
   });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', onBeforeUnload);
 });
 </script>
 

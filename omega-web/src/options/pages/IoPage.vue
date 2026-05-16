@@ -101,22 +101,31 @@ async function enableOptionsSync(force = false) {
       await optionsStore.applyOptions();
     }
     await omega.setOptionsSync(true, force ? { force: true } : undefined);
-  } catch (_) { /* ignore */ }
-  finally { window.location.reload(); }
+  } catch (e: any) {
+    showAlert('error', e?.message ?? $t('options_syncEnableFailed'));
+    return;
+  }
+  window.location.reload();
 }
 
 async function disableOptionsSync() {
   try {
     await omega.setOptionsSync(false);
-  } catch (_) { /* ignore */ }
-  finally { window.location.reload(); }
+  } catch (e: any) {
+    showAlert('error', e?.message ?? $t('options_syncDisableFailed'));
+    return;
+  }
+  window.location.reload();
 }
 
 async function resetOptionsSync() {
   try {
     await omega.resetOptionsSync();
-  } catch (_) { /* ignore */ }
-  finally { window.location.reload(); }
+  } catch (e: any) {
+    showAlert('error', e?.message ?? $t('options_syncResetFailed'));
+    return;
+  }
+  window.location.reload();
 }
 </script>
 

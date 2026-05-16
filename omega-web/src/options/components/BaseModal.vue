@@ -15,7 +15,8 @@ const emit = defineEmits<{ close: [] }>();
 const modalRef = ref<HTMLElement | null>(null);
 const previousFocus = ref<HTMLElement | null>(null);
 
-const uid = `modal-${Math.random().toString(36).slice(2, 9)}`;
+let modalSeq = 0;
+const uid = `modal-${++modalSeq}`;
 const titleId = `${uid}-title`;
 
 function getFocusableElements(): HTMLElement[] {
@@ -72,7 +73,13 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  close();
+  if (
+    previousFocus.value &&
+    typeof previousFocus.value.focus === "function" &&
+    document.contains(previousFocus.value)
+  ) {
+    previousFocus.value.focus();
+  }
 });
 </script>
 

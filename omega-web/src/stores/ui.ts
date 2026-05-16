@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, onScopeDispose } from "vue";
 
 export interface Alert {
   type: "success" | "info" | "warning" | "danger" | "error";
@@ -44,6 +44,13 @@ export const useUiStore = defineStore("ui", () => {
     activeModal.value = null;
     modalData.value = {};
   }
+
+  onScopeDispose(() => {
+    if (alertTimer) {
+      clearTimeout(alertTimer);
+      alertTimer = null;
+    }
+  });
 
   return {
     alert,
