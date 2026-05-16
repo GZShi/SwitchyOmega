@@ -14,72 +14,68 @@ or grab a packaged extension file (CRX) for offline installation on the [Release
 
 Please [report issues on the issue tracker.](https://github.com/FelisCatus/SwitchyOmega/issues)
 
-Firefox Addon (Experimental)
-----------------------------
+## 2026 技术栈现代化改造
 
-There is also an experimental WebExtension port, which allows installing in
-**Firefox Nightly Version >= 56**.
+项目已于 2026 年 5 月完成全面的技术栈现代化改造。详情请参阅 **[MIGRATION.md](./MIGRATION.md)**。
 
-**Since the WebExtensions API is still under heavy development on Mozilla's side,
-we strongly recommended using the Nightly channel (>= 56.0) and update frequently.**
+主要变更：
+- **语言迁移:** CoffeeScript → TypeScript（4 个模块，0 个 .coffee 残留）
+- **前端重构:** AngularJS 1.x + Jade → Vue 3 + SFC（39 个组件）
+- **构建工具:** Grunt + Bower → pnpm workspaces + Vite + tsdown
+- **平台升级:** Manifest V2 → V3（Service Worker + ESM）
+- **依赖清理:** 清除 bluebird/xhr/heap/tldjs/po2json/lolex 等 6 个过时依赖
+- **代码质量:** 42 个类型错误清零，60 个代码质量问题修复，25 处 .then() → async/await
 
-The Developer Edition and Beta channels will not receive fixes as often and
-therefore unsupported by SwitchyOmega. Some users report that it works with the
-Firefox Developer Edition (>= 55) as well, but we strongly advise against doing
-so. It won't work at all in Firefox 54 Stable.
+---
 
-You can try it on [Mozilla Add-ons](https://addons.mozilla.org/en-US/firefox/addon/switchyomega/),
-or grab a packaged extension file (XPI) for offline installation on the [Releases page](https://github.com/FelisCatus/SwitchyOmega/releases).
+## Project Architecture
 
-Please make sure that you are using the latest Nightly build before you
-[report issues](https://github.com/FelisCatus/SwitchyOmega/issues).
-Build number AND build date should be mentioned somewhere in the issue.
+### omega-pac (PAC generator)
+Standalone module that handles the profiles model and compiles profiles into PAC
+scripts. Built with TypeScript + tsdown, outputs ESM/CJS/UMD formats.
 
-NOTE: PAC Profiles DO NOT work on Firefox due to AMO review policies. We will see what we can do.
+### omega-target (Options manager)
+Browser-independent logic for managing options and applying profiles. Pure
+TypeScript library, no browser dependencies. Provides abstract base classes
+that are extended by platform-specific targets.
 
-Development status
-------------------
+### omega-web (Configuration UI)
+Web-based configuration interface built with Vue 3 + TypeScript + Vite. Contains
+both the options page (full configuration) and the popup (quick switch). Uses
+Pinia for state management and Vue Router for page navigation.
 
-## PAC generator
-This project contains a PAC generating module called `omega-pac`, which handles
-the profiles model and compile profiles into PAC scripts. This module is standalone
-and can be published to npm when the documentation is ready.
+### omega-target-chromium-extension (Chromium Extension)
+Chromium-specific implementation layer. Contains the Manifest V3 service worker,
+Chrome API wrappers (`services/chrome/`), proxy implementation, and browser-dependent
+code that connects `omega-web` with `omega-target`.
 
-## Options manager
-The folder `omega-target` contains browser-independent logic for managing the
-options and applying profiles. Every public method is well documented in the comments.
-Functions related to browser are not included, and shall be implemented in subclasses
-of the `omega-target` classes.
+## Building the project
 
-`omega-web` is a web-based configuration interface for various options and profiles.
-The interface works great with `omega-target` as the back-end.
+SwitchyOmega uses pnpm workspaces to manage all four modules.
 
-`omega-web` alone is incomplete and requires a file named `omega_target_web.js`
-containing an angular module `omegaTarget`. The module contains browser-dependent
-code to communicate with `omega-target` back-end, and other code retrieving
-browser-related state and information.
-See the `omega-target-chromium-extension/omega_target_web.coffee` file for an
-example of such module.
+To build the project:
 
-## Targets
-The `omega-target-*` folders should contain environment-dependent code such as
-browser API calls.
+```bash
+# Install pnpm first, then:
+pnpm install
 
-Each target folder should contain an extended `OmegaTarget` object, which
-contains subclasses of the abstract base classes like `Options`. The classes
-contains implementation of the abstract methods, and can override other methods
-at will.
+# Build all modules:
+cd omega-pac && pnpm build && cd ..
+cd omega-target && pnpm build && cd ..
+cd omega-web && pnpm build && cd ..
+cd omega-target-chromium-extension && pnpm build && cd ..
 
-A target can copy the files in `omega-web` into its build to provide a web-based
-configuration interface. If so, the target must provide the `omega_target_web.js`
-file as described in the Options manager section.
+# The built extension will be in:
+# omega-target-chromium-extension/build/
+# Load it as an unpacked extension in Chromium.
+```
 
-Additionally, each target can contain other files and resources required for the
-target, such as background pages and extension manifests.
+For development with HMR:
 
-For now, only one target has been implemented: The WebExtension target.
-This target allows the project to be used as a Chromium extension in most
-Chromium-based browsers and also as a Firefox Addon as mentioned above.
+```bash
+cd omega-web
+pnpm dev          # Starts Vite dev server with hot module replacement
+```
 
 ## Translation
 
@@ -91,31 +87,6 @@ below.
 点击下方图片链接进入翻译。
 
 [![Translation status](https://hosted.weblate.org/widgets/switchyomega/-/287x66-white.png)](https://hosted.weblate.org/engage/switchyomega/?utm_source=widget)
-
-## Building the project
-
-SwitchyOmega has migrated to use npm and grunt for building. Please note that
-npm 2.x is required for this project.
-
-To build the project:
-
-    # Install node and npm first (make sure npm --version > 2.0), then:
-    
-    sudo npm install -g grunt-cli@1.2.0 bower
-    # In the project folder:
-    cd omega-build
-    npm run deps # This runs npm install in every module.
-    npm run dev # This runs npm link to aid local development.
-    # Note: the previous command may require sudo in some environments.
-    # The modules are now working. We can build now:
-    grunt
-    # After building, a folder will be generated:
-    cd .. # Return to project root.
-    ls omega-chromium-extension/build/
-    # The folder above can be loaded as an unpacked extension in Chromium now.
-
-To enable `grunt watch`, run `grunt watch` once in the `omega-build` directory.
-This will effectively run `grunt watch` in every module in this project.
 
 License
 -------
